@@ -15,6 +15,9 @@
  *    swapped (1280x720);
  *  - a display plane surface or display mode created with a landscape extent
  *    is created portrait underneath;
+ *  - a program that creates a portrait mode of the panel's size turns the
+ *    picture itself (DuckStation, whose own SDL3 sees the panel as it is),
+ *    so it gets the panel's mode as it is, nothing turned;
  *  - a swapchain on such a surface is created portrait; the program gets
  *    landscape images of the layer's own to render to, and at present time a
  *    small graphics pass draws each one turned by 90 degrees into the real
@@ -105,15 +108,18 @@ typedef struct Mode { struct Mode *next; VkDisplayModeKHR mode; } Mode;
 /* ext: the program's landscape size; panel: the real surface, portrait */
 typedef struct Surf { struct Surf *next; VkSurfaceKHR surf; VkExtent2D ext, panel; int scaled; } Surf;
 
-/* A scaled mode. Its handle is the address of this record, which the driver
-   never sees: the calls that take a mode get the panel's own mode instead.
-   Kept for the life of the process, one per display and size. */
+/* A mode of the layer's own: a scaled one, or (plain) the panel's mode as it
+   is, for a program that asked for it portrait and turns the picture itself.
+   Its handle is the address of this record, which the driver never sees: the
+   calls that take a mode get the panel's own mode instead. Kept for the life
+   of the process, one per display and size. */
 typedef struct VMode {
     struct VMode *next;
     VkDisplayKHR disp;
     VkDisplayModeKHR real;              /* the panel's mode it is shown on */
     VkExtent2D panel;                   /* that mode's size, portrait */
-    VkDisplayModeParametersKHR par;     /* landscape size, the panel's refresh */
+    VkDisplayModeParametersKHR par;     /* the size asked for, the panel's refresh */
+    int plain;                          /* portrait: nothing turned or scaled */
 } VMode;
 
 typedef struct Dev {
@@ -235,6 +241,7 @@ static VMode *vmode_get(VkDisplayKHR disp, const VkDisplayModePropertiesKHR *nat
         v->disp = disp;
         v->par.visibleRegion.width = w;
         v->par.visibleRegion.height = h;
+        v->plain = h > w;
         v->next = g_vmodes; g_vmodes = v;
     }
     if (v) {
@@ -501,43 +508,65 @@ static int display_portrait(Inst *i, VkPhysicalDevice pd, VkDisplayKHR disp)
     return 0;
 }
 
+/* The panel's own mode of a display, as reported (landscape); 0 if it has
+   none, or is not portrait. */
+static int display_native(Inst *i, VkPhysicalDevice pd, VkDisplayKHR disp, VkDisplayModePropertiesKHR *nat)
+{
+    VkDisplayModePropertiesKHR m[MAX_MODES];
+    uint32_t n = MAX_MODES;
+    VkResult r = i->GetModeProps(pd, disp, &n, m);
+    if (r != VK_SUCCESS && r != VK_INCOMPLETE)
+        return 0;
+    for (uint32_t k = 0; k < n; k++)
+        fix_mode(&m[k]);
+    return native_mode(m, n, nat);
+}
+
 static VKAPI_ATTR VkResult VKAPI_CALL L_CreateDisplayMode(VkPhysicalDevice pd, VkDisplayKHR disp,
         const VkDisplayModeCreateInfoKHR *ci, const VkAllocationCallbacks *alloc, VkDisplayModeKHR *out)
 {
     Inst *i = inst_of(pd);
-    if (display_portrait(i, pd, disp) && !portrait(ci->parameters.visibleRegion)) {
-        VkDisplayModeCreateInfoKHR c = *ci;
-        swap_ext(&c.parameters.visibleRegion);
-        VkResult r = i->CreateDisplayMode(pd, disp, &c, alloc, out);
-        if (r == VK_SUCCESS)
-            mode_add(*out);
-        LOG("display mode %ux%u created portrait: %d", ci->parameters.visibleRegion.width,
-            ci->parameters.visibleRegion.height, r);
-        if (r != VK_SUCCESS && g_scaled) {
-            /* the driver makes no mode but the panel's: give a scaled one
-               of any size that fits on it */
-            const VkExtent2D e = ci->parameters.visibleRegion;
-            VkDisplayModePropertiesKHR m[MAX_MODES], nat;
-            uint32_t n = MAX_MODES;
-            VkResult rm = i->GetModeProps(pd, disp, &n, m);
-            if (rm == VK_SUCCESS || rm == VK_INCOMPLETE) {
-                for (uint32_t k = 0; k < n; k++)
-                    fix_mode(&m[k]);
-                if (native_mode(m, n, &nat) && e.width && e.height &&
-                    e.width <= nat.parameters.visibleRegion.width &&
-                    e.height <= nat.parameters.visibleRegion.height) {
-                    VMode *v = vmode_get(disp, &nat, e.width, e.height);
-                    if (v) {
-                        *out = (VkDisplayModeKHR)(uintptr_t)v;
-                        LOG("display mode %ux%u: scaled onto the panel", e.width, e.height);
-                        return VK_SUCCESS;
-                    }
-                }
+    if (!display_portrait(i, pd, disp))
+        return i->CreateDisplayMode(pd, disp, ci, alloc, out);
+    const VkExtent2D e = ci->parameters.visibleRegion;
+    VkDisplayModePropertiesKHR nat;
+    if (portrait(e)) {
+        /* A portrait mode: the program turns the picture itself, as
+           DuckStation does with its own SDL3, which sees the panel as it
+           is. The driver makes no mode at all, not even one of the panel's
+           size, so a request for that size gets the panel's mode untouched,
+           as it was before this layer. */
+        VkResult r = i->CreateDisplayMode(pd, disp, ci, alloc, out);
+        if (r != VK_SUCCESS && display_native(i, pd, disp, &nat) &&
+            e.width == nat.parameters.visibleRegion.height && e.height == nat.parameters.visibleRegion.width) {
+            VMode *v = vmode_get(disp, &nat, e.width, e.height);
+            if (v) {
+                *out = (VkDisplayModeKHR)(uintptr_t)v;
+                LOG("display mode %ux%u: the panel as it is, not turned", e.width, e.height);
+                return VK_SUCCESS;
             }
         }
         return r;
     }
-    return i->CreateDisplayMode(pd, disp, ci, alloc, out);
+
+    VkDisplayModeCreateInfoKHR c = *ci;
+    swap_ext(&c.parameters.visibleRegion);
+    VkResult r = i->CreateDisplayMode(pd, disp, &c, alloc, out);
+    if (r == VK_SUCCESS)
+        mode_add(*out);
+    LOG("display mode %ux%u created portrait: %d", e.width, e.height, r);
+    /* the driver makes no mode but the panel's: give a scaled one of any
+       size that fits on it */
+    if (r != VK_SUCCESS && g_scaled && display_native(i, pd, disp, &nat) && e.width && e.height &&
+        e.width <= nat.parameters.visibleRegion.width && e.height <= nat.parameters.visibleRegion.height) {
+        VMode *v = vmode_get(disp, &nat, e.width, e.height);
+        if (v) {
+            *out = (VkDisplayModeKHR)(uintptr_t)v;
+            LOG("display mode %ux%u: scaled onto the panel", e.width, e.height);
+            return VK_SUCCESS;
+        }
+    }
+    return r;
 }
 
 static void fix_plane_caps(VkDisplayPlaneCapabilitiesKHR *c)
@@ -564,9 +593,9 @@ static VKAPI_ATTR VkResult VKAPI_CALL L_GetPlaneCaps(VkPhysicalDevice pd, VkDisp
     Inst *i = inst_of(pd);
     VMode *v = vmode_find(mode);
     VkResult r = i->GetPlaneCaps(pd, v ? v->real : mode, plane, caps);
-    if (r == VK_SUCCESS && (v || mode_rotated(mode)))
+    if (r == VK_SUCCESS && (v ? !v->plain : mode_rotated(mode)))
         fix_plane_caps(caps);
-    if (r == VK_SUCCESS && v)
+    if (r == VK_SUCCESS && v && !v->plain)
         fix_plane_caps_scaled(caps, v->par.visibleRegion);
     return r;
 }
@@ -579,9 +608,9 @@ static VKAPI_ATTR VkResult VKAPI_CALL L_GetPlaneCaps2(VkPhysicalDevice pd, const
     if (v)
         in.mode = v->real;
     VkResult r = i->GetPlaneCaps2(pd, &in, caps);
-    if (r == VK_SUCCESS && (v || mode_rotated(info->mode)))
+    if (r == VK_SUCCESS && (v ? !v->plain : mode_rotated(info->mode)))
         fix_plane_caps(&caps->capabilities);
-    if (r == VK_SUCCESS && v)
+    if (r == VK_SUCCESS && v && !v->plain)
         fix_plane_caps_scaled(&caps->capabilities, v->par.visibleRegion);
     return r;
 }
@@ -591,6 +620,14 @@ static VKAPI_ATTR VkResult VKAPI_CALL L_CreateDisplayPlaneSurface(VkInstance ins
 {
     Inst *i = inst_of(instance);
     VMode *v = vmode_find(ci->displayMode);
+    if (v && v->plain) {
+        /* the panel as it is: only the handle is the layer's */
+        VkDisplaySurfaceCreateInfoKHR c = *ci;
+        c.displayMode = v->real;
+        VkResult r = i->CreateDisplayPlaneSurface(instance, &c, alloc, out);
+        LOG("display surface %ux%u, not turned: %d", ci->imageExtent.width, ci->imageExtent.height, r);
+        return r;
+    }
     if (!v && (!mode_rotated(ci->displayMode) || ci->transform != VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR))
         return i->CreateDisplayPlaneSurface(instance, ci, alloc, out);
 

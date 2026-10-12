@@ -45,6 +45,14 @@ if [ ! -f "/$directory/ps2/pcsx2/inis/PCSX2.ini" ] && \
     cp /opt/pcsx2/templates/PCSX2.ini "/$directory/ps2/pcsx2/inis/PCSX2.ini"
 fi
 
+# RG52 Mini: VK_LAYER_DARKOS_rotate turns PCSX2's Vulkan picture onto the
+# portrait panel, and SDL turns the GL one, so PCSX2 must not turn it too.
+# Up to 1.0 the template had DisplayRotation = 90, which with the layer drew
+# the picture on its side; an ini made from it on the shared /roms keeps it.
+if [ "$DEVICE" = "RG52MINI" ]; then
+    sed -i 's/^DisplayRotation = 90$/DisplayRotation = 0/' "/$directory/ps2/pcsx2/inis/PCSX2.ini"
+fi
+
 # Tell the killer daemon how to terminate us on hotkey
 echo "VAR=pcsx2-sdl" > /home/ark/.config/KILLIT
 sudo systemctl restart killer_daemon.service

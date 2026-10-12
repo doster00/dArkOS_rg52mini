@@ -283,6 +283,17 @@ Khronos loader loads it into every Vulkan program.
      report the scaled size.
    - The same pass scales as it turns: bilinear, with the aspect ratio kept and
      centred, so 4:3 gets black bars. 854x480 fills the panel, as in SDL.
+7. **The panel as it is, for a program that turns the picture itself** (after
+   v1.0).
+   - Standalone DuckStation is an AppImage with its own SDL3, which sees the
+     panel as 720x1280; it turns its picture itself (`Rotation = Rotate90`).
+   - With the layer from v10082026 (1.0) on, it found no 720x1280 mode, and
+     the driver makes none, not even of the panel's size. So it stopped with
+     "SDL_Vulkan_CreateSurface() failed: Vulkan couldn't find a predefined mode
+     for that window size".
+   - Now a portrait `vkCreateDisplayModeKHR` of the panel's size gets a handle
+     of the layer's own for the panel's mode. The plane capabilities and the
+     surface on it are the driver's, nothing turned, as before the layer.
 
 Controls:
 - `DARKOS_VK_ROTATE_DISABLE=1` turns the layer off (the loader reads it from the
@@ -307,6 +318,26 @@ Tested on the device:
   - Standalone flycast with a 640x480 window: "display surface 640x480 (panel
     720x1280, scaled)", Vulkan, with the picture 960x720 between bars.
   - Mina the Hollower still takes mode[0] = 1280x720.
+- **The emulators on Vulkan**, checked on the device (2026-10-12):
+  - Standalone **PPSSPP** 1.20.4 (Vulkan by default): it takes the 1280x720
+    mode, and `ppsspp-patch-010` sees a landscape swapchain and does not turn,
+    so the picture is right way up.
+  - **Dolphin** (GameCube demo): it takes the 1280x720 mode, and
+    `dolphinsa-patch-011` sees a landscape swapchain and does not turn, so the
+    picture is right way up.
+  - **PCSX2** (Vulkan by default) turned the picture by itself
+    (`DisplayRotation = 90`), so with the layer it lay on its side. The
+    rg52mini template now has 0, and `standalone-pcsx2sa` changes 90 to 0 in
+    an ini already on /roms.
+  - Standalone **DuckStation**: it failed before item 7; now its picture is
+    right way up.
+  - **PPSSPP-2021** has no Vulkan on KMSDRM ("Vulkan subsystem 13 not
+    supported", then exit). Its rg52mini config asked for Vulkan, so it never
+    started. The configs now ask for GL, and `ppsspp.sh` changes an old one.
+    On GL its picture is right way up.
+  - **RetroArch** with `video_driver = "vulkan"` and the SwanStation core: the
+    picture is right way up.
+  - Standalone **flycast**: see `build_flycastsa.sh`.
 
 Not done: a program that presents several swapchains in one call gets only
 the first one turned.

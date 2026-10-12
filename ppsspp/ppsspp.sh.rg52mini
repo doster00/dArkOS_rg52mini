@@ -62,6 +62,9 @@ elif [[ $1 == "standalone-2021" ]]; then
   echo "VAR=PPSSPPSDL" > /home/ark/.config/KILLIT
   sudo systemctl restart killer_daemon.service
   sudo rm -f /dev/shm/PPSSPP_ID
+  # PPSSPP-2021 has no Vulkan on KMSDRM ("Vulkan subsystem 13 not supported",
+  # then exit), and up to 1.0 its config here asked for Vulkan: keep it on GL.
+  sed -i 's/^GraphicsBackend = 3.*/GraphicsBackend = 0 (OPENGL)/' $roms_config_directory_2021/PSP/SYSTEM/ppsspp.ini.sdl
   cp -f $roms_config_directory_2021/PSP/SYSTEM/ppsspp.ini.sdl $roms_config_directory_2021/PSP/SYSTEM/ppsspp.ini
   /opt/ppsspp-2021/PPSSPPSDL --fullscreen "$2"
   cp -f $roms_config_directory_2021/PSP/SYSTEM/ppsspp.ini $roms_config_directory_2021/PSP/SYSTEM/ppsspp.ini.sdl
