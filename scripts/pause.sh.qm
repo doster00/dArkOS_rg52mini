@@ -1,4 +1,16 @@
 #!/bin/bash
+# A press while a suspend is under way: see pause.sh.
+phase=/run/darkos-sleep.phase
+if [ -r $phase ] && read -r p t < $phase; then
+  age=$(( $(date +%s%3N) - ${t:-0} ))
+  if [ $age -lt 120000 ]; then
+    case $p in
+      pre)    [ $age -ge 1000 ] && sudo touch /run/darkos-sleep.wake; exit 0 ;;
+      asleep) exit 0 ;;
+      post)   [ $age -lt 3000 ] && exit 0 ;;
+    esac
+  fi
+fi
 if [ ! -e "/home/ark/.config/.SWAPPOWERANDSUSPEND" ]; then
   sudo systemctl suspend
 else
