@@ -63,11 +63,11 @@ case $1 in
     # Power down the stick-RGB LED MCU during sleep (no-op unless configured)
     [ -f /home/ark/.config/led.cfg ] && /usr/local/bin/ledctl suspend 2>/dev/null
 
-    # The power key was pressed on the way down: wake two seconds after.
+    # The power key was pressed on the way down: wake a second after.
     echo "asleep $(date +%s%3N)" > $PHASE
     if [ -e $WAKE ]; then
       echo 0 > $RTC_ALARM 2>/dev/null
-      echo +2 > $RTC_ALARM 2>/dev/null
+      echo +1 > $RTC_ALARM 2>/dev/null
     fi
     exit 0
     ;;
