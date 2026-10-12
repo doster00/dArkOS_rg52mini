@@ -44,6 +44,7 @@ ROOT_EXCLUDE = [
     "etc/gshadow-", "etc/passwd-", "etc/group-", "etc/subuid-", "etc/subgid-",
     "etc/machine-id", "var/lib/dbus/machine-id", "etc/hostname",
     "etc/NetworkManager/system-connections/", "etc/fake-hwclock.data",
+    "etc/ld.so.cache",          # made from the libraries: hooks/all-ldconfig.sh
     "var/cache/", "var/log/", "var/tmp/", "var/backups/",
     "var/lib/apt/lists/", "var/lib/dpkg/status-old", "var/lib/dpkg/*-old",
     "var/lib/systemd/", "var/lib/darkos-ota/", "var/lib/bluetooth/",
@@ -323,7 +324,9 @@ def main():
             v = rn.get("VERSION", "")
             if os.path.isdir(hooks_dir):
                 for h in sorted(os.listdir(hooks_dir)):
-                    if h.endswith(".sh") and (h == v + ".sh" or h.startswith(v + "-")):
+                    # the release's own, then all-*.sh for every package
+                    if h.endswith(".sh") and (h == v + ".sh" or h.startswith(v + "-")
+                                              or h.startswith("all-")):
                         os.makedirs(os.path.join(work, "hooks"), exist_ok=True)
                         shutil.copy(os.path.join(hooks_dir, h), os.path.join(work, "hooks", h))
                         manifest["hooks"].append("hooks/" + h)

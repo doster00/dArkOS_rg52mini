@@ -643,6 +643,8 @@ def install(pkg, assume_yes=False):
             if a == "apply":
                 remove(e, journal)
         save_state(state)
+        # packages do not carry /etc/ld.so.cache: make it for the new libraries
+        subprocess.run(["ldconfig"])
         subprocess.run(["sync"])
         if uboot:
             log("writing the boot loader to " + uboot_part)
