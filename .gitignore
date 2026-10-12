@@ -10,6 +10,8 @@ build.log
 build.log.*
 dArkOS_*_trixie_*.img
 dArkOS_*_trixie_*.img.7z*
+dArkOS_*.img
+dArkOS_*.img.7z*
 
 # Mali tarball extraction artifacts
 BSP/mali/
