@@ -20,9 +20,20 @@
  *    small graphics pass draws each one turned by 90 degrees into the real
  *    swapchain image.
  *
+ * Scaled modes, as SDL's KMSDRM has them for GL (sdl2-patch-0008): the
+ * driver cannot make any mode but the panel's own, so the display also lists
+ * 960x540, 854x480, 800x600, 640x480 and 640x360, and a display mode created
+ * with any size up to 1280x720 is accepted. These modes are the layer's own:
+ * a surface on one is the panel's whole mode underneath, and the same pass
+ * scales the picture onto the panel, keeping its aspect ratio (black bars for
+ * 4:3). SDL looks for a mode of the window's size, so a game with a 640x480
+ * window gets Vulkan instead of failing; a game that lowers its resolution
+ * draws fewer pixels.
+ *
  * Displays that are landscape already are left alone, so the layer does
  * nothing on other devices. DARKOS_VK_ROTATE_DISABLE=1 turns it off (the
  * loader does that), DARKOS_VK_ROTATE=270 turns the other way,
+ * DARKOS_VK_SCALED_MODES=0 leaves out the scaled modes,
  * DARKOS_VK_ROTATE_DEBUG=1 logs to stderr.
  */
 #include <vulkan/vulkan.h>
@@ -40,6 +51,7 @@
 
 static int g_debug = -1;
 static int g_rot = 90;
+static int g_scaled = 1;
 
 #define LOG(...) do { if (g_debug > 0) { fprintf(stderr, "darkos_rotate: " __VA_ARGS__); fputc('\n', stderr); } } while (0)
 
@@ -52,6 +64,9 @@ static void init_env(void)
     e = getenv("DARKOS_VK_ROTATE");
     if (e && atoi(e) == 270)
         g_rot = 270;
+    e = getenv("DARKOS_VK_SCALED_MODES");
+    if (e && *e == '0')
+        g_scaled = 0;
 }
 
 /* ------------------------------------------------------------------------ */
@@ -87,7 +102,19 @@ typedef struct Inst {
 /* Display modes of a portrait display (the swap happens at their reporting),
    and surfaces made on them. */
 typedef struct Mode { struct Mode *next; VkDisplayModeKHR mode; } Mode;
-typedef struct Surf { struct Surf *next; VkSurfaceKHR surf; VkExtent2D ext; } Surf; /* ext: landscape */
+/* ext: the program's landscape size; panel: the real surface, portrait */
+typedef struct Surf { struct Surf *next; VkSurfaceKHR surf; VkExtent2D ext, panel; int scaled; } Surf;
+
+/* A scaled mode. Its handle is the address of this record, which the driver
+   never sees: the calls that take a mode get the panel's own mode instead.
+   Kept for the life of the process, one per display and size. */
+typedef struct VMode {
+    struct VMode *next;
+    VkDisplayKHR disp;
+    VkDisplayModeKHR real;              /* the panel's mode it is shown on */
+    VkExtent2D panel;                   /* that mode's size, portrait */
+    VkDisplayModeParametersKHR par;     /* landscape size, the panel's refresh */
+} VMode;
 
 typedef struct Dev {
     struct Dev *next;
@@ -141,6 +168,7 @@ typedef struct Swap {
 
 static Inst *g_insts;
 static Mode *g_modes;
+static VMode *g_vmodes;
 static Surf *g_surfs;
 static Dev *g_devs;
 static Swap *g_swaps;
@@ -184,6 +212,39 @@ static void mode_add(VkDisplayModeKHR m)
     pthread_mutex_lock(&g_lock);
     x->next = g_modes; g_modes = x;
     pthread_mutex_unlock(&g_lock);
+}
+
+static VMode *vmode_find(VkDisplayModeKHR m)
+{
+    pthread_mutex_lock(&g_lock);
+    VMode *v = g_vmodes;
+    while (v && (VkDisplayModeKHR)(uintptr_t)v != m) v = v->next;
+    pthread_mutex_unlock(&g_lock);
+    return v;
+}
+
+/* The scaled mode of this size on this display, made the first time; the
+   panel's mode under it is refreshed each time, in case it changed. */
+static VMode *vmode_get(VkDisplayKHR disp, const VkDisplayModePropertiesKHR *native, uint32_t w, uint32_t h)
+{
+    pthread_mutex_lock(&g_lock);
+    VMode *v = g_vmodes;
+    while (v && !(v->disp == disp && v->par.visibleRegion.width == w && v->par.visibleRegion.height == h))
+        v = v->next;
+    if (!v && (v = calloc(1, sizeof(*v)))) {
+        v->disp = disp;
+        v->par.visibleRegion.width = w;
+        v->par.visibleRegion.height = h;
+        v->next = g_vmodes; g_vmodes = v;
+    }
+    if (v) {
+        v->real = native->displayMode;
+        v->panel.width = native->parameters.visibleRegion.height;
+        v->panel.height = native->parameters.visibleRegion.width;
+        v->par.refreshRate = native->parameters.refreshRate;
+    }
+    pthread_mutex_unlock(&g_lock);
+    return v;
 }
 
 static Surf *surf_find(VkSurfaceKHR s)
@@ -316,24 +377,112 @@ static void fix_mode(VkDisplayModePropertiesKHR *m)
     }
 }
 
+#define MAX_MODES 32
+static const VkExtent2D scaled_sizes[] = {
+    { 960, 540 }, { 854, 480 }, { 800, 600 }, { 640, 480 }, { 640, 360 },
+};
+
+/* The panel's own mode of a portrait display, as reported (landscape): the
+   biggest of its turned modes. 0 if the display is not portrait. */
+static int native_mode(const VkDisplayModePropertiesKHR *m, uint32_t n, VkDisplayModePropertiesKHR *out)
+{
+    int found = 0;
+    for (uint32_t k = 0; k < n; k++) {
+        const VkExtent2D e = m[k].parameters.visibleRegion;
+        if (!mode_rotated(m[k].displayMode))
+            continue;
+        if (!found || (uint64_t)e.width * e.height >
+                (uint64_t)out->parameters.visibleRegion.width * out->parameters.visibleRegion.height) {
+            *out = m[k];
+            found = 1;
+        }
+    }
+    return found;
+}
+
+/* All modes of a display: the driver's, turned, then the scaled ones after
+   them, so that a program taking the first mode or the biggest one still
+   gets the panel's own. Returns the count, or -1 when there is nothing to
+   add or the driver's list cannot be read whole: the caller then passes the
+   call through as it is. */
+static int all_modes(Inst *i, VkPhysicalDevice pd, VkDisplayKHR disp, VkDisplayModePropertiesKHR *m)
+{
+    uint32_t n = 0;
+    if (!g_scaled || !i->GetModeProps || i->GetModeProps(pd, disp, &n, NULL) != VK_SUCCESS || n > MAX_MODES)
+        return -1;
+    VkResult r = i->GetModeProps(pd, disp, &n, m);
+    if (r != VK_SUCCESS && r != VK_INCOMPLETE)
+        return -1;
+    for (uint32_t k = 0; k < n; k++)
+        fix_mode(&m[k]);
+    VkDisplayModePropertiesKHR nat;
+    if (!native_mode(m, n, &nat))
+        return -1;
+    const VkExtent2D ne = nat.parameters.visibleRegion;
+    uint32_t total = n;
+    for (size_t s = 0; s < sizeof(scaled_sizes) / sizeof(scaled_sizes[0]); s++) {
+        const VkExtent2D e = scaled_sizes[s];
+        if (e.width > ne.width || e.height > ne.height || (e.width == ne.width && e.height == ne.height))
+            continue;
+        uint32_t k = 0;
+        while (k < n && !(m[k].parameters.visibleRegion.width == e.width &&
+                          m[k].parameters.visibleRegion.height == e.height))
+            k++;
+        if (k < n)
+            continue;      /* the driver has this one */
+        VMode *v = vmode_get(disp, &nat, e.width, e.height);
+        if (!v)
+            break;
+        m[total].displayMode = (VkDisplayModeKHR)(uintptr_t)v;
+        m[total].parameters = v->par;
+        total++;
+    }
+    return total > n ? (int)total : -1;
+}
+
 static VKAPI_ATTR VkResult VKAPI_CALL L_GetModeProps(VkPhysicalDevice pd, VkDisplayKHR disp, uint32_t *count, VkDisplayModePropertiesKHR *props)
 {
     Inst *i = inst_of(pd);
-    VkResult r = i->GetModeProps(pd, disp, count, props);
-    if (props && (r == VK_SUCCESS || r == VK_INCOMPLETE))
-        for (uint32_t k = 0; k < *count; k++)
-            fix_mode(&props[k]);
-    return r;
+    VkDisplayModePropertiesKHR m[MAX_MODES + sizeof(scaled_sizes) / sizeof(scaled_sizes[0])];
+    int total = all_modes(i, pd, disp, m);
+    if (total < 0) {
+        VkResult r = i->GetModeProps(pd, disp, count, props);
+        if (props && (r == VK_SUCCESS || r == VK_INCOMPLETE))
+            for (uint32_t k = 0; k < *count; k++)
+                fix_mode(&props[k]);
+        return r;
+    }
+    if (!props) {
+        *count = (uint32_t)total;
+        return VK_SUCCESS;
+    }
+    uint32_t n = *count < (uint32_t)total ? *count : (uint32_t)total;
+    memcpy(props, m, n * sizeof(*m));
+    *count = n;
+    return n < (uint32_t)total ? VK_INCOMPLETE : VK_SUCCESS;
 }
 
 static VKAPI_ATTR VkResult VKAPI_CALL L_GetModeProps2(VkPhysicalDevice pd, VkDisplayKHR disp, uint32_t *count, VkDisplayModeProperties2KHR *props)
 {
     Inst *i = inst_of(pd);
-    VkResult r = i->GetModeProps2(pd, disp, count, props);
-    if (props && (r == VK_SUCCESS || r == VK_INCOMPLETE))
-        for (uint32_t k = 0; k < *count; k++)
-            fix_mode(&props[k].displayModeProperties);
-    return r;
+    VkDisplayModePropertiesKHR m[MAX_MODES + sizeof(scaled_sizes) / sizeof(scaled_sizes[0])];
+    int total = all_modes(i, pd, disp, m);
+    if (total < 0) {
+        VkResult r = i->GetModeProps2(pd, disp, count, props);
+        if (props && (r == VK_SUCCESS || r == VK_INCOMPLETE))
+            for (uint32_t k = 0; k < *count; k++)
+                fix_mode(&props[k].displayModeProperties);
+        return r;
+    }
+    if (!props) {
+        *count = (uint32_t)total;
+        return VK_SUCCESS;
+    }
+    uint32_t n = *count < (uint32_t)total ? *count : (uint32_t)total;
+    for (uint32_t k = 0; k < n; k++)
+        props[k].displayModeProperties = m[k];
+    *count = n;
+    return n < (uint32_t)total ? VK_INCOMPLETE : VK_SUCCESS;
 }
 
 /* Asking for a landscape mode on a portrait display: ask for the portrait one
@@ -364,6 +513,28 @@ static VKAPI_ATTR VkResult VKAPI_CALL L_CreateDisplayMode(VkPhysicalDevice pd, V
             mode_add(*out);
         LOG("display mode %ux%u created portrait: %d", ci->parameters.visibleRegion.width,
             ci->parameters.visibleRegion.height, r);
+        if (r != VK_SUCCESS && g_scaled) {
+            /* the driver makes no mode but the panel's: give a scaled one
+               of any size that fits on it */
+            const VkExtent2D e = ci->parameters.visibleRegion;
+            VkDisplayModePropertiesKHR m[MAX_MODES], nat;
+            uint32_t n = MAX_MODES;
+            VkResult rm = i->GetModeProps(pd, disp, &n, m);
+            if (rm == VK_SUCCESS || rm == VK_INCOMPLETE) {
+                for (uint32_t k = 0; k < n; k++)
+                    fix_mode(&m[k]);
+                if (native_mode(m, n, &nat) && e.width && e.height &&
+                    e.width <= nat.parameters.visibleRegion.width &&
+                    e.height <= nat.parameters.visibleRegion.height) {
+                    VMode *v = vmode_get(disp, &nat, e.width, e.height);
+                    if (v) {
+                        *out = (VkDisplayModeKHR)(uintptr_t)v;
+                        LOG("display mode %ux%u: scaled onto the panel", e.width, e.height);
+                        return VK_SUCCESS;
+                    }
+                }
+            }
+        }
         return r;
     }
     return i->CreateDisplayMode(pd, disp, ci, alloc, out);
@@ -377,21 +548,41 @@ static void fix_plane_caps(VkDisplayPlaneCapabilitiesKHR *c)
     swap_ext(&c->minDstExtent);   swap_ext(&c->maxDstExtent);
 }
 
+/* A scaled mode is the size of the picture on it: the plane shows that and
+   no more, whatever the panel's mode allows. */
+static void fix_plane_caps_scaled(VkDisplayPlaneCapabilitiesKHR *c, VkExtent2D e)
+{
+    c->maxSrcExtent = c->maxDstExtent = e;
+    if (c->minSrcExtent.width > e.width)   c->minSrcExtent.width = e.width;
+    if (c->minSrcExtent.height > e.height) c->minSrcExtent.height = e.height;
+    if (c->minDstExtent.width > e.width)   c->minDstExtent.width = e.width;
+    if (c->minDstExtent.height > e.height) c->minDstExtent.height = e.height;
+}
+
 static VKAPI_ATTR VkResult VKAPI_CALL L_GetPlaneCaps(VkPhysicalDevice pd, VkDisplayModeKHR mode, uint32_t plane, VkDisplayPlaneCapabilitiesKHR *caps)
 {
     Inst *i = inst_of(pd);
-    VkResult r = i->GetPlaneCaps(pd, mode, plane, caps);
-    if (r == VK_SUCCESS && mode_rotated(mode))
+    VMode *v = vmode_find(mode);
+    VkResult r = i->GetPlaneCaps(pd, v ? v->real : mode, plane, caps);
+    if (r == VK_SUCCESS && (v || mode_rotated(mode)))
         fix_plane_caps(caps);
+    if (r == VK_SUCCESS && v)
+        fix_plane_caps_scaled(caps, v->par.visibleRegion);
     return r;
 }
 
 static VKAPI_ATTR VkResult VKAPI_CALL L_GetPlaneCaps2(VkPhysicalDevice pd, const VkDisplayPlaneInfo2KHR *info, VkDisplayPlaneCapabilities2KHR *caps)
 {
     Inst *i = inst_of(pd);
-    VkResult r = i->GetPlaneCaps2(pd, info, caps);
-    if (r == VK_SUCCESS && mode_rotated(info->mode))
+    VMode *v = vmode_find(info->mode);
+    VkDisplayPlaneInfo2KHR in = *info;
+    if (v)
+        in.mode = v->real;
+    VkResult r = i->GetPlaneCaps2(pd, &in, caps);
+    if (r == VK_SUCCESS && (v || mode_rotated(info->mode)))
         fix_plane_caps(&caps->capabilities);
+    if (r == VK_SUCCESS && v)
+        fix_plane_caps_scaled(&caps->capabilities, v->par.visibleRegion);
     return r;
 }
 
@@ -399,12 +590,19 @@ static VKAPI_ATTR VkResult VKAPI_CALL L_CreateDisplayPlaneSurface(VkInstance ins
         const VkDisplaySurfaceCreateInfoKHR *ci, const VkAllocationCallbacks *alloc, VkSurfaceKHR *out)
 {
     Inst *i = inst_of(instance);
-    if (!mode_rotated(ci->displayMode) || ci->transform != VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
+    VMode *v = vmode_find(ci->displayMode);
+    if (!v && (!mode_rotated(ci->displayMode) || ci->transform != VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR))
         return i->CreateDisplayPlaneSurface(instance, ci, alloc, out);
 
     VkDisplaySurfaceCreateInfoKHR c = *ci;
     VkExtent2D land = ci->imageExtent;
-    if (!portrait(land))
+    if (v) {
+        /* the panel's whole mode underneath; the program's image is scaled
+           onto it (a scaled mode is shown as is, so no transform) */
+        c.displayMode = v->real;
+        c.imageExtent = v->panel;
+        c.transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    } else if (!portrait(land))
         swap_ext(&c.imageExtent);      /* the program asked for landscape */
     else
         swap_ext(&land);               /* it asked for the panel's own size */
@@ -414,13 +612,15 @@ static VKAPI_ATTR VkResult VKAPI_CALL L_CreateDisplayPlaneSurface(VkInstance ins
         if (s) {
             s->surf = *out;
             s->ext = land;
+            s->panel = c.imageExtent;
+            s->scaled = v != NULL;
             pthread_mutex_lock(&g_lock);
             s->next = g_surfs; g_surfs = s;
             pthread_mutex_unlock(&g_lock);
         }
     }
-    LOG("display surface %ux%u (panel %ux%u): %d", land.width, land.height,
-        c.imageExtent.width, c.imageExtent.height, r);
+    LOG("display surface %ux%u (panel %ux%u%s): %d", land.width, land.height,
+        c.imageExtent.width, c.imageExtent.height, v ? ", scaled" : "", r);
     return r;
 }
 
@@ -435,8 +635,13 @@ static VKAPI_ATTR void VKAPI_CALL L_DestroySurface(VkInstance instance, VkSurfac
     i->DestroySurface(instance, surf, alloc);
 }
 
-static void fix_surf_caps(VkSurfaceCapabilitiesKHR *c)
+static void fix_surf_caps(VkSurfaceCapabilitiesKHR *c, const Surf *s)
 {
+    if (s->scaled) {
+        /* the program draws at the scaled mode's size and nothing else */
+        c->currentExtent = c->minImageExtent = c->maxImageExtent = s->ext;
+        return;
+    }
     if (c->currentExtent.width != 0xFFFFFFFFu)
         swap_ext(&c->currentExtent);
     swap_ext(&c->minImageExtent);
@@ -447,8 +652,9 @@ static VKAPI_ATTR VkResult VKAPI_CALL L_GetSurfCaps(VkPhysicalDevice pd, VkSurfa
 {
     Inst *i = inst_of(pd);
     VkResult r = i->GetSurfCaps(pd, surf, caps);
-    if (r == VK_SUCCESS && surf_find(surf))
-        fix_surf_caps(caps);
+    Surf *s = surf_find(surf);
+    if (r == VK_SUCCESS && s)
+        fix_surf_caps(caps, s);
     return r;
 }
 
@@ -456,8 +662,9 @@ static VKAPI_ATTR VkResult VKAPI_CALL L_GetSurfCaps2(VkPhysicalDevice pd, const 
 {
     Inst *i = inst_of(pd);
     VkResult r = i->GetSurfCaps2(pd, info, caps);
-    if (r == VK_SUCCESS && surf_find(info->surface))
-        fix_surf_caps(&caps->surfaceCapabilities);
+    Surf *s = surf_find(info->surface);
+    if (r == VK_SUCCESS && s)
+        fix_surf_caps(&caps->surfaceCapabilities, s);
     return r;
 }
 
@@ -586,6 +793,29 @@ static void swap_free(Swap *s)
 
 #define CHECK(x) do { VkResult _r = (x); if (_r != VK_SUCCESS) { LOG("%s failed: %d", #x, _r); goto fail; } } while (0)
 
+/* Where the program's picture goes on the portrait panel: all of it, or, when
+   its size is not the panel's (a scaled mode), the biggest part of the same
+   aspect ratio, centred - black bars for 4:3, as SDL does for GL. A landscape
+   width is a portrait height. Centred, so the direction of the turn does not
+   matter. */
+static VkViewport scaled_viewport(VkExtent2D app, VkExtent2D panel, int *scaled)
+{
+    const uint32_t lw = panel.height, lh = panel.width;   /* the panel, landscape */
+    uint32_t tw = lw, th = lh;
+    *scaled = !(app.width == lw && app.height == lh);
+    if (*scaled && app.width && app.height) {
+        if ((uint64_t)app.width * lh >= (uint64_t)app.height * lw)
+            th = (uint32_t)(((uint64_t)lw * app.height / app.width) & ~1ull);
+        else
+            tw = (uint32_t)(((uint64_t)lh * app.width / app.height) & ~1ull);
+        if (lh - th < 4) th = lh;   /* 854x480 and the like: within a few lines, fill */
+        if (lw - tw < 4) tw = lw;
+    }
+    VkViewport vp = { (float)((panel.width - th) / 2), (float)((panel.height - tw) / 2),
+                      (float)th, (float)tw, 0, 1 };
+    return vp;
+}
+
 /* Everything the rotation pass needs for one swapchain, with one command
    buffer per image recorded once. */
 static int swap_build(Swap *s, const VkSwapchainCreateInfoKHR *ci)
@@ -593,11 +823,15 @@ static int swap_build(Swap *s, const VkSwapchainCreateInfoKHR *ci)
     Dev *d = s->d;
     VkDevice dv = d->device;
     VkFormat fmt = ci->imageFormat;
+    int scaled;
+    VkViewport vp = scaled_viewport(s->app_ext, s->real_ext, &scaled);
 
-    /* render pass: the swapchain image, written whole, left for presenting */
+    /* render pass: the swapchain image, written whole (cleared first when the
+       picture leaves bars), left for presenting */
     VkAttachmentDescription att = {
         .format = fmt, .samples = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE, .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .loadOp = scaled ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
         .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE, .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED, .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
     };
@@ -615,8 +849,10 @@ static int swap_build(Swap *s, const VkSwapchainCreateInfoKHR *ci)
         .dependencyCount = 1, .pDependencies = &dep };
     CHECK(d->CreateRenderPass(dv, &rpi, NULL, &s->rp));
 
+    /* one pixel to one pixel when only turning; bilinear when scaling */
+    const VkFilter filter = scaled ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
     VkSamplerCreateInfo sci = { .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-        .magFilter = VK_FILTER_NEAREST, .minFilter = VK_FILTER_NEAREST,
+        .magFilter = filter, .minFilter = filter,
         .mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
         .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
         .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
@@ -651,8 +887,7 @@ static int swap_build(Swap *s, const VkSwapchainCreateInfoKHR *ci)
     VkPipelineVertexInputStateCreateInfo vi = { .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
     VkPipelineInputAssemblyStateCreateInfo ia = { .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
         .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST };
-    VkViewport vp = { 0, 0, (float)s->real_ext.width, (float)s->real_ext.height, 0, 1 };
-    VkRect2D sc = { { 0, 0 }, s->real_ext };
+    VkRect2D sc = { { (int32_t)vp.x, (int32_t)vp.y }, { (uint32_t)vp.width, (uint32_t)vp.height } };
     VkPipelineViewportStateCreateInfo vps = { .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         .viewportCount = 1, .pViewports = &vp, .scissorCount = 1, .pScissors = &sc };
     VkPipelineRasterizationStateCreateInfo rs = { .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -735,7 +970,8 @@ static int swap_build(Swap *s, const VkSwapchainCreateInfoKHR *ci)
         CHECK(d->CreateSemaphore(dv, &smci, NULL, &s->done[k]));
 
         /* the pass: the program's image (in PRESENT_SRC, as it presented
-           it) is read turned into the swapchain image, then handed back in
+           it) is read turned, and scaled for a scaled mode, into the
+           swapchain image, then handed back in
            PRESENT_SRC so that the program finds it as it left it */
         VkCommandBufferBeginInfo bi = { .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
         CHECK(d->BeginCommandBuffer(s->cb[k], &bi));
@@ -746,8 +982,10 @@ static int swap_build(Swap *s, const VkSwapchainCreateInfoKHR *ci)
             .image = s->app[k], .subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } };
         d->CmdPipelineBarrier(s->cb[k], VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
             0, 0, NULL, 0, NULL, 1, &ib);
+        VkClearValue black = { .color = { .float32 = { 0.0f, 0.0f, 0.0f, 1.0f } } };
         VkRenderPassBeginInfo rbi = { .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            .renderPass = s->rp, .framebuffer = s->fb[k], .renderArea = { { 0, 0 }, s->real_ext } };
+            .renderPass = s->rp, .framebuffer = s->fb[k], .renderArea = { { 0, 0 }, s->real_ext },
+            .clearValueCount = scaled ? 1 : 0, .pClearValues = scaled ? &black : NULL };
         d->CmdBeginRenderPass(s->cb[k], &rbi, VK_SUBPASS_CONTENTS_INLINE);
         d->CmdBindPipeline(s->cb[k], VK_PIPELINE_BIND_POINT_GRAPHICS, s->pipe);
         d->CmdBindDescriptorSets(s->cb[k], VK_PIPELINE_BIND_POINT_GRAPHICS, s->pl, 0, 1, &s->ds[k], 0, NULL);
@@ -778,8 +1016,7 @@ static VKAPI_ATTR VkResult VKAPI_CALL L_CreateSwapchain(VkDevice device, const V
 
     VkSwapchainCreateInfoKHR c = *ci;
     VkExtent2D app = ci->imageExtent;
-    c.imageExtent.width = app.height;
-    c.imageExtent.height = app.width;
+    c.imageExtent = sf->panel;
     c.imageUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     c.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
     VkResult r = d->CreateSwapchainKHR(device, &c, alloc, out);
@@ -807,8 +1044,8 @@ static VKAPI_ATTR VkResult VKAPI_CALL L_CreateSwapchain(VkDevice device, const V
     pthread_mutex_lock(&g_lock);
     s->next = g_swaps; g_swaps = s;
     pthread_mutex_unlock(&g_lock);
-    LOG("swapchain: program %ux%u, panel %ux%u, %u images", app.width, app.height,
-        s->real_ext.width, s->real_ext.height, n);
+    LOG("swapchain: program %ux%u, panel %ux%u, %u images%s", app.width, app.height,
+        s->real_ext.width, s->real_ext.height, n, sf->scaled ? ", scaled" : "");
     return VK_SUCCESS;
 
 plain:

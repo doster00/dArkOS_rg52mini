@@ -266,11 +266,29 @@ Khronos loader loads it into every Vulkan program.
    the pass.
 5. **Landscape displays are left alone**, so the layer does nothing on other
    devices.
+6. **Scaled modes** (after v1.0), as `sdl2-patch-0008` gives GL.
+   - The Mali driver makes no display mode but the panel's own:
+     `vkCreateDisplayModeKHR` for 640x480 fails with
+     VK_ERROR_INITIALIZATION_FAILED.
+   - SDL's KMSDRM Vulkan path wants a mode exactly the size of the window. So
+     standalone flycast, whose shipped window was 640x480, could not start
+     Vulkan and fell back to GL.
+   - The layer lists 960x540, 854x480, 800x600, 640x480 and 640x360 after the
+     panel's own mode, so a program that takes the first mode or the biggest
+     one still gets 1280x720.
+   - It also accepts `vkCreateDisplayModeKHR` for any size up to 1280x720 when
+     the driver refuses.
+   - These modes are the layer's own handles, which never reach the driver. A
+     surface on one is the panel's whole mode underneath, and its capabilities
+     report the scaled size.
+   - The same pass scales as it turns: bilinear, with the aspect ratio kept and
+     centred, so 4:3 gets black bars. 854x480 fills the panel, as in SDL.
 
 Controls:
 - `DARKOS_VK_ROTATE_DISABLE=1` turns the layer off (the loader reads it from the
   manifest);
 - `DARKOS_VK_ROTATE=270` turns the other way;
+- `DARKOS_VK_SCALED_MODES=0` leaves the scaled modes out;
 - `DARKOS_VK_ROTATE_DEBUG=1` logs to stderr.
 
 Tested on the device:
@@ -280,6 +298,15 @@ Tested on the device:
 - **Mina the Hollower**: its log shows display, mode, surface and swapchain at
   1280x720 (720x1280 before), and the picture is right way up.
 - **DSperate** (Vulkan 3D, presenting through SDL's GL path): unchanged.
+- **Scaled modes**, checked on the device:
+  - `vk-rotate-layer/test/vkmodetest.c` lists 1280x720 first and then the five
+    scaled modes. Asked for one mode only, it gets 1280x720 with VK_INCOMPLETE.
+  - Its test picture on 800x600 (listed) and on 1024x600 (created) comes out
+    right way up. The corners are in place, the yellow frame on the image's
+    edge is whole, and the bars are black. 1280x720 is still 1:1.
+  - Standalone flycast with a 640x480 window: "display surface 640x480 (panel
+    720x1280, scaled)", Vulkan, with the picture 960x720 between bars.
+  - Mina the Hollower still takes mode[0] = 1280x720.
 
 Not done: a program that presents several swapchains in one call gets only
 the first one turned.

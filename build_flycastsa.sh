@@ -33,10 +33,12 @@ sudo cp flycast/config/emu.cfg Arkbuild/home/ark/.config/flycast/
 # turns onto the panel (build_vkrotate.sh). flycast links the system SDL2
 # (USE_HOST_SDL in the recipe; on Linux it would build its own static copy).
 # Our SDL shows it a landscape 1280x720 display, which matches the mode the
-# layer reports, and turns its GL fallback with the RGA. The window must be
-# 1280x720 as well: SDL looks for a Vulkan display mode of the window's size,
-# the driver cannot make a 640x480 one, and with the shipped size flycast fell
-# back to GL (upright, but not Vulkan). With its own SDL it saw the panel's
+# layer reports, and turns its GL fallback with the RGA. The window is
+# 1280x720 as well, so that flycast presents at the panel's own size. With the
+# shipped 640x480 SDL looks for a Vulkan display mode of that size: the driver
+# cannot make one, and before the layer's scaled modes flycast fell back to GL
+# (upright, but not Vulkan); now it would get a 640x480 picture scaled up to
+# 960x720. With its own SDL it saw the panel's
 # 720x1280, found no such Vulkan display mode, fell back to GL, and drew
 # sideways or, with Rotate90, upside down. Before the layer,
 # Rotate90=yes with flycastsa-patch-004 rotated Vulkan; with the layer that
