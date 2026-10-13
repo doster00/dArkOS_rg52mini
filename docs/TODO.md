@@ -203,6 +203,41 @@ gone, builds from a pinned commit of a surviving fork; freej2me-plus needed a
 java level a current JDK still accepts and a jar name that had been renamed
 under it; and Kodi's two patch conflicts are resolved and built.
 
+## RetroArch fixes after v1.22.2 that need porting by hand
+
+The 1.1 build carries upstream's fixes that apply as they are
+(`retroarch-patch-0021`, `-0022`). These are in v1.22.2 too, but master
+rewrote the code around them, so each needs a small port. Recheck whether a
+tag newer than v1.22.2 has appeared first: moving to it would replace all of
+this.
+
+* **HTTP client against a hostile server** (66155ff344, eb86df008d). With
+  both Content-Length and chunked, the chunk parser reads wild. A huge chunk
+  length or a negative Content-Length gets through, and `realloc` results go
+  unchecked. The updater talks plain http, so anyone on the network can be
+  the server. Port: `response->len = 0` on entering `P_BODY_CHUNKLEN`,
+  Content-Length as `size_t` capped at 256 MiB, a capped chunk length, and
+  checked reallocs.
+* **Cloud sync path traversal** (4ee62a575f, its `cloud_sync` part). A
+  hostile server writes outside the sync directory. Matters only if cloud
+  sync is turned on.
+* **Network commands** (fa49a43dc2). `READ_CORE_RAM` with a large count
+  wraps the allocation size, and one UDP packet to port 55355 overflows the
+  heap. Off unless `network_cmd_enable`, but Quick Mode turns it on. Port:
+  cap the byte count at 16 KiB.
+* **Saves and config survive a power cut** (250e2d1b48, bb583943fd,
+  b867454de3 with d20c1a344e, edb8facc19, 163ef5e698). Write a temporary
+  file and rename it, not in place.
+* **ALSA can wait forever** (48394abbb2, 6abd13a0d1). Use a finite timeout
+  for `snd_pcm_wait`.
+* Smaller, clean or nearly so:
+  * 9a19e7a94d: netplay client number from the host, one hunk by hand;
+  * c7a261ce54: ozone selection past a shrunk playlist;
+  * 3eedad0aa5: autosave thread after core deinit;
+  * db91cdbf89: gl2.c GLES 3 context for cores;
+  * e092c37228, d5e598aedc, f85119508e;
+  * 44a041cf96: decompress use-after-free, by hand.
+
 ## Worth sending upstream
 
 Five build-system defects were fixed in this fork. Three of them have nothing
