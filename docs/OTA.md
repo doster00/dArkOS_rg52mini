@@ -19,7 +19,7 @@ next one.
 | `ota/make-ota.py` | builds a package from two release images (runs in the build host, as root) |
 | `ota/rg52mini.json` | the feed the devices read; `{"response": []}` between releases |
 | `ota/hooks/<version>[-name].sh` | scripts a release needs run after its files are in place |
-| `ota/hooks/all-<name>.sh` | scripts every package runs, after the release's own (`all-ldconfig.sh`, `all-merge-dpkg.sh`) |
+| `ota/hooks/all-<name>.sh` | scripts every package runs, after the release's own (`all-keep-quickmode.sh`, `all-ldconfig.sh`, `all-merge-dpkg.sh`) |
 | `scripts/rk3562/darkos-ota` | the client, `/usr/local/sbin/darkos-ota` on the device |
 | `dArkOS_Tools/rk3562/Update.sh` | Options → Update: the menu over the client |
 | `scripts/rk3562/darkos-ota-boot.service` | marks an update as booted |
@@ -58,7 +58,7 @@ Not in a package (see `ROOT_EXCLUDE` in `make-ota.py`):
   it differs from the build's (anything installed with apt), the client
   would keep the old one as a file the user changed, and new libraries
   would be missing from it. `hooks/all-ldconfig.sh` in every package
-  rebuilds it, and so does the client from 1.2 on;
+  rebuilds it, and so does the client from 1.1 on;
 - what firstboot consumes: `/roms.tar`, `/tempthemes`, everything under `/roms`;
 - build leftovers in the image: `/meson`, `*/.git`, `/home/ark/pcsx2`, `/home/ark/sdl3`;
 - `/boot` of the root filesystem, which p3 hides.
@@ -80,7 +80,7 @@ Not in a package (see `ROOT_EXCLUDE` in `make-ota.py`):
    - the file is as in the old build → replace it;
    - it is already as in the new build → skip it;
    - it is under `etc/`, `home/`, `root/` or `var/lib/` and differs from both builds (the user changed it) → keep it, and put the new one beside it as `<name>.ota-new` (the package database is then merged by a hook, see below);
-   - it is elsewhere and differs from both builds → overwrite it and log it.
+   - it is elsewhere and differs from both builds → overwrite it and log it (Quick Mode's scripts are then put back by a hook, see below).
 5. **Copies aside the boot files** about to change (`/var/lib/darkos-ota/boot-backup`).
 6. **Writes**, in this order:
    - the directories, then the root files;
@@ -93,7 +93,7 @@ Not in a package (see `ROOT_EXCLUDE` in `make-ota.py`):
    alone and logged. The written loader is read back and compared.
 8. **Runs the hooks** with `OTA_FROM`, `OTA_TO` and `OTA_DUALBOOT` in the environment.
 9. **On any failure in steps 6–8,** puts everything back:
-   - root files from the snapshot, with the ones a hook merged into
+   - root files from the snapshot, with the ones a hook changed
      (`/var/lib/darkos-ota/merged`);
    - boot files from the copy;
    - the old boot loader;
@@ -122,6 +122,17 @@ the old build's copy the package carries (`hooks/base/`, gzipped; the list is
 
 It runs only on what the client kept, removes the `.ota-new` files it used, and
 logs what it merged. A failure leaves them as kept and does not fail the update.
+
+## Quick Mode
+
+Options → Advanced → Enable Quick Mode copies `pause.sh.qm` and `finish.sh.qm`
+over `/usr/local/bin/pause.sh` and `finish.sh`, and replaces its own menu entry
+with Disable Quick Mode. None of that is where step 4 keeps the user's
+changes, so an update that brings new versions of these scripts would leave
+Quick Mode half on. `hooks/all-keep-quickmode.sh`, in every package and run
+first, does it again with the update's versions when `quickmode.sh` is there,
+and lists what it changed for a rollback. What Quick Mode changes in `/etc`
+and `/home` is kept by step 4 anyway.
 
 State and log are in `/var/lib/darkos-ota/` (`state.json`, `ota.log`).
 

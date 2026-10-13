@@ -12,9 +12,10 @@
 # else the device's stays. Files of dpkg/info/ in the same conflict (a package
 # both the user and the update changed) take the new build's, as its entry did.
 #
-# What is merged is listed in /var/lib/darkos-ota/merged, from where the client
-# (1.2 on) puts it back on a rollback. A failure here leaves the .ota-new files
-# as they are and never fails the update.
+# What is merged is added to /var/lib/darkos-ota/merged, from where the client
+# (1.1 on) puts it back on a rollback. The client empties the list before an
+# update; hooks that run earlier add to it too. A failure here leaves the
+# .ota-new files as they are and never fails the update.
 python3 - "$(readlink -f "$0")" <<'EOF'
 import gzip, hashlib, os, sys, time
 
@@ -104,7 +105,6 @@ def replace(dst, data=None, src=None):
 
 
 os.makedirs(os.path.dirname(MERGED), exist_ok=True)
-open(MERGED, "w").close()
 for rel, kind in FILES:
     base, new, dev = os.path.join(BASE, rel + ".gz"), os.path.join(STAGE, "root", rel), "/" + rel
     try:

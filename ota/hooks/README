@@ -5,11 +5,17 @@ copy cannot do: a group to add, a service to enable, a setting to change in a
 file the user may have edited. A hook must be safe to run twice. A hook that
 fails undoes the whole update.
 
-Clients before 1.2 run hooks with the PATH of whoever ran the client, and
-sudo keeps ark's, which has no sbin: a hook sets its own PATH.
+The clients of the 1.1 test builds run hooks with the PATH of whoever ran the
+client, and sudo keeps ark's, which has no sbin: a hook sets its own PATH.
+
+A hook that changes files adds their paths to /var/lib/darkos-ota/merged, one
+per line, and the client (1.1 on) puts them back from the snapshot on a
+rollback.
 
 all-<name>.sh goes into every package, after the release's own hooks, in name
 order:
+- all-keep-quickmode.sh, while Quick Mode is on, puts its pause.sh and
+  finish.sh back over the update's, and its entry in Options -> Advanced;
 - all-ldconfig.sh rebuilds the dynamic linker's cache, which packages do not
   carry;
 - all-merge-dpkg.sh merges the package database (dpkg status, apt's
