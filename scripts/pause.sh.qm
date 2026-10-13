@@ -11,8 +11,7 @@ if [ -r $phase ] && read -r p t < $phase && pgrep -x systemd-sleep > /dev/null; 
       [ $age -lt 1000 ] && exit 0
       if [ ! -e $again ]; then
         sudo touch $again
-        ( while [ -e $phase ] && [ $(( $(date +%s%3N) - t )) -lt 30000 ]; do sleep 0.2; done
-          while systemctl is-active --quiet systemd-suspend.service; do sleep 0.2; done
+        ( while pgrep -x systemd-sleep > /dev/null && [ $(( $(date +%s%3N) - t )) -lt 30000 ]; do sleep 0.2; done
           sudo rm -f $again
           "$0" ) > /dev/null 2>&1 &
       fi
