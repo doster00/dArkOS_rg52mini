@@ -2,24 +2,22 @@
 # A press while a suspend is under way: see pause.sh.
 phase=/run/darkos-sleep.phase
 again=/run/darkos-sleep.again
-if [ -r $phase ] && read -r p t < $phase; then
+if [ -r $phase ] && read -r p t < $phase && pgrep -x systemd-sleep > /dev/null; then
   age=$(( $(date +%s%3N) - ${t:-0} ))
-  if [ $age -lt 120000 ]; then
-    case $p in
-      pre)    [ $age -ge 1000 ] && sudo touch /run/darkos-sleep.wake; exit 0 ;;
-      asleep) exit 0 ;;
-      post)
-        [ $age -lt 1000 ] && exit 0
-        if [ ! -e $again ]; then
-          sudo touch $again
-          ( while [ -e $phase ] && [ $(( $(date +%s%3N) - t )) -lt 30000 ]; do sleep 0.2; done
-            while systemctl is-active --quiet systemd-suspend.service; do sleep 0.2; done
-            sudo rm -f $again
-            "$0" ) > /dev/null 2>&1 &
-        fi
-        exit 0 ;;
-    esac
-  fi
+  case $p in
+    pre)    [ $age -ge 1000 ] && sudo touch /run/darkos-sleep.wake; exit 0 ;;
+    asleep) exit 0 ;;
+    post)
+      [ $age -lt 1000 ] && exit 0
+      if [ ! -e $again ]; then
+        sudo touch $again
+        ( while [ -e $phase ] && [ $(( $(date +%s%3N) - t )) -lt 30000 ]; do sleep 0.2; done
+          while systemctl is-active --quiet systemd-suspend.service; do sleep 0.2; done
+          sudo rm -f $again
+          "$0" ) > /dev/null 2>&1 &
+      fi
+      exit 0 ;;
+  esac
 fi
 if [ ! -e "/home/ark/.config/.SWAPPOWERANDSUSPEND" ]; then
   sudo systemctl suspend
