@@ -117,6 +117,7 @@ sudo cp Emulationstation/fonts/* Arkbuild/usr/bin/emulationstation/resources/
 sudo mkdir -p Arkbuild/usr/share/fonts/truetype/droid/
 sudo wget -t 5 -T 30 --no-check-certificate https://github.com/aosp-mirror/platform_frameworks_base/raw/refs/heads/main/data/fonts/DroidSansFallbackFull.ttf -O Arkbuild/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf
 sudo cp -R Emulationstation/scripts/ Arkbuild/home/ark/.emulationstation/
+sudo cp -R Emulationstation/scripts.rk3562/. Arkbuild/home/ark/.emulationstation/scripts/
 sudo chmod -R 777 Arkbuild/home/ark/.emulationstation/scripts/*
 call_chroot "chown -R ark:ark /etc/emulationstation/"
 call_chroot "chown -R ark:ark /home/ark/"

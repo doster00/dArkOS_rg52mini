@@ -18,8 +18,11 @@ case $1 in
     echo "pre $(date +%s%3N)" > $PHASE
     rm -f $WAKE
 
-    # Save current brightness and turn off backlight
-    echo $(cat /sys/class/backlight/backlight/brightness) | sudo tee /var/local/cur_bright.state
+    # Save current brightness and turn off backlight. Already off, it was the
+    # screensaver (Emulationstation/scripts.rk3562/sleep), and the last saved
+    # value stays: a 0 would leave the screen dark after the wake.
+    b=$(cat /sys/class/backlight/backlight/brightness)
+    [ "$b" != 0 ] && echo $b | sudo tee /var/local/cur_bright.state
     echo 0 | sudo tee /sys/class/backlight/backlight/brightness
 
     # Check if EmulationStation is using too much CPU (stuck)
