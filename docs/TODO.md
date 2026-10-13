@@ -223,7 +223,7 @@ this.
   sync is turned on.
 * **Network commands** (fa49a43dc2). `READ_CORE_RAM` with a large count
   wraps the allocation size, and one UDP packet to port 55355 overflows the
-  heap. Off unless `network_cmd_enable`, but Quick Mode turns it on. Port:
+  heap. Off unless `network_cmd_enable`, which Quick Mode turns on; since 0023 the socket listens on 127.0.0.1 only, so it is local. Port:
   cap the byte count at 16 KiB.
 * **Saves and config survive a power cut** (250e2d1b48, bb583943fd,
   b867454de3 with d20c1a344e, edb8facc19, 163ef5e698). Write a temporary
