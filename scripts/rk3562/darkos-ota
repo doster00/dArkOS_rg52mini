@@ -37,6 +37,7 @@ FEED_OVERRIDE = "/home/ark/.config/darkos-ota-feed"
 STATE_DIR = "/var/lib/darkos-ota"
 WORK_DIR = "/var/cache/darkos-ota"
 LOG_FILE = STATE_DIR + "/ota.log"
+MERGED_LIST = STATE_DIR + "/merged"
 LOCAL_DIRS = ["/roms/update", "/roms/tools/update"]
 SNAP_PREFIX = "/.ota-snapshot-"
 DEFAULT_FEED = ("https://raw.githubusercontent.com/mamaich/dArkOS_rg52mini/"
@@ -478,7 +479,13 @@ def restore(state):
     snap = state["snapshot"]
     if not os.path.isdir(snap):
         raise OtaError("the snapshot %s is gone; nothing to restore from" % snap)
-    for kind, p in reversed(state.get("journal", [])):
+    # files a hook merged into (hooks/all-merge-dpkg.sh lists them), changed
+    # after everything in the journal
+    try:
+        merged = [("replaced", p) for p in open(MERGED_LIST).read().split("\n") if p]
+    except OSError:
+        merged = []
+    for kind, p in merged + list(reversed(state.get("journal", []))):
         try:
             if p.startswith("/boot/"):
                 rel = p[len("/boot/"):]
@@ -597,6 +604,8 @@ def install(pkg, assume_yes=False):
 
     snap = take_snapshot(rel["BUILD_ID"])
     log("snapshot " + snap)
+    if os.path.exists(MERGED_LIST):
+        os.unlink(MERGED_LIST)
     log("checking the package")
     try:
         verify_payload(pkg, m, stage)
@@ -695,6 +704,9 @@ def cmd_boot_ok():
 
 
 def main():
+    # sudo keeps the caller's PATH here (sudoers.d/ark-no-secure-path), and
+    # ark's has no sbin: blkid, ldconfig. Hooks get this one too.
+    os.environ["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     ap = argparse.ArgumentParser(prog="darkos-ota")
     ap.add_argument("--feed")
     sub = ap.add_subparsers(dest="cmd", required=True)

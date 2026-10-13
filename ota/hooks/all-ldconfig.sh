@@ -5,4 +5,8 @@
 # the old one as a file the user changed - so the libraries a package adds are
 # in the cache only after this. Clients from 1.2 on run ldconfig themselves;
 # this hook is for the ones before.
+#
+# Clients before 1.2 pass on the PATH of whoever ran them, and sudo keeps
+# ark's, which has no sbin (sudoers.d/ark-no-secure-path).
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ldconfig

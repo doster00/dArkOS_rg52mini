@@ -18,6 +18,7 @@
 
 import argparse
 import fnmatch
+import gzip
 import hashlib
 import json
 import os
@@ -51,6 +52,11 @@ ROOT_EXCLUDE = [
     "home/ark/pcsx2/", "home/ark/sdl3/", "root/.bash_history",
     "home/ark/.bash_history", "home/ark/.cache/",
 ]
+# Files of the package database that hooks/all-merge-dpkg.sh merges with the
+# device's: a package that changes one also carries the old build's version,
+# as hooks/base/<path>.gz.
+MERGE_BASE = ["var/lib/dpkg/status", "var/lib/apt/extended_states",
+              "var/lib/dpkg/triggers/File"]
 # On p3: what the dual-boot builder owns (never in a package), and the
 # leftovers of firstboot that only a fresh card needs.
 BOOT_EXCLUDE = ["dualboot", "bootmenu_*.bmp", "bootmenu2_*.bmp",
@@ -331,6 +337,15 @@ def main():
                         shutil.copy(os.path.join(hooks_dir, h), os.path.join(work, "hooks", h))
                         manifest["hooks"].append("hooks/" + h)
                         members.append("hooks/" + h)
+            for e in rf:
+                if e["path"] in MERGE_BASE and e["type"] == "file" and not e.get("meta") \
+                        and os.path.isfile(os.path.join(O.dirs["root"], e["path"])):
+                    b = os.path.join("hooks", "base", e["path"] + ".gz")
+                    os.makedirs(os.path.dirname(os.path.join(work, b)), exist_ok=True)
+                    with open(os.path.join(O.dirs["root"], e["path"]), "rb") as f, \
+                            gzip.open(os.path.join(work, b), "wb") as g:
+                        shutil.copyfileobj(f, g)
+                    members.append(b)
             json.dump(manifest, open(os.path.join(work, "manifest.json"), "w"), indent=1)
             pkg = os.path.join(a.outdir, name + ".tar")
             with tarfile.open(pkg, "w:", format=tarfile.GNU_FORMAT) as t:

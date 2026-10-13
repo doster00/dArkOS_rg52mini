@@ -19,7 +19,7 @@ next one.
 | `ota/make-ota.py` | builds a package from two release images (runs in the build host, as root) |
 | `ota/rg52mini.json` | the feed the devices read; `{"response": []}` between releases |
 | `ota/hooks/<version>[-name].sh` | scripts a release needs run after its files are in place |
-| `ota/hooks/all-<name>.sh` | scripts every package runs, after the release's own (`all-ldconfig.sh`) |
+| `ota/hooks/all-<name>.sh` | scripts every package runs, after the release's own (`all-ldconfig.sh`, `all-merge-dpkg.sh`) |
 | `scripts/rk3562/darkos-ota` | the client, `/usr/local/sbin/darkos-ota` on the device |
 | `dArkOS_Tools/rk3562/Update.sh` | Options → Update: the menu over the client |
 | `scripts/rk3562/darkos-ota-boot.service` | marks an update as booted |
@@ -32,7 +32,8 @@ It is a plain tar with these members:
 - `manifest.json`;
 - `payload.tar.zst`: the new and changed files, under `root/` (p4) and `boot/` (p3);
 - `uboot.img`, if the boot loader changed;
-- `hooks/`.
+- `hooks/`, and in `hooks/base/` the old build's copy of each file of the
+  package database the update changes (see below).
 
 A package updates exactly one build: `from_build_id` must equal `BUILD_ID` in
 `/etc/darkos-release`. Each build gets a fresh `BUILD_ID` (UTC time of
@@ -78,7 +79,7 @@ Not in a package (see `ROOT_EXCLUDE` in `make-ota.py`):
 4. **Decides per file:**
    - the file is as in the old build → replace it;
    - it is already as in the new build → skip it;
-   - it is under `etc/`, `home/`, `root/` or `var/lib/` and differs from both builds (the user changed it) → keep it, and put the new one beside it as `<name>.ota-new`;
+   - it is under `etc/`, `home/`, `root/` or `var/lib/` and differs from both builds (the user changed it) → keep it, and put the new one beside it as `<name>.ota-new` (the package database is then merged by a hook, see below);
    - it is elsewhere and differs from both builds → overwrite it and log it.
 5. **Copies aside the boot files** about to change (`/var/lib/darkos-ota/boot-backup`).
 6. **Writes**, in this order:
@@ -92,13 +93,35 @@ Not in a package (see `ROOT_EXCLUDE` in `make-ota.py`):
    alone and logged. The written loader is read back and compared.
 8. **Runs the hooks** with `OTA_FROM`, `OTA_TO` and `OTA_DUALBOOT` in the environment.
 9. **On any failure in steps 6–8,** puts everything back:
-   - root files from the snapshot;
+   - root files from the snapshot, with the ones a hook merged into
+     (`/var/lib/darkos-ota/merged`);
    - boot files from the copy;
    - the old boot loader;
    - new files removed.
 
 `darkos-ota rollback` does the same later, from the booted new system. Options
 → Update offers it while the snapshot exists.
+
+## The package database
+
+`/var/lib/dpkg/status` differs from the build's on any device where something
+was installed or removed with apt. By step 4 it would be kept, and dpkg would
+not know the packages the update added: their files are there, `dpkg -l` does
+not list them. Taking the new one instead would make dpkg forget the user's.
+
+So `hooks/all-merge-dpkg.sh`, in every package and run last, merges it with
+the old build's copy the package carries (`hooks/base/`, gzipped; the list is
+`MERGE_BASE` in `make-ota.py`):
+
+- **`dpkg/status`, apt's `extended_states`,** entry by entry (Package and
+  Architecture): if the update changed an entry, the new build's wins, else the
+  device's stays;
+- **`dpkg/triggers/File`,** line by line, the same way;
+- **files of `dpkg/info/` that both changed** (a package the user upgraded and
+  the update changed too) take the new build's, as the entry did.
+
+It runs only on what the client kept, removes the `.ota-new` files it used, and
+logs what it merged. A failure leaves them as kept and does not fail the update.
 
 State and log are in `/var/lib/darkos-ota/` (`state.json`, `ota.log`).
 
