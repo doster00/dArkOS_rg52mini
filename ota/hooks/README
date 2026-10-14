@@ -14,6 +14,8 @@ rollback.
 
 all-<name>.sh goes into every package, after the release's own hooks, in name
 order:
+- all-fix-root-dir.sh gives / back to root (the images up to 1.1's test
+  builds had it as ark's) and removes what PPSSPP 1.12.3 left there;
 - all-keep-quickmode.sh, while Quick Mode is on, puts its pause.sh and
   finish.sh back over the update's, and its entry in Options -> Advanced;
 - all-ldconfig.sh rebuilds the dynamic linker's cache, which packages do not

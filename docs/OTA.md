@@ -19,7 +19,7 @@ next one.
 | `ota/make-ota.py` | builds a package from two release images (runs in the build host, as root) |
 | `ota/rg52mini.json` | the feed the devices read; `{"response": []}` between releases |
 | `ota/hooks/<version>[-name].sh` | scripts a release needs run after its files are in place |
-| `ota/hooks/all-<name>.sh` | scripts every package runs, after the release's own (`all-keep-quickmode.sh`, `all-ldconfig.sh`, `all-merge-dpkg.sh`) |
+| `ota/hooks/all-<name>.sh` | scripts every package runs, after the release's own (`all-fix-root-dir.sh`, `all-keep-quickmode.sh`, `all-ldconfig.sh`, `all-merge-dpkg.sh`) |
 | `scripts/rk3562/darkos-ota` | the client, `/usr/local/sbin/darkos-ota` on the device |
 | `dArkOS_Tools/rk3562/Update.sh` | Options → Update: the menu over the client |
 | `scripts/rk3562/darkos-ota-boot.service` | marks an update as booted |
