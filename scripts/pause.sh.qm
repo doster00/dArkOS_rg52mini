@@ -18,6 +18,17 @@ if [ -r $phase ] && read -r p t < $phase && pgrep -x systemd-sleep > /dev/null; 
       exit 0 ;;
   esac
 fi
+# The "black" screensaver of ES, or another dark screen: see pause.sh.
+mark=/run/darkos-screensaver
+if [ -r $mark ] && read -r s v pid < $mark; then
+  [ "$s" = on ] && kill -0 "$pid" 2> /dev/null && exit 0
+  [ "$s" = off ] && [ $(( $(date +%s%3N) - ${v:-0} )) -lt 1500 ] && exit 0
+fi
+if [ "$(cat /sys/class/backlight/backlight/brightness)" = 0 ]; then
+  b=$(cat /run/darkos-brightness 2> /dev/null || cat /var/local/cur_bright.state 2> /dev/null)
+  echo ${b:-60} | sudo tee /sys/class/backlight/backlight/brightness > /dev/null
+  exit 0
+fi
 if [ ! -e "/home/ark/.config/.SWAPPOWERANDSUSPEND" ]; then
   sudo systemctl suspend
 else

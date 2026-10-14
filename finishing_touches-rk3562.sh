@@ -570,6 +570,11 @@ echo 'SUBSYSTEM=="dma_heap", MODE="0666"' | sudo tee Arkbuild/etc/udev/rules.d/9
 # off until perfoc turns boost on.
 echo 'ACTION=="add", SUBSYSTEM=="devfreq", KERNEL=="*.gpu", ATTR{max_freq}="900000000"' | sudo tee Arkbuild/etc/udev/rules.d/99-gpu-oc-cap.rules
 
+# The last brightness other than 0: what the power key puts back after the
+# "black" screensaver of ES turned the backlight off (scripts/pause.sh,
+# Emulationstation/scripts.rk3562).
+echo 'SUBSYSTEM=="backlight", ACTION=="add|change", ATTR{brightness}!="0", RUN+="/bin/sh -c '\''echo $attr{brightness} > /run/darkos-brightness'\''"' | sudo tee Arkbuild/etc/udev/rules.d/99-darkos-brightness.rules
+
 # Joystick button swap persistence -- restore swap state on boot if flag file exists
 echo 'ACTION=="add", SUBSYSTEM=="platform", DRIVER=="rk3562-joystick", RUN+="/bin/sh -c '\''test -f /home/ark/.config/.SWAP_START_HOME && echo 1 > /sys%p/swap_start_home'\''"' | sudo tee Arkbuild/etc/udev/rules.d/99-joystick-swap.rules
 

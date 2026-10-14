@@ -31,6 +31,23 @@ if [ -r $phase ] && read -r p t < $phase && pgrep -x systemd-sleep > /dev/null; 
       exit 0 ;;
   esac
 fi
+# The "black" screensaver of ES only turns the backlight off: the device is
+# awake, and the key lights the screen instead. ES reads the key as well and
+# stops the screensaver itself; its scripts keep a mark of it (see
+# Emulationstation/scripts.rk3562): "on" while it runs, ES still to take the
+# press, or "off" with the time ES stopped it, a moment ago if on this press.
+# The ES of an "on" has to be alive: one that died left the backlight off, and
+# that is a dark screen without a mark, lit here.
+mark=/run/darkos-screensaver
+if [ -r $mark ] && read -r s v pid < $mark; then
+  [ "$s" = on ] && kill -0 "$pid" 2> /dev/null && exit 0
+  [ "$s" = off ] && [ $(( $(date +%s%3N) - ${v:-0} )) -lt 1500 ] && exit 0
+fi
+if [ "$(cat /sys/class/backlight/backlight/brightness)" = 0 ]; then
+  b=$(cat /run/darkos-brightness 2> /dev/null || cat /var/local/cur_bright.state 2> /dev/null)
+  echo ${b:-60} | sudo tee /sys/class/backlight/backlight/brightness > /dev/null
+  exit 0
+fi
 if [ ! -e "/home/ark/.config/.SWAPPOWERANDSUSPEND" ]; then
   sudo systemctl suspend
 else
