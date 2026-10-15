@@ -110,7 +110,13 @@ sudo mkdir -p Arkbuild/home/ark/.config/retroarch/cores
 while read RETROARCH_CORE; do
   if [[ ! "$RETROARCH_CORE" =~ ^# ]]; then
     echo -e "Adding ${RETROARCH_CORE} libretro core\n"
-    wget --retry-connrefused --retry-on-http-error=429 --waitretry=20 -t 65 -T 30 --no-check-certificate https://github.com/christianhaitian/retroarch-cores/raw/"$CORE_REPO"/"$ARCH"/"$RETROARCH_CORE"_libretro.so.zip -O /dev/shm/"$RETROARCH_CORE"_libretro.so.zip
+    CORE_REF="$CORE_REPO"
+    # np2kai on rg503 since 2026-09-07 (NP2kai 5939e0c) leaves ymzadpcm_*
+    # undefined and RetroArch cannot open it; take the build before that one.
+    if [ "$CORE_REPO" == "rg503" ] && [ "$RETROARCH_CORE" == "np2kai" ]; then
+      CORE_REF="e2a8f88be5"
+    fi
+    wget --retry-connrefused --retry-on-http-error=429 --waitretry=20 -t 65 -T 30 --no-check-certificate https://github.com/christianhaitian/retroarch-cores/raw/"$CORE_REF"/"$ARCH"/"$RETROARCH_CORE"_libretro.so.zip -O /dev/shm/"$RETROARCH_CORE"_libretro.so.zip
     if [ $? -eq 0 ]; then
       sudo unzip -o /dev/shm/"$RETROARCH_CORE"_libretro.so.zip -d Arkbuild/home/ark/.config/retroarch/cores/
       rm -f /dev/shm/"$RETROARCH_CORE"_libretro.so.zip
