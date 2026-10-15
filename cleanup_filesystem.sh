@@ -146,7 +146,21 @@ if [[ "$BUILD_BLUEALSA" == "y" ]]; then
   done <bluetooth_needed_packages.txt
 fi
 
+# RG52 Mini: divert the Debian files the Mali links below replace, so that apt
+# on the device neither puts Mesa back over them nor lets ldconfig point
+# libvulkan.so.1 and libwayland-egl.so.1 at Debian's (see the script). After
+# the last package install above, before the links are made.
+if [ "$CHIPSET" == "rk3562" ]; then
+  sudo install -m 755 scripts/rk3562/divert-mesa.sh Arkbuild/tmp/divert-mesa.sh
+fi
+divert_mesa() {
+  if [ "$CHIPSET" == "rk3562" ]; then
+    call_chroot "bash /tmp/divert-mesa.sh $1"
+  fi
+}
+
 if [[ "${BUILD_ARMHF}" == "y" ]]; then
+  divert_mesa arm-linux-gnueabihf
   cd Arkbuild/usr/lib/arm-linux-gnueabihf
   for LIB in libEGL.so libEGL.so.1 libGLES_CM.so libGLES_CM.so.1 libGLESv1_CM.so libGLESv1_CM.so.1 libGLESv1_CM.so.1.1.0 libGLESv2.so libGLESv2.so.2 libGLESv2.so.2.0.0 libGLESv2.so.2.1.0 libGLESv3.so libGLESv3.so.3 libgbm.so libgbm.so.1 libgbm.so.1.0.0 libmali.so libmali.so.1 libMaliOpenCL.so libOpenCL.so libwayland-egl.so libwayland-egl.so.1 libwayland-egl.so.1.0.0
   do
@@ -172,6 +186,8 @@ if [[ "${BUILD_ARMHF}" == "y" ]]; then
   rm -f libasound2_1.2.8-1+b1_armhf.deb
 fi
 
+divert_mesa aarch64-linux-gnu
+sudo rm -f Arkbuild/tmp/divert-mesa.sh
 cd Arkbuild/usr/lib/aarch64-linux-gnu
 # Remove any Mesa EGL/GLES files that may have been pulled in by other -dev packages
 sudo rm -f libEGL_mesa.so* libGLX_mesa.so* libGLESv1_CM.so.1.2.* libGLESv2.so.2.1.*
