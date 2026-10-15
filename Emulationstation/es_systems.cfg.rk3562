@@ -397,6 +397,8 @@
 		<extension>.7z .7Z .ist .IST .zip .ZIP .bin .BIN</extension>
 		<command>sudo perfmax %GOVERNOR% %ROM%; nice -n -19 /usr/local/bin/atomiswave.sh %EMULATOR% %CORE% %ROM%; sudo perfnorm</command>
 		<emulators>
+			<emulator name="standalone">
+			  </emulator>
 			<emulator name="retroarch">
 				<cores>
 					<core>flycast</core>
@@ -421,8 +423,6 @@
 					<core>reicast_xtreme</core>
 				</cores>
 			</emulator>
-			<emulator name="standalone">
-			  </emulator>
 		</emulators>
 		<platform>atomiswave</platform>
 		<theme>atomiswave</theme>
@@ -437,6 +437,8 @@
 		<extension>.7z .7Z .ist .IST .zip .ZIP .bin .BIN .dat .DAT</extension>
 		<command>sudo perfmax %GOVERNOR% %ROM%; nice -n -19 /usr/local/bin/naomi.sh %EMULATOR% %CORE% %ROM%; sudo perfnorm</command>
 		<emulators>
+			<emulator name="standalone">
+			  </emulator>
 			<emulator name="retroarch">
 				<cores>
 					<core>flycast</core>
@@ -461,8 +463,6 @@
 					<core>reicast_xtreme</core>
 				</cores>
 			</emulator>
-			<emulator name="standalone">
-			  </emulator>
 		</emulators>
 		<platform>naomi</platform>
 		<theme>naomi</theme>
