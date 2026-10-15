@@ -190,9 +190,7 @@ and rk628 probe order before concluding anything about the hardware.
 
 ## Repairs, each its own small job
 
-* Three bit-rotted patches: ECWolf, Hypseus Singe, GameTank.
-
-Described in KNOWN-ISSUES.md with what was already ruled out.
+None open. The three bit-rotted patches are fixed — KNOWN-ISSUES.md says how.
 
 The seven PortMaster compatibility libraries that used to 404 are fixed:
 upstream found them on snapshot.debian.org and this fork took the change. All
@@ -201,7 +199,9 @@ twenty-one URLs answer now.
 Done since this list was written: Yabasanshiro, whose upstream repository is
 gone, builds from a pinned commit of a surviving fork; freej2me-plus needed a
 java level a current JDK still accepts and a jar name that had been renamed
-under it; and Kodi's two patch conflicts are resolved and built.
+under it; Kodi's two patch conflicts are resolved and built; Hypseus Singe and
+GameTank build since the upstream merge of 2026-10-05 brought their rewritten
+patches; and ECWolf builds again (2026-10-15).
 
 ## RetroArch fixes after v1.22.2 that need porting by hand
 
@@ -314,24 +314,3 @@ and so never matches this board.
 So the whole build pays the per-package emulation cost twice, in `build_deps.sh`
 and again in `cleanup_filesystem.sh`. Batching both would return roughly two
 and a half hours per build.
-
-## Delete two cached failures before the next build
-
-`make rg52mini` ends with an audit, and on 2026-10-01 it reported:
-
-    EMPTY       /opt/ecwolf
-    NO BINARY   /opt/gametank  (files present, no ELF among them)
-    NO BINARY   /opt/hypseus-singe  (files present, no ELF among them)
-    with binaries: 33   empty: 1   no executable: 2
-
-Two of those are self-perpetuating. `Arkbuild_package_cache/rk3562/` holds
-`ecwolfsa.tar.gz` at 130 bytes and `gametank.tar.gz` at 128 bytes — empty
-tarballs written when the build failed, under keys that still match. Every
-later build restores the failure instead of retrying it, which is why they are
-missing from the 2026-09-29 image as well. Delete those two `.tar.gz` files
-with their `.commit` partners and the next build will try again.
-
-What it would then have to get past: `ecwolf-patch-002-add-exit-menu.patch`,
-`gametank-patch-001-disable-joystick.patch` and
-`hypseussinge-patch-0001-buildfix.patch` all failed to apply, and `libfuse2`
-and `libpcap0.8` do not exist in trixie under those names.

@@ -1,7 +1,11 @@
 #!/bin/bash
 
 # Build and install ECWolf standalone emulator
-if [ -f "Arkbuild_package_cache/${CHIPSET}/ecwolfsa.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/ecwolfsa.commit)" == "$(curl -s https://api.bitbucket.org/2.0/repositories/ecwolf/ecwolf/commits/master | jq -r '.values[0].hash')" ]; then
+# The cache key is the head of the GitHub repository builds-alt.sh clones; the
+# bitbucket mirror asked before stopped at 51994be, so the key never matched.
+# A cached tarball without the binary is a failed build and is not reused.
+ecwolf_head="$(git ls-remote https://github.com/ECWolfEngine/ECWolf.git HEAD | cut -f1)"
+if [ -f "Arkbuild_package_cache/${CHIPSET}/ecwolfsa.tar.gz" ] && [ -n "$ecwolf_head" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/ecwolfsa.commit)" == "$ecwolf_head" ] && tar -tzf Arkbuild_package_cache/${CHIPSET}/ecwolfsa.tar.gz | grep -qx "Arkbuild/opt/ecwolf/ecwolf"; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/ecwolfsa.tar.gz
 else
 	call_chroot "cd /home/ark &&
@@ -17,8 +21,10 @@ else
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/ecwolfsa.commit" ]; then
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/ecwolfsa.commit
 	fi
-	sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/ecwolfsa.tar.gz Arkbuild/opt/ecwolf/
-	sudo git --git-dir=Arkbuild/home/ark/${CHIPSET}_core_builds/ecwolf/.git --work-tree=Arkbuild/home/ark/${CHIPSET}_core_builds/ecwolf rev-parse HEAD > Arkbuild_package_cache/${CHIPSET}/ecwolfsa.commit
+	if [ -f Arkbuild/opt/ecwolf/ecwolf ]; then
+	  sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/ecwolfsa.tar.gz Arkbuild/opt/ecwolf/
+	  sudo git --git-dir=Arkbuild/home/ark/${CHIPSET}_core_builds/ecwolf/.git --work-tree=Arkbuild/home/ark/${CHIPSET}_core_builds/ecwolf rev-parse HEAD > Arkbuild_package_cache/${CHIPSET}/ecwolfsa.commit
+	fi
 fi
 sudo mkdir -p Arkbuild/home/ark/.config/ecwolf
 sudo cp ecwolf/config/ecwolf.cfg.${UNIT} Arkbuild/home/ark/.config/ecwolf/ecwolf.cfg

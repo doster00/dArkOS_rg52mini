@@ -1,47 +1,76 @@
 # Known issues
 
 All of these are visible in the build log. `make rg52mini` ends with an audit
-that names them, so start there rather than reading 80 000 lines:
+that names them, so start there rather than reading 80 000 lines. The 10142026
+build (release 1.1), the last one before ECWolf was repaired:
 
     ==================== COMPONENT AUDIT ====================
       EMPTY       /opt/ecwolf
-      NO BINARY   /opt/gametank
-      NO BINARY   /opt/hypseus-singe
       ---
-      with binaries: 31   empty: 1   no executable: 2
+      with binaries: 36   empty: 1   no executable: 0
 
-      Build steps that gave up ...
-      Packages that failed to install ...
+      Build steps that gave up (from build.log):
+              1 ecwolf-patch-002-add-exit-menu.patch
+
+      Packages that failed to install:
+        Could not install needed library libfuse2.
+        Could not install needed library libpcap0.8.
     ========================================================
 
-## Components that do not build
+`libfuse2` and `libpcap0.8` do not exist in trixie under those names.
 
-Three fail the same way: a patch in `rk3562_core_builds/patches/` no longer
-applies to its upstream, `builds-alt.sh` stops, and the copy that follows
-finds nothing.
+## Components that did not build
 
-| | |
-|---|---|
-| ECWolf | `ecwolf-patch-002-add-exit-menu.patch` |
-| Hypseus Singe | `hypseussinge-patch-0001-buildfix.patch` |
-| GameTank | `gametank-patch-001-disable-joystick.patch` |
+Three failed the same way: a patch in `rk3562_core_builds/patches/` no longer
+applied to its upstream, `builds-alt.sh` stopped, and the copy that followed
+found nothing. All three build now.
 
-Fixing them means working out what changed upstream and rewriting the hunks —
-one job each, not a batch. They are all secondary emulators.
+| | patch that stopped applying | fixed |
+|---|---|---|
+| Hypseus Singe | `hypseussinge-patch-0001-buildfix.patch` | upstream rewrote it (2026-07-10); here since the merge of 2026-10-05 |
+| GameTank | `gametank-patch-001-disable-joystick.patch` | upstream rewrote it (2026-07-11); same merge |
+| ECWolf | `ecwolf-patch-002-add-exit-menu.patch` | here, 2026-10-15 — below |
 
-**Two of the three now fail without even trying.** The audit at the end of the
-v09292026 build reported `/opt/ecwolf` empty and `/opt/gametank` and
-`/opt/hypseus-singe` holding files with no ELF among them, and named the cause:
-`Arkbuild_package_cache/rk3562/` carries `ecwolfsa.tar.gz` at 130 bytes and
-`gametank.tar.gz` at 128 bytes. Those are empty tarballs written when the build
-first failed, under cache keys that still match, so every later build restores
-the failure rather than retrying it. Delete the two `.tar.gz` files with their
-`.commit` partners before the next build or the patches above will never be
-reached. Their two missing packages, `libfuse2` and `libpcap0.8`, do not exist
-in trixie under those names either.
+**ECWolf: upstream took the patch in.** ECWolf's own 1bff92d (2026-02-23, "add:
+ESC key as button to return to main menu") adds the same one-line
+`controlScheme[]` entry the patch added, so the patch could not apply a second
+time. It is deleted. Two things follow from it:
 
-Yabasanshiro used to be a fourth, for a different reason, and is now building
-again — see below.
+- Upstream calls the button "Main Menu" where the patch said "Escape Game", and
+  ECWolf names its config keys after the button (`Joystick_%s`, spaces to
+  underscores, `c_cvars.cpp`). `ecwolf.cfg.rg52mini` now binds
+  `Joystick_Main_Menu = 4`, which is Select. Under the old key name the button
+  would be left unbound — read from the code, not tried.
+- `scripts/ecwolfsa.sh` applies the patches only when `find *.patch` finds one,
+  and `ecwolf-patch-001-add-video-patch` (window modes 480×320, 854×480,
+  960×544) had been applied only because 002 matched. It is renamed
+  `ecwolf-patch-001-add-video.patch`.
+
+Two more things kept ECWolf missing once the patch broke, and are fixed in
+`build_ecwolfsa.sh`. The cache key came from the bitbucket mirror, which stopped
+at 51994be while the build clones GitHub, so the key never matched and every
+build would have rebuilt. And a failed build still wrote an empty tarball. The
+key is now `git ls-remote` of the GitHub repository; the cache is taken only
+when it holds `opt/ecwolf/ecwolf` and written only after a build that made it.
+
+Checked on 2026-10-15:
+
+- `builds-alt.sh ecwolfsa` in a trixie arm64 chroot under qemu took 22 minutes.
+  It used the system SDL2 and SDL2_mixer and linked in its vendored SDL2_net,
+  since trixie's runtime package has no `.so` to link.
+- `build_ecwolfsa.sh`, run with the chroot stubbed out, threw away the 127-byte
+  cached failure, wrote no cache after a failed build, wrote one after a good
+  build, and took it on the next run.
+- On the device, started through `ecwolf.sh standalone` with the Wolf3D 1.4
+  shareware data from maniacsvault.net:
+  - SDL 2.32.10, the game controller `rk3562-joystick`, audio at 44100 Hz;
+  - landscape and upright on the panel, checked with the camera;
+  - Select in a game opens the main menu, and the config ECWolf writes back on
+    exit keeps `Joystick_Main_Menu = 4`;
+  - both Quit and Select+Start end the game.
+
+Yabasanshiro was a fourth, for a different reason, and is fixed too — see
+below.
 
 **Yabasanshiro was different, and is now fixed.** `scripts/yabasanshirosa.sh`
 cloned `https://github.com/devmiyax/yabause` at tag `pi4-1-9-0`, and that
@@ -609,7 +638,8 @@ using the cache. Six entries were in that state: kodi, bluealsa, freej2me-plus,
 yabasanshiro, ecwolf, gametank. The build started to test Kodi would have
 skipped Kodi.
 
-`build_kodi.sh` now caches only when `/opt/kodi` holds an ELF, and the audit
+`build_kodi.sh` now caches only when `/opt/kodi` holds an ELF (`build_ecwolfsa.sh`
+likewise since 2026-10-15), and the audit
 lists every cache tarball under 20 KB, which covers the other thirty-odd
 components without editing each script. The bad entries were moved to
 `Arkbuild_package_cache/failed-2026-09-15/`.
