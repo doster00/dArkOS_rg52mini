@@ -426,6 +426,11 @@ sudo chroot Arkbuild/ bash -c "systemctl enable wifi-driver-load"
 sudo install -m 644 scripts/rk3562/wifi_importer.service Arkbuild/etc/systemd/system/wifi_importer.service
 sudo chroot Arkbuild/ bash -c "systemctl enable wifi_importer"
 
+# SSH host keys of the card's own, made on its first boot (see the unit).
+# cleanup_filesystem.sh removes the build's, which would be on every card.
+sudo install -m 644 scripts/rk3562/darkos-hostkeys.service Arkbuild/etc/systemd/system/darkos-hostkeys.service
+sudo chroot Arkbuild/ bash -c "systemctl enable darkos-hostkeys"
+
 # Revision A workaround: the panel stays black after the kernel takes over the
 # display. panel-kick re-initialises the display before EmulationStation starts
 # and exits at once on revision B. See docs/KNOWN-ISSUES.md.

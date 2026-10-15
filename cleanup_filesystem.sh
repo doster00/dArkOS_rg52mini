@@ -265,3 +265,9 @@ sudo rm -rf Arkbuild/var/lib/apt/lists/*
 sudo rm -f Arkbuild/var/log/*.log
 sudo rm -f Arkbuild/var/log/apt/*.log
 sudo rm -f Arkbuild/tmp/reboot-needed
+# RG52 Mini: no SSH host keys in the image. Here, after the last apt run, since
+# an openssh-server upgrade would make them again. darkos-hostkeys.service
+# makes the card's own on its first boot; other units have nothing that would.
+if [ "$CHIPSET" == "rk3562" ]; then
+  sudo rm -f Arkbuild/etc/ssh/ssh_host_*_key Arkbuild/etc/ssh/ssh_host_*_key.pub
+fi

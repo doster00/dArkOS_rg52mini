@@ -1,0 +1,17 @@
+[Unit]
+Description=Give this card its own SSH host keys
+# Every card written from one image, and every card made from one dual-boot
+# build, used to carry the same host keys, made when the image was built and
+# published with it. Make new ones once, before ssh can start. Updates leave
+# the keys alone (make-ota.py excludes them), so this runs once on a card that
+# gets it by update too.
+Before=ssh.service
+ConditionPathExists=!/var/lib/darkos/hostkeys-done
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub && ssh-keygen -A && mkdir -p /var/lib/darkos && touch /var/lib/darkos/hostkeys-done'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
