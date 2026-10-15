@@ -1,7 +1,11 @@
 #!/bin/bash
 
 # Build and install gametank
-if [ -f "Arkbuild_package_cache/${CHIPSET}/gametank.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/gametank.commit)" == "$(curl -s https://api.github.com/repos/clydeshaffer/gametankemulator/commits/main | jq -r '.sha')" ]; then
+# The recipe and its patches are part of the cache key, as in build_fake08.sh:
+# a flag changed there (the patch said -mcpu=cortex-a55, whose LSE atomics this
+# Cortex-A53 cannot run) would otherwise never reach the image.
+GAMETANK_RECIPE_SHA=$(cat ${CHIPSET}_core_builds/scripts/gametank.sh ${CHIPSET}_core_builds/patches/gametank-patch* 2>/dev/null | sha1sum | cut -c1-12)
+if [ -f "Arkbuild_package_cache/${CHIPSET}/gametank.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/gametank.commit)" == "$(curl -s https://api.github.com/repos/clydeshaffer/gametankemulator/commits/main | jq -r '.sha')-${GAMETANK_RECIPE_SHA}" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/gametank.tar.gz
 else
 	call_chroot "cd /home/ark &&
@@ -17,8 +21,10 @@ else
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/gametank.commit" ]; then
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/gametank.commit
 	fi
-	sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/gametank.tar.gz Arkbuild/opt/gametank/
-	sudo curl -s https://api.github.com/repos/clydeshaffer/gametankemulator/commits/main | jq -r '.sha' > Arkbuild_package_cache/${CHIPSET}/gametank.commit
+	if [ -f Arkbuild/opt/gametank/GameTankEmulator ]; then
+	  sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/gametank.tar.gz Arkbuild/opt/gametank/
+	  echo "$(curl -s https://api.github.com/repos/clydeshaffer/gametankemulator/commits/main | jq -r '.sha')-${GAMETANK_RECIPE_SHA}" | sudo tee Arkbuild_package_cache/${CHIPSET}/gametank.commit >/dev/null
+	fi
 fi
 sudo cp gametank/config/gametank.gptk Arkbuild/opt/gametank/gametank.gptk
 sudo cp gametank/scripts/gametank.sh Arkbuild/usr/local/bin/

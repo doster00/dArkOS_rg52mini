@@ -609,6 +609,51 @@ here, so neither ever saw the wrong `-mcpu`.
 The `-mtune` half does reach real binaries — RetroArch, mupen64plus and the
 rest — but only those that actually rebuild. See the next section.
 
+### Prebuilt cores and one recipe still carry A55 code (2026-10-16)
+
+Found by loading every RetroArch core on the device with null drivers and no
+content, then disassembling everything in the 1.2 test image for ARMv8.1+
+instructions. The Cortex-A53 has none of them. LSE atomics guarded by GCC's
+outline-atomics test (`ldrb w16` / `cbz w16` just before) are fine — RetroArch,
+flycast standalone, PCSX2, Dolphin have those — and Go's filebrowser tests the
+CPU its own way and runs. Inline ones are SIGILL whenever they execute:
+
+| | inline LSE | on the device |
+|---|---|---|
+| `same_cdi` (CD-i) | 816 | SIGILL on load |
+| `mupen64plus_next` (N64) | 676 | SIGILL on load (`ldaddal` at 0x99910) |
+| `flycast`, `flycast_rumble` (64-bit) | 300 | loads; a game stops within seconds, its own handler printing "SIGSEGV ... not in vram" (`ldaddal` at 0x14441e4) |
+| `uae4arm` (Amiga) | 134 | not run |
+| `puzzlescript` | 35 | not run |
+| `mednafen_psx_hw` (Beetle PSX HW) | 21 | not run |
+| `/opt/gametank/GameTankEmulator` | 82 | built here: fixed, see below |
+
+The cores come prebuilt from christianhaitian/retroarch-cores, branch rg503,
+built for the RK3566's Cortex-A55; every older build of `mupen64plus_next` and
+`same_cdi` on that branch fails the same way, so this is not a regression. None
+of them is a default any more: N64 starts `parallel_n64`, PSX `pcsx_rearmed`
+(32-bit), Dreamcast the 32-bit `flycast32_rumble` (AArch32 has no LSE), and
+Naomi and Atomiswave now the standalone flycast (they used to start the 64-bit
+libretro one, which is why `kov7sprt` stopped). The way to fix them is to build
+them here, as `build_retroarch.sh` already does for easyrpg: the recipes exist
+in `rk3562_core_builds` (`mupen64plus-nx.sh` with `BOARD=NGRK` already passes
+`-mcpu=cortex-a53`; `flycast.sh`'s Makefile patch has `-mcpu=cortex-a55` in
+several platform blocks, some with `-march=armv8-a...` beside it and some
+without, so which one our build would take needs checking first). Not done
+yet - about two hours of emulated compiling per build.
+
+`stella` (the second Atari 2600 core; `stella2014` is the default and works)
+cannot load at all: every rg503 build of it needs `libiconv.so.2`, GNU libiconv,
+which Debian does not have.
+
+GameTank was the one built here: `gametank-patch-002-performance-tweak.patch`,
+rewritten upstream in July, put `-mcpu=cortex-a55` back without `-march`. It
+says `cortex-a53` now (`rk3562_core_builds` 0bb7d88), and `build_gametank.sh`
+keys its cache on the recipe as well, so the next build compiles it again.
+Other patches with `-mcpu=cortex-a55` either also pass `-march=armv8-a...`,
+which keeps the baseline at ARMv8.0 (yabasanshiro), or belong to cores this
+build downloads instead of compiling.
+
 ## The build cache is keyed by upstream version, not by build flags
 
 Each component caches to `Arkbuild_package_cache/<chipset>/<name>.tar.gz` with a
@@ -775,6 +820,71 @@ worked but put the whole device to sleep for it. A fbdev blank without unbinding
 fbcon does not work at all: fbcon switches the output back 38 ms later and
 produces the very black screen it was meant to cure.
 
+## Every card had the same SSH host keys — fixed after 1.1
+
+The keys were made once, when the build installed openssh-server, and nothing
+replaced them: every card written from one image, and every dual-boot card made
+from it, had the same host keys, and the published image carried the private
+halves. With Remote Services on, anyone could impersonate any of them.
+(Found in llj503/dArkOS_ngp45ht, which fixes it in its own firstboot.)
+
+`darkos-hostkeys.service` deletes them and runs `ssh-keygen -A` once, before
+ssh can start, and leaves `/var/lib/darkos/hostkeys-done`; the image ships no
+keys at all (removed at the end of `cleanup_filesystem.sh`, after the last apt
+run). `make-ota.py` already leaves the keys out of packages, so a card that
+gets the unit by update makes new keys once too — expect ssh's "remote host
+identification has changed" from clients that knew the old ones. On the device
+on 2026-10-15: 1.7 s, the ED25519 fingerprint changed, a second start is
+skipped by the condition.
+
+`machine-id` is shared the same way and is left alone: an empty
+`/etc/machine-id` makes systemd treat the boot as the first one and apply the
+unit presets, which would enable services the build disables.
+
+## apt and ldconfig could take the GPU libraries back from Mali — fixed after 1.1
+
+The build points `libEGL`, `libGLESv2`, `libgbm` and the rest at `libMali.so`,
+and `libvulkan.so.1` at the BSP loader, over files Debian packages own. Two
+things undid that on a device, both seen on 2026-10-15:
+
+- **apt.** `apt-get install --reinstall libgbm1` put Mesa's libgbm back over
+  the armhf link. Since 1.1 sources.list has trixie-updates and -security, and
+  Mesa comes with Debian point releases, so `apt upgrade` would do it on its
+  own. Mesa's gbm under the Mali EGL is a black screen for EmulationStation
+  (inferred, not tried).
+- **ldconfig without -X**, which every library install runs as a dpkg
+  trigger. It points each soname link at the newest file with that soname:
+  `libvulkan.so.1` went to Debian's 1.4.309 loader and `libwayland-egl.so.1`
+  to Debian's. The 1.1 OTA client ran it the same way, so the 1.1 → 1.2 test
+  update did it too. Vulkan still worked through Debian's loader (flycast,
+  2026-10-15), but it is not what was tested.
+
+`scripts/rk3562/divert-mesa.sh`, run by `cleanup_filesystem.sh` before the
+links are made, diverts those files to `/usr/lib/mali-diverted/<triplet>`,
+outside `ld.so.conf`, the way Debian's NVIDIA packages divert Mesa: package
+files land there, and ldconfig never sees Debian's loader or wayland-egl.
+spruceUI/dArkMoss diverts to `<name>.distrib` in the same directory instead,
+which still leaves an ELF with the right soname where ldconfig looks. On the
+device, after the diversions, reinstalling libgbm1, libegl1, libgles2,
+libvulkan1 and libwayland-egl1 for both architectures and a plain `ldconfig`
+left every link as the build made it, and EmulationStation and flycast on
+Vulkan still ran.
+
+The OTA client and `hooks/all-ldconfig.sh` now run `ldconfig -X`, and
+`hooks/all-gpu-links.sh` puts the links back after the 1.1 client's plain
+ldconfig. Diversions reach existing cards with the package database.
+
+## Emulators never ran at nice -19 — fixed after 1.1
+
+`es_systems.cfg` starts emulators with `nice -n -19` and `limits.conf` gives
+ark nice -20, but limits.conf is pam_limits, and EmulationStation is a service
+without a PAM session: its limit was 0 (`Max nice priority 0` in its
+`/proc/<pid>/limits`), every `nice -19` failed, and emulators ran at nice 0 —
+on upstream dArkOS too. `LimitNICE=-20` in `emulationstation.service`
+(from cino893/dArkOS). With it PCSX2 ran at -19 while a RetroArch kept another
+core busy, and the exit hotkey still closed it within 100 ms: killer_daemon and
+the like wake on input and are not starved.
+
 ## HDMI output does nothing
 
 Reported from the device on 2026-10-01: plugging a cable produces no reaction
@@ -834,6 +944,22 @@ Where to start is in TODO.
   leftover `text.plymouth` theme. The screen is simply black until
   EmulationStation starts. The boot logo (see HARDWARE.md) addresses this from
   the kernel side.
+* **`enable_bluetooth.service` failed at boot** ("No default controller
+  available") on revision B: the AIC8800 registers hci0 a few seconds into
+  boot, after the script's `bluetoothctl power on`. bluetoothd powered the
+  controller anyway, so only the unit's state was wrong. The script now waits
+  up to 15 s for a controller and never fails the unit (after 1.1).
+* **The PC-98 core could not load.** `np2kai` on christianhaitian's rg503
+  branch since 2026-09-07 (NP2kai 5939e0c) leaves six `ymzadpcm_*` symbols
+  undefined: "Failed to open libretro core". `build_retroarch.sh` takes the
+  build before it (retroarch-cores e2a8f88be5), which loads on the device
+  (after 1.1; found in llj503/dArkOS_ngp45ht).
+* **fluidsynth runs all the time**, at 7-13 % of one core with nothing
+  playing: Debian's `fluidsynth.service` user unit starts with ark's session
+  and keeps a MIDI synth on the ALSA sequencer (client 128), with the sound
+  device open. Nothing in the image was found to use that port - lzdoom links
+  libfluidsynth itself - but a port that plays MIDI through ALSA would. Left
+  as it is; `systemctl --global disable fluidsynth` would end it.
 * **`liblc3-0`, `libreadline7` "could not install"** — these are deliberate.
   `bluetooth_needed_packages.txt` lists the names from several Debian releases
   side by side, and the ones that do not exist in trixie are simply skipped.
