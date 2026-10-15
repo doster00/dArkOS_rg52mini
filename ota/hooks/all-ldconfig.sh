@@ -8,5 +8,9 @@
 #
 # Those pass on the PATH of whoever ran them, and sudo keeps ark's, which has
 # no sbin (sudoers.d/ark-no-secure-path).
+#
+# -X: the cache only. The links are as the package left them, the build's;
+# ldconfig would point libvulkan.so.1 and libwayland-egl.so.1 at Debian's
+# libraries instead (see all-gpu-links.sh).
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ldconfig
+ldconfig -X

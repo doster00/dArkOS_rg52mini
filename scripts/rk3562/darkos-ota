@@ -652,8 +652,10 @@ def install(pkg, assume_yes=False):
             if a == "apply":
                 remove(e, journal)
         save_state(state)
-        # packages do not carry /etc/ld.so.cache: make it for the new libraries
-        subprocess.run(["ldconfig"])
+        # packages do not carry /etc/ld.so.cache: make it for the new libraries.
+        # -X leaves the links as the package wrote them, the build's: without
+        # it ldconfig moves libvulkan.so.1 from the BSP loader to Debian's.
+        subprocess.run(["ldconfig", "-X"])
         subprocess.run(["sync"])
         if uboot:
             log("writing the boot loader to " + uboot_part)

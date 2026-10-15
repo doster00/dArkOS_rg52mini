@@ -19,7 +19,7 @@ next one.
 | `ota/make-ota.py` | builds a package from two release images (runs in the build host, as root) |
 | `ota/rg52mini.json` | the feed the devices read; `{"response": []}` between releases |
 | `ota/hooks/<version>[-name].sh` | scripts a release needs run after its files are in place |
-| `ota/hooks/all-<name>.sh` | scripts every package runs, after the release's own (`all-fix-root-dir.sh`, `all-keep-quickmode.sh`, `all-ldconfig.sh`, `all-merge-dpkg.sh`) |
+| `ota/hooks/all-<name>.sh` | scripts every package runs, after the release's own (`all-fix-root-dir.sh`, `all-gpu-links.sh`, `all-keep-quickmode.sh`, `all-ldconfig.sh`, `all-merge-dpkg.sh`) |
 | `scripts/rk3562/darkos-ota` | the client, `/usr/local/sbin/darkos-ota` on the device |
 | `dArkOS_Tools/rk3562/Update.sh` | Options → Update: the menu over the client |
 | `scripts/rk3562/darkos-ota-boot.service` | marks an update as booted |
@@ -58,7 +58,12 @@ Not in a package (see `ROOT_EXCLUDE` in `make-ota.py`):
   it differs from the build's (anything installed with apt), the client
   would keep the old one as a file the user changed, and new libraries
   would be missing from it. `hooks/all-ldconfig.sh` in every package
-  rebuilds it, and so does the client from 1.1 on;
+  rebuilds it, and so does the client from 1.1 on. Both run `ldconfig -X`,
+  which leaves the links alone; plain `ldconfig` points libvulkan.so.1 and
+  libwayland-egl.so.1 at Debian's files rather than the BSP loader and libMali.
+  The 1.1 client does run it plain, so `hooks/all-gpu-links.sh` puts the
+  build's links back after it (measured on the 1.1 → 1.2 test update,
+  2026-10-15; Vulkan still worked through Debian's loader);
 - what firstboot consumes: `/roms.tar`, `/tempthemes`, everything under `/roms`;
 - build leftovers in the image: `/meson`, `*/.git`, `/home/ark/pcsx2`, `/home/ark/sdl3`;
 - `/boot` of the root filesystem, which p3 hides.
