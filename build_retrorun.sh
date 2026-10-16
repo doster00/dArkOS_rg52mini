@@ -7,7 +7,13 @@ else
   ext=""
 fi
 
-if [ -f "Arkbuild_package_cache/${CHIPSET}/retrorun.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/retrorun.commit)" == "$(curl -s https://api.github.com/repos/navy1978/retrorun/commits/master | jq -r '.sha')" ]; then
+# The recipe and its patches are part of the cache key (as in build_fake08.sh):
+# our RG52 Mini rotation patch lives there, and a key of the upstream commit
+# alone would keep restoring a binary built without it.
+RR_RECIPE_SHA=$(cat ${CHIPSET}_core_builds/scripts/retrorun.sh ${CHIPSET}_core_builds/patches/retrorun-patch* 2>/dev/null | sha1sum | cut -c1-12)
+RR_KEY="$(curl -s https://api.github.com/repos/navy1978/retrorun/commits/master | jq -r '.sha')-${RR_RECIPE_SHA}"
+
+if [ -f "Arkbuild_package_cache/${CHIPSET}/retrorun.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/retrorun.commit)" == "$RR_KEY" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/retrorun.tar.gz
 else
 	call_chroot "cd /home/ark &&
@@ -23,11 +29,13 @@ else
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/retrorun.commit" ]; then
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/retrorun.commit
 	fi
-	sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/retrorun.tar.gz Arkbuild/usr/local/bin/retrorun
-	sudo git --git-dir=Arkbuild/home/ark/${CHIPSET}_core_builds/retrorun/.git --work-tree=Arkbuild/home/ark/${CHIPSET}_core_builds/retrorun rev-parse HEAD > Arkbuild_package_cache/${CHIPSET}/retrorun.commit
+	if [ -f Arkbuild/usr/local/bin/retrorun ]; then
+	  sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/retrorun.tar.gz Arkbuild/usr/local/bin/retrorun
+	  echo "$(sudo git --git-dir=Arkbuild/home/ark/${CHIPSET}_core_builds/retrorun/.git --work-tree=Arkbuild/home/ark/${CHIPSET}_core_builds/retrorun rev-parse HEAD)-${RR_RECIPE_SHA}" | sudo tee Arkbuild_package_cache/${CHIPSET}/retrorun.commit >/dev/null
+	fi
 fi
 if [[ "${BUILD_ARMHF}" == "y" ]]; then
-  if [ -f "Arkbuild_package_cache/${CHIPSET}/retrorun32.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/retrorun32.commit)" == "$(curl -s https://api.github.com/repos/navy1978/retrorun/commits/master | jq -r '.sha')" ]; then
+  if [ -f "Arkbuild_package_cache/${CHIPSET}/retrorun32.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/retrorun32.commit)" == "$RR_KEY" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/retrorun32.tar.gz
   else
 	  call_chroot32 "cd /home/ark &&
@@ -43,8 +51,10 @@ if [[ "${BUILD_ARMHF}" == "y" ]]; then
 	  if [ -f "Arkbuild_package_cache/${CHIPSET}/retrorun32.commit" ]; then
 	    sudo rm -f Arkbuild_package_cache/${CHIPSET}/retrorun32.commit
 	  fi
-	  sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/retrorun32.tar.gz Arkbuild/usr/local/bin/retrorun32
-	  sudo git --git-dir=Arkbuild32/home/ark/${CHIPSET}_core_builds/retrorun/.git --work-tree=Arkbuild32/home/ark/${CHIPSET}_core_builds/retrorun rev-parse HEAD > Arkbuild_package_cache/${CHIPSET}/retrorun32.commit
+	  if [ -f Arkbuild/usr/local/bin/retrorun32 ]; then
+	    sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/retrorun32.tar.gz Arkbuild/usr/local/bin/retrorun32
+	    echo "$(sudo git --git-dir=Arkbuild32/home/ark/${CHIPSET}_core_builds/retrorun/.git --work-tree=Arkbuild32/home/ark/${CHIPSET}_core_builds/retrorun rev-parse HEAD)-${RR_RECIPE_SHA}" | sudo tee Arkbuild_package_cache/${CHIPSET}/retrorun32.commit >/dev/null
+	  fi
   fi
 fi
 

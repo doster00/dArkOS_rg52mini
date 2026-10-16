@@ -52,7 +52,13 @@ elif compgen -G "/boot/rk3562*" > /dev/null; then
   # reads its screen resolution from libgo2/DRM, not from DEVICE_NAME; DEVICE_NAME only
   # selects device quirks (rotation etc.). Both RK3562 panels are presented landscape,
   # so use a non-rotated profile (RG351P keeps hasDeviceRotatedScreen() == false).
-  DEVICENAME="RG351P"
+  # The RG52 Mini's panel is mounted the other way round: our retrorun has
+  # an RG52MINI profile that turns the RG351P picture half a turn.
+  if [ "$(cat /home/ark/.config/.DEVICE 2>/dev/null)" == "RG52MINI" ]; then
+    DEVICENAME="RG52MINI"
+  else
+    DEVICENAME="RG351P"
+  fi
 elif compgen -G "/boot/rk3566*" > /dev/null; then
   if test ! -z "$(grep "RG353V" /home/ark/.config/.DEVICE | tr -d '\0')"
   then
@@ -116,7 +122,13 @@ elif compgen -G "/boot/rk3562*" > /dev/null; then
   # reads its screen resolution from libgo2/DRM, not from DEVICE_NAME; DEVICE_NAME only
   # selects device quirks (rotation etc.). Both RK3562 panels are presented landscape,
   # so use a non-rotated profile (RG351P keeps hasDeviceRotatedScreen() == false).
-  DEVICENAME="RG351P"
+  # The RG52 Mini's panel is mounted the other way round: our retrorun has
+  # an RG52MINI profile that turns the RG351P picture half a turn.
+  if [ "$(cat /home/ark/.config/.DEVICE 2>/dev/null)" == "RG52MINI" ]; then
+    DEVICENAME="RG52MINI"
+  else
+    DEVICENAME="RG351P"
+  fi
 elif compgen -G "/boot/rk3566*" > /dev/null; then
   if test ! -z "$(grep "RG353V" /home/ark/.config/.DEVICE | tr -d '\0')"
   then

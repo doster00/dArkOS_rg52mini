@@ -4,6 +4,10 @@ retrorun_alternative_input_mode = true
 retrorun_swap_l1r1_with_l2r2 = false
 retrorun_force_left_analog_stick = false
 retrorun_show_loading_screen = false
+# retrorun knows its pads by name; ours is rk3562-joystick. Without both lines
+# it finds none and dies (SIGSEGV) before the game starts.
+retrorun_extra_retrogame_name = rk3562-joystick
+retrorun_extra_evdev_name = /dev/input/by-path/platform-play_joystick-event-joystick
 # ---- FLYCAST ----
 reicast_threaded_rendering = enabled
 reicast_anisotropic_filtering = off
