@@ -431,6 +431,12 @@ sudo chroot Arkbuild/ bash -c "systemctl enable wifi_importer"
 sudo install -m 644 scripts/rk3562/darkos-hostkeys.service Arkbuild/etc/systemd/system/darkos-hostkeys.service
 sudo chroot Arkbuild/ bash -c "systemctl enable darkos-hostkeys"
 
+# Debian's fluidsynth package enables a user unit that keeps a MIDI synth on
+# the ALSA sequencer for every session: 7-13 % of a core with nothing playing,
+# and the sound device held open. Nothing in the image uses that port (lzdoom
+# links libfluidsynth itself). Off, for all users.
+sudo chroot Arkbuild/ bash -c "systemctl --global disable fluidsynth"
+
 # Revision A workaround: the panel stays black after the kernel takes over the
 # display. panel-kick re-initialises the display before EmulationStation starts
 # and exits at once on revision B. See docs/KNOWN-ISSUES.md.
