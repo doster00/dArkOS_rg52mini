@@ -634,13 +634,26 @@ built for the RK3566's Cortex-A55; every older build of `mupen64plus_next` and
 of them is a default any more: N64 starts `parallel_n64`, PSX `pcsx_rearmed`
 (32-bit), Dreamcast the 32-bit `flycast32_rumble` (AArch32 has no LSE), and
 Naomi and Atomiswave now the standalone flycast (they used to start the 64-bit
-libretro one, which is why `kov7sprt` stopped). The way to fix them is to build
-them here, as `build_retroarch.sh` already does for easyrpg: the recipes exist
-in `rk3562_core_builds` (`mupen64plus-nx.sh` with `BOARD=NGRK` already passes
-`-mcpu=cortex-a53`; `flycast.sh`'s Makefile patch has `-mcpu=cortex-a55` in
-several platform blocks, some with `-march=armv8-a...` beside it and some
-without, so which one our build would take needs checking first). Not done
-yet - about two hours of emulated compiling per build.
+libretro one, which is why `kov7sprt` stopped).
+
+Four of them are now built here for the A53, by `build_a53_core` in
+`build_retroarch.sh`, over the downloaded ones; each is cached by its recipe
+and upstream head. All were built in a trixie arm64 chroot on 2026-10-16 and
+run on the device with no unguarded LSE instruction left:
+
+| core | change in `rk3562_core_builds` | on the device |
+|---|---|---|
+| `mupen64plus_next` | `mupen64plus-nx.sh` no longer turns the Makefile's a53 into a55 (c58d3ad) | AeroGauge, about 49 fps, GLES on the Mali |
+| `flycast`, `flycast_rumble` | `flycast.sh` checks out 4c293f3, the commit retroarch-cores builds (master no longer takes the per_pixel patch); the RK3566 block of the Makefile patch says cortex-a53; GCC 14's new C errors are warnings again through `CC`, since the Makefile resets `CFLAGS` (eb88dab) | Crazy Taxi 40-43 fps; Knights of Valour - The Seven Spirits past the point where the old core died |
+| `puzzlescript` | none | starts |
+| `same_cdi` | none (default flags, ARMv8.0) | loads; no CD-i disc on the card to go further |
+
+The first build with them takes about two hours longer, mupen64plus_next most
+of it; later ones take the cache.
+
+Still rg503's, and still A55 code: `uae4arm` (its `capsimg.so` step fails with
+the current upstream) and `mednafen_psx_hw` (beetle-psx no longer links:
+`retro_vfs_file_*_cdrom` undefined). Neither is a default.
 
 `stella` (the second Atari 2600 core; `stella2014` is the default and works)
 cannot load at all: every rg503 build of it needs `libiconv.so.2`, GNU libiconv,
@@ -653,6 +666,32 @@ keys its cache on the recipe as well, so the next build compiles it again.
 Other patches with `-mcpu=cortex-a55` either also pass `-march=armv8-a...`,
 which keeps the baseline at ARMv8.0 (yabasanshiro), or belong to cores this
 build downloads instead of compiling.
+
+### retrorun never ran on the RG52 Mini (2026-10-16)
+
+ES offers retrorun and retrorun32 for Dreamcast, Naomi, Atomiswave and Saturn.
+On this device every one of them failed, three times over:
+
+1. **retrorun32 could not start**: `libcurl.so.4` missing. It is built in
+   Arkbuild32, where curl comes with the dev packages, but nothing put the
+   armhf library in the image. `needed_packages32.txt` now has `libcurl4t64`.
+2. **No gamepad, then SIGSEGV.** retrorun knows pads by name and did not know
+   `rk3562-joystick`; told the name, it then found no event node and built a
+   `std::string` from NULL. `retrorun.cfg.rk3562` now sets
+   `retrorun_extra_retrogame_name` and `retrorun_extra_evdev_name`.
+3. **Upside down.** The launchers gave it `DEVICE_NAME=RG351P`, whose rotation
+   (270 degrees for a landscape game) suits the RG43H Pro's panel; the RG52
+   Mini's is mounted the other way round and needs 90. Our retrorun has an
+   `RG52MINI` profile, the RG351P's choices turned 180 degrees
+   (`retrorun-patch-0002-rg52mini-rotation.patch`, rk3562_core_builds 9e532b9),
+   and the launchers pass it when `~/.config/.DEVICE` says RG52MINI.
+   `build_retrorun.sh` keys its cache on the recipe too, so the patch gets in.
+
+Checked on the device: with the two config lines retrorun32 runs Crazy Taxi;
+the patched retrorun shows the NES 240p test suite upright with RG52MINI and
+upside down with RG351P. Its screenshots and on-screen messages go through the
+same rotation change and were not looked at. retrorun prints "ALSA mixer
+control 'Playback' not found", so its own volume keys do nothing here.
 
 ## The build cache is keyed by upstream version, not by build flags
 
@@ -958,8 +997,10 @@ Where to start is in TODO.
   playing: Debian's `fluidsynth.service` user unit starts with ark's session
   and keeps a MIDI synth on the ALSA sequencer (client 128), with the sound
   device open. Nothing in the image was found to use that port - lzdoom links
-  libfluidsynth itself - but a port that plays MIDI through ALSA would. Left
-  as it is; `systemctl --global disable fluidsynth` would end it.
+  libfluidsynth itself - but a port that plays MIDI through ALSA would.
+  Disabled for all users by `finishing_touches-rk3562.sh` after 1.1
+  (`systemctl --global disable fluidsynth`); a port that needs it can start
+  it with `systemctl --user start fluidsynth`.
 * **`liblc3-0`, `libreadline7` "could not install"** — these are deliberate.
   `bluetooth_needed_packages.txt` lists the names from several Debian releases
   side by side, and the ones that do not exist in trixie are simply skipped.
