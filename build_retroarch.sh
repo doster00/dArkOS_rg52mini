@@ -199,6 +199,45 @@ else
 	sudo curl -s https://raw.githubusercontent.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds/refs/heads/master/scripts/easyrpg.sh | grep -oP '(?<=tag=").*?(?=")' > Arkbuild_package_cache/${CHIPSET}/easyrpg.commit
 fi
 
+# RK3562: build here the cores whose rg503 builds are for the RK3566's
+# Cortex-A55 and die on this A53 (inline LSE atomics, see docs/KNOWN-ISSUES.md),
+# over the downloaded ones. Each is cached by its recipe and, unless the recipe
+# pins a commit, the upstream head; a failed build keeps the downloaded core
+# and caches nothing.
+build_a53_core() {  # builds-alt target, upstream git URL or "pinned", cores it makes...
+  local target=$1 url=$2; shift 2
+  local recipe key cache files c
+  recipe=$(cat ${CHIPSET}_core_builds/scripts/${target}.sh ${CHIPSET}_core_builds/patches/${target}-patch* 2>/dev/null | sha1sum | cut -c1-12)
+  key=${recipe}
+  [ "$url" != "pinned" ] && key="$(git ls-remote $url HEAD | cut -f1)-${recipe}"
+  cache=Arkbuild_package_cache/${CHIPSET}/${target}-a53
+  files=""
+  for c in "$@"; do files="$files Arkbuild/home/ark/.config/retroarch/cores/${c}_libretro.so"; done
+  if [ -f "$cache.tar.gz" ] && [ "$(cat $cache.commit 2>/dev/null)" == "$key" ]; then
+    sudo tar -xvzpf $cache.tar.gz
+    return
+  fi
+  call_chroot "cd /home/ark/${CHIPSET}_core_builds && eatmydata ./builds-alt.sh ${target}"
+  for c in "$@"; do
+    if [ ! -f Arkbuild/home/ark/${CHIPSET}_core_builds/cores64/${c}_libretro.so ]; then
+      echo "${c} did not build; the image keeps rg503's, which cannot run on the A53"
+      return
+    fi
+  done
+  for c in "$@"; do
+    sudo cp Arkbuild/home/ark/${CHIPSET}_core_builds/cores64/${c}_libretro.so Arkbuild/home/ark/.config/retroarch/cores/
+  done
+  sudo rm -f $cache.tar.gz $cache.commit
+  sudo tar -czpf $cache.tar.gz $files
+  echo "$key" | sudo tee $cache.commit >/dev/null
+}
+if [ "$CHIPSET" == "rk3562" ]; then
+  build_a53_core mupen64plus-nx https://github.com/libretro/mupen64plus-libretro-nx.git mupen64plus_next
+  build_a53_core flycast pinned flycast flycast_rumble
+  build_a53_core puzzlescript https://github.com/nwhitehead/pzretro.git puzzlescript
+  build_a53_core samecdi https://github.com/libretro/same_cdi.git same_cdi
+fi
+
 # Build freej2me-lr.jar and freej2me-plus-lr.jar
 if [ -f "Arkbuild_package_cache/${CHIPSET}/freej2me-plus.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/freej2me-plus.commit)" = "$(curl --silent https://api.github.com/repos/TASEmulators/freej2me-plus/releases | grep '"tag_name":' | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/freej2me-plus.tar.gz
