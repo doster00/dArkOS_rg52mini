@@ -24,4 +24,4 @@ libudev1
 libxkbcommon0
 p7zip-full
 zip
-
+libcurl4t64
