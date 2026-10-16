@@ -1583,6 +1583,8 @@
 		<extension>.7z .7Z .gdi .GDI .cdi .CDI .cue .CUE .chd .CHD .m3u .M3U</extension>
 		<command>sudo perfmax %GOVERNOR% %ROM%; nice -n -19 /usr/local/bin/dreamcast.sh %EMULATOR% %CORE% %ROM%; sudo perfnorm</command>
 		<emulators>
+			<emulator name="standalone">
+		    </emulator>
 			<emulator name="retroarch32">
 				<cores>
 					<core>flycast32_rumble</core>
@@ -1609,8 +1611,6 @@
 					<core>flycast</core>
 				</cores>
 			</emulator>
-			<emulator name="standalone">
-		    </emulator>
 		</emulators>
 		<platform>dreamcast</platform>
 		<theme>dreamcast</theme>
