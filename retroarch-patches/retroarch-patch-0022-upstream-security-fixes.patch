@@ -10,7 +10,10 @@ Security - data from the network or from downloaded files:
   empty names (Zip Slip). The online updater fetches archives over plain
   http, so anyone on the same network could write files as ark.
 - 1235db3bd5, 8b1e35a322 archive_file_zlib: ZIP central directory and local
-  header offsets bounded by the archive's size.
+  header offsets bounded by the archive's size; with f52b1196b8, which bounds
+  only the compressed size (and the size of a STORED member) - without it
+  every deflated member was refused, so no zipped ROM loaded in a core that
+  RetroArch extracts for (gambatte, nestopia, mgba, genesis_plus_gx ...).
 - 91eba66b26, eadcf9e49f rmsgpack: binary and string lengths in .rdb
   databases (the updater downloads them) no longer overflow.
 - fd69102744 net_http_parse: stack overflow parsing the buildbot index page
@@ -228,7 +231,7 @@ index 68062fd355..1241d846b8 100644
     else
  #endif
     {
-@@ -129,6 +141,23 @@ static bool zlib_stream_decompress_data_to_file_init(
+@@ -129,6 +141,32 @@ static bool zlib_stream_decompress_data_to_file_init(
     offsetEL = read_le(local_header + 2, 2); /* extra field length */
     offsetData = (int64_t)(size_t)cdata + 26 + 4 + offsetNL + offsetEL;
  
@@ -239,11 +242,20 @@ index 68062fd355..1241d846b8 100644
 +    * out of bounds later.  The non-mmap path is naturally bounded - a
 +    * seek past EOF followed by a read simply returns short - so this
 +    * only needs to hold for the mapped case, but checking it always is
-+    * harmless and keeps the two paths consistent. */
++    * harmless and keeps the two paths consistent.
++    *
++    * Only csize describes the member's on-disk extent; size is the
++    * decompressed length and bounds the output heap buffer, not the
++    * archive.  For any compressed mode size is routinely far larger
++    * than the whole archive, so it must not be bounded against
++    * archive_size - doing so rejects every normally-compressed member.
++    * STORED is the one mode that reads usize bytes straight out of the
++    * archive, and there it is bounded below. */
 +   if (       offsetData < 0
 +         ||   offsetData          > state->archive_size
-+         || (int64_t)size         > state->archive_size - offsetData
-+         || (int64_t)csize        > state->archive_size - offsetData)
++         || (int64_t)csize        > state->archive_size - offsetData
++         || (      cmode == ZIP_MODE_STORED
++               && (int64_t)size   > state->archive_size - offsetData))
 +   {
 +      zip_context_free_stream(zip_context, false);
 +      return false;
@@ -252,7 +264,7 @@ index 68062fd355..1241d846b8 100644
     zip_context->fdoffset              = offsetData;
     zip_context->usize                 = size;
     zip_context->csize                 = csize;
-@@ -302,7 +331,14 @@ static int zip_file_decompressed(
+@@ -302,7 +340,14 @@ static int zip_file_decompressed(
        uint32_t crc32, struct archive_extract_userdata *userdata)
  {
     decomp_state_t* decomp_state = (decomp_state_t*)userdata->cb_data;
@@ -268,7 +280,7 @@ index 68062fd355..1241d846b8 100644
     /* Ignore directories. */
     if (last_char == '/' || last_char == '\\')
        return 1;
-@@ -481,6 +517,12 @@ static int zip_parse_file_iterate_step_internal(
+@@ -481,6 +526,12 @@ static int zip_parse_file_iterate_step_internal(
     if (entry < zip_context->directory || entry >= zip_context->directory_end)
        return 0;
  
@@ -281,7 +293,7 @@ index 68062fd355..1241d846b8 100644
     signature = read_le(zip_context->directory_entry + 0, 4);
  
     if (signature != CENTRAL_FILE_HEADER_SIGNATURE)
-@@ -498,6 +540,13 @@ static int zip_parse_file_iterate_step_internal(
+@@ -498,6 +549,13 @@ static int zip_parse_file_iterate_step_internal(
     if (namelength >= PATH_MAX_LENGTH)
        return -1;
  
