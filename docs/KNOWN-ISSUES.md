@@ -632,9 +632,10 @@ The cores come prebuilt from christianhaitian/retroarch-cores, branch rg503,
 built for the RK3566's Cortex-A55; every older build of `mupen64plus_next` and
 `same_cdi` on that branch fails the same way, so this is not a regression. None
 of them is a default any more: N64 starts `parallel_n64`, PSX `pcsx_rearmed`
-(32-bit), Dreamcast the 32-bit `flycast32_rumble` (AArch32 has no LSE), and
-Naomi and Atomiswave now the standalone flycast (they used to start the 64-bit
-libretro one, which is why `kov7sprt` stopped).
+(32-bit), and Dreamcast, Naomi and Atomiswave now the standalone flycast
+(Naomi and Atomiswave used to start the 64-bit libretro one, which is why
+`kov7sprt` stopped; Dreamcast the 32-bit `flycast32_rumble`, slower — see
+"Dreamcast, Naomi and Atomiswave" in PERFORMANCE.md).
 
 Four of them are now built here for the A53, by `build_a53_core` in
 `build_retroarch.sh`, over the downloaded ones; each is cached by its recipe
@@ -644,7 +645,7 @@ run on the device with no unguarded LSE instruction left:
 | core | change in `rk3562_core_builds` | on the device |
 |---|---|---|
 | `mupen64plus_next` | `mupen64plus-nx.sh` no longer turns the Makefile's a53 into a55 (c58d3ad) | AeroGauge, about 49 fps, GLES on the Mali |
-| `flycast`, `flycast_rumble` | `flycast.sh` checks out 4c293f3, the commit retroarch-cores builds (master no longer takes the per_pixel patch); the RK3566 block of the Makefile patch says cortex-a53; GCC 14's new C errors are warnings again through `CC`, since the Makefile resets `CFLAGS` (eb88dab) | Crazy Taxi 40-43 fps; Knights of Valour - The Seven Spirits past the point where the old core died |
+| `flycast`, `flycast_rumble` | `flycast.sh` checks out 4c293f3, the commit retroarch-cores builds (master no longer takes the per_pixel patch); the RK3566 block of the Makefile patch says cortex-a53; GCC 14's new C errors are warnings again through `CC`, since the Makefile resets `CFLAGS` (eb88dab) | Crazy Taxi 40-43 fps; Knights of Valour - The Seven Spirits past the point where the old core died. In the image (build 20261016184025) both run in RetroArch and in retrorun |
 | `puzzlescript` | none | starts |
 | `same_cdi` | none (default flags, ARMv8.0) | loads; no CD-i disc on the card to go further |
 
@@ -692,6 +693,12 @@ the patched retrorun shows the NES 240p test suite upright with RG52MINI and
 upside down with RG351P. Its screenshots and on-screen messages go through the
 same rotation change and were not looked at. retrorun prints "ALSA mixer
 control 'Playback' not found", so its own volume keys do nothing here.
+
+In the image (build 20261016184025, 2026-10-17) every retrorun and retrorun32
+core ES offers ran Crazy Taxi and Knights of Valour - The Seven Spirits
+upright. retrorun reads only the pad named in `retrorun_extra_evdev_name`, so
+input injected through another device (a uinput pad, as the test tools use)
+does not reach it.
 
 ## The build cache is keyed by upstream version, not by build flags
 
@@ -923,6 +930,34 @@ on upstream dArkOS too. `LimitNICE=-20` in `emulationstation.service`
 (from cino893/dArkOS). With it PCSX2 ran at -19 while a RetroArch kept another
 core busy, and the exit hotkey still closed it within 100 ms: killer_daemon and
 the like wake on input and are not starved.
+
+## Zipped ROMs did not start in RetroArch — in 1.1, fixed after it
+
+In 1.1 a zipped Game Boy, GBA, NES, Game Gear, Neo Geo Pocket, SG-1000 ...
+game went straight back to ES. RetroArch's log:
+
+    [INFO] [Content] Loading content file: "/roms/gb/game.zip#game.gbc".
+    [INFO] [Content] CRC32: 0x0.
+    [ERROR] [Content] Could not read content file: "/roms/gb/game.zip#game.gbc".
+
+Our own doing: `retroarch-patch-0022-upstream-security-fixes.patch` (adba262,
+before 1.1) took the ZIP bounds checks of upstream 1235db3bd5 and 8b1e35a322
+but not their follow-up f52b1196b8. The check bounded a member's
+*decompressed* size by the archive's size, so every deflated member was
+refused. Cores that open the zip themselves (fbneo, mame2010, flycast) and 7z
+archives were not affected. The patch now bounds only the compressed size,
+and the size of a STORED member, as upstream does (a6c501e).
+
+Checked on the device on 2026-10-17 with a RetroArch built from the patched
+tree: eight systems that had come back to ES each started their zipped game.
+The 64-bit and 32-bit RetroArch both carry the patch; the 32-bit one was not
+rebuilt for the test. The full set of patches applies to v1.22.2 as the build
+applies them.
+
+Building that test RetroArch outside the image build: GCC 14 rejects
+`gl_clear()` in `gfx/drivers_context/drm_go2_ctx.c`, which upstream calls
+without declaring; the image build gets only a warning there, so it needed
+`#include "../common/gl_common.h"` to build by hand.
 
 ## HDMI output does nothing
 

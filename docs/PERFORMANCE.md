@@ -170,6 +170,33 @@ the kind of small hot functions where a canary per call is measurable. It has
 not been benchmarked. If someone does measure it and the difference is noise,
 take it back out — the flags exist for a reason.
 
+### Dreamcast, Naomi and Atomiswave: the standalone flycast first
+
+ES starts the first emulator of a system. Measured on 2026-10-17, build
+20261016184025, overclock governor: each emulator's own FPS counter read from
+four screen grabs 8 s apart, after 45 s.
+
+| | Crazy Taxi (attract demo) | Knights of Valour - The Seven Spirits (Atomiswave) |
+|---|---|---|
+| standalone flycast | 59-60 | 59-60 |
+| retroarch, flycast / flycast_rumble | 37-44 / 39-45 | 30-60 |
+| retroarch32, flycast32_rumble | 38-45 | grey screen, 9.4 |
+| retroarch32, flycast_xtreme | 42-48 | 30-60 |
+| retroarch32, reicast_xtreme | 41-58 | 30-60 |
+| retrorun, flycast | (VMU error page) 40-44 | 59-60 |
+| retrorun32, the three 32-bit cores | (VMU error page) 36-46 | 55-60 |
+
+The standalone is the only one at full speed in both, so it is first for all
+three systems (Dreamcast changed in 98e7715; it used to start retroarch32
+`flycast32_rumble`). A choice made in ES per system or per game still wins.
+Saves do not carry over: the standalone keeps its own VMU and NVRAM files.
+
+retrorun never got past Crazy Taxi's VMU error page because the test pressed
+Start on a virtual pad (see KNOWN-ISSUES, retrorun), so its numbers there are
+not comparable. Why `flycast32_rumble` (a May 2024 build from retroarch-cores)
+shows a grey screen on this game was not looked into; it logs
+"FlashRom: ReadAMDID1 unexpected write" where `flycast_xtreme` does not.
+
 ## Two emulators were built with no optimisation at all
 
 Worth more than everything else on this page put together, and it was found by
