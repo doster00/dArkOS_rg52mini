@@ -17,17 +17,24 @@ echo "export softname=\"dArkOS-${UNIT}\"" | sudo tee -a Arkbuild/home/ark/ES_VAR
 # "_oc" in the cache key keeps a cached ES without it out.
 ES_GOV_OLD='{"performance", "ondemand", "powersave"}'
 ES_GOV_NEW='{"performance", "overclock", "ondemand", "powersave"}'
-if [ -f "Arkbuild_package_cache/${CHIPSET}/emulationstation.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/emulationstation.commit)" == "$(curl -s https://api.github.com/repos/christianhaitian/EmulationStation-fcamod/commits/503noTTS | jq -r '.sha')_oc" ]; then
+# Our patches (Emulationstation/patches-rk3562) are applied after the clone;
+# their hash is part of the cache key, so a new or changed one rebuilds ES.
+ES_KEY_SUFFIX="_oc_$(cat Emulationstation/patches-rk3562/*.patch 2>/dev/null | sha1sum | cut -c1-12)"
+if [ -f "Arkbuild_package_cache/${CHIPSET}/emulationstation.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/emulationstation.commit)" == "$(curl -s https://api.github.com/repos/christianhaitian/EmulationStation-fcamod/commits/503noTTS | jq -r '.sha')${ES_KEY_SUFFIX}" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/emulationstation.tar.gz
     sudo rm Arkbuild/home/ark/ES_VARIABLES.txt
 else
     call_chroot "apt-get -y update && eatmydata apt-get -y install libfreeimage3 fonts-droid-fallback libfreetype6 curl vlc-bin libsdl2-mixer-2.0-0"
+    sudo rm -rf Arkbuild/home/ark/es-patches
+    sudo mkdir -p Arkbuild/home/ark/es-patches
+    sudo cp Emulationstation/patches-rk3562/*.patch Arkbuild/home/ark/es-patches/
     call_chroot "cd /home/ark &&
       source ES_VARIABLES.txt &&
       rm ES_VARIABLES.txt &&
       git clone --recursive --depth=1 https://github.com/christianhaitian/EmulationStation-fcamod -b 503noTTS &&
       cd EmulationStation-fcamod &&
       git submodule update --init &&
+      for p in /home/ark/es-patches/*.patch; do patch -Np1 < \$p || exit 1; done &&
       grep -qF '${ES_GOV_OLD}' es-app/src/SystemData.h &&
       sed -i 's/${ES_GOV_OLD}/${ES_GOV_NEW}/' es-app/src/SystemData.h &&
       grep -qF '${ES_GOV_NEW}' es-app/src/SystemData.h &&
@@ -45,7 +52,8 @@ else
       sudo rm -f Arkbuild_package_cache/${CHIPSET}/emulationstation.commit
     fi
     sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/emulationstation.tar.gz Arkbuild/usr/bin/emulationstation/
-    sudo git --git-dir=Arkbuild/home/ark/EmulationStation-fcamod/.git --work-tree=Arkbuild/home/ark/EmulationStation-fcamod rev-parse HEAD | sed 's/$/_oc/' | sudo tee Arkbuild_package_cache/${CHIPSET}/emulationstation.commit > /dev/null
+    sudo git --git-dir=Arkbuild/home/ark/EmulationStation-fcamod/.git --work-tree=Arkbuild/home/ark/EmulationStation-fcamod rev-parse HEAD | sed "s/\$/${ES_KEY_SUFFIX}/" | sudo tee Arkbuild_package_cache/${CHIPSET}/emulationstation.commit > /dev/null
+    sudo rm -rf Arkbuild/home/ark/es-patches
 fi
 
 # RK3562: ES runs on the system Mali (g29p1) like every other app. No DT_RPATH
@@ -69,6 +77,9 @@ else
     sudo cp Emulationstation/es_systems.cfg.rk3566-64bit_Only Arkbuild/etc/emulationstation/es_systems.cfg
   fi
 fi
+# Systems for the ROM folders GammaOS/ES-DE name differently (tg16, megacd,
+# fbneo ...), each grouped with the system dArkOS uses for that machine.
+sudo python3 scripts/rk3562/es-aliases.py Arkbuild/etc/emulationstation/es_systems.cfg
 
 # Use existing config or fall back to rk3566/353m configs
 if [ -f "Emulationstation/es_input.cfg.${UNIT}" ]; then

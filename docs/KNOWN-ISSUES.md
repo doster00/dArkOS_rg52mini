@@ -959,6 +959,38 @@ Building that test RetroArch outside the image build: GCC 14 rejects
 without declaring; the image build gets only a warning there, so it needed
 `#include "../common/gl_common.h"` to build by hand.
 
+## Games in GammaOS's folders were invisible here — aliases after 1.1
+
+On a dual-boot card /roms is GammaOS's ROMs folder, and GammaOS lays it out
+for ES-DE (every folder has ES-DE's `systeminfo.txt`). Where ES-DE and dArkOS
+name a machine differently — `tg16`/`turbografx`, `megacd`/`segacd`,
+`fbneo`/`arcade`, `pico8`/`pico-8/carts`, `colecovision`/`coleco` ... — games
+put in GammaOS's folder did not show up here: our EmulationStation reads one
+`<path>` per system, and it skips a symlinked folder (it takes `d_type`, which
+is DT_LNK, not DT_DIR).
+
+`scripts/rk3562/es-aliases.py`, run by `build_emulationstation-rk3562.sh` on the
+installed `es_systems.cfg`, adds a system for each of 28 such folders: a copy
+of the system dArkOS uses for that machine (command, emulators, extensions,
+platform, theme) with the folder's path, both in a group named after the main
+system (`<group>arcade</group>`). Folders with no dArkOS emulator behind them
+(switch, wii, model2, stv ...) get none. The table is in the script.
+
+EmulationStation-fcamod already has groups, but would show every grouped
+system as a group of one, a level deeper, at the end of the list, named by the
+bare group name. `Emulationstation/patches-rk3562/es-0001-groups-for-alias-folders.patch`:
+a group is made only when two or more of its systems have games, otherwise
+each stays an ordinary system; the group takes the main system's full name,
+theme and place; its folders are named after their systems. The build applies
+the patches after the clone and keys the ES cache on them.
+
+Checked on the device on 2026-10-17 with ES built from the patched tree:
+with games in `/roms/arcade` and `/roms/fbneo`, Arcade opened into two
+folders, Arcade and FinalBurn Neo, and Cavelon started from the second one
+through fbneo; with a game only in `/roms/tg16`, TurboGrafx-16 was an ordinary
+system with the game in it; systems whose alias folders are empty looked as
+before. The "GROUPED SYSTEMS" option of ES can still split a group.
+
 ## HDMI output does nothing
 
 Reported from the device on 2026-10-01: plugging a cable produces no reaction
