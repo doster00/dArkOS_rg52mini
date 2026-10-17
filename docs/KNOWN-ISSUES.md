@@ -991,6 +991,28 @@ through fbneo; with a game only in `/roms/tg16`, TurboGrafx-16 was an ordinary
 system with the game in it; systems whose alias folders are empty looked as
 before. The "GROUPED SYSTEMS" option of ES can still split a group.
 
+## Apple II in linapple did not start — in 1.1 and before, fixed after 1.1
+
+linapple, the default emulator for Apple II, needs `libSDL_image-1.2.so.0`. In
+the image that was a link to itself (`/usr/lib/libSDL_image-1.2.so.0` ->
+`/lib/libSDL_image-1.2.so.0`, and `/lib` is `usr/lib`), so every game went
+back to ES with
+
+    error while loading shared libraries: libSDL_image-1.2.so.0: cannot open shared object file: Error 40
+
+Error 40 is ELOOP. `cleanup_filesystem.sh` meant to point the link at the
+library's real file with `$(find /lib/ -name libSDL_image-1.2.so.0.* ...)`, but
+inside double quotes the `$(...)` ran on the build host, not in the chroot,
+found nothing there, and `ln` got only the link name. Upstream has the same
+line. It now runs in the chroot and makes `libSDL_image-1.2.so.0 ->
+libSDL_image-1.2.so.0.8.4`, the link a plain `ldconfig` makes.
+
+Found on 2026-10-18 by comparing a card updated by OTA with a fresh image. On
+that card `apt install` had run a plain `ldconfig`, which fixed the link, so a
+card where anything was installed with apt already works. With the image's
+link put back there, linapple failed as above. The next OTA package carries
+the link; cards that ldconfig fixed already have it and skip it.
+
 ## HDMI output does nothing
 
 Reported from the device on 2026-10-01: plugging a cable produces no reaction

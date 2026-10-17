@@ -218,9 +218,10 @@ if [[ "${BUILD_ARMHF}" == "y" ]]; then
 fi
 # Ensure sdl2-config is linked to the proper version
 call_chroot "ln -sfv /usr/lib/aarch64-linux-gnu/bin/sdl2-config /usr/bin/sdl2-config"
-# Ensure sdl-image is symlinked properly
-call_chroot "rm /lib/libSDL_image-1.2.so.0"
-call_chroot "cd /lib && ln -sf $(find /lib/ -name libSDL_image-1.2.so.0.* | head -n 1) /lib/libSDL_image-1.2.so.0"
+# Ensure sdl-image is symlinked properly. Single quotes, so that the lookup runs
+# in the chroot: in double quotes it ran on the build host, found nothing, and
+# left the link pointing at itself (linapple failed with ELOOP).
+call_chroot 'cd /usr/lib && f=$(ls libSDL_image-1.2.so.0.* | head -n 1) && ln -sfn "$f" libSDL_image-1.2.so.0'
 call_chroot "ldconfig -X"
 
 # Re-create Mali symlinks for 32-bit armhf AFTER ldconfig, which regenerates versioned
