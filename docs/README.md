@@ -12,6 +12,7 @@ hardware it says so; where it is inference it says that too.
 | [BUILDING.md](BUILDING.md) | environment, the WSL story, how to run a build |
 | [HARDWARE.md](HARDWARE.md) | the kernel patches and what they fixed |
 | [KNOWN-ISSUES.md](KNOWN-ISSUES.md) | what is missing from the image and why |
+| [OTA.md](OTA.md) | updates over the air from 1.1 on, and how a release is made |
 | [PERFORMANCE.md](PERFORMANCE.md) | what actually makes emulators faster here |
 | [TODO.md](TODO.md) | what is next, and what is waiting on the next build |
 
@@ -36,7 +37,7 @@ This fork pins its own submodules, so a fresh clone reproduces a build without
 any manual steps:
 
     mamaich/dArkOS_rg52mini
-      kernel_rk3562      -> mamaich/kernel_rk3562        four hardware patches
+      kernel_rk3562      -> mamaich/kernel_rk3562        hardware patches
       rk3562_core_builds -> mamaich/rk3566_core_builds   Cortex-A53 build flags
       bootloader         -> bmdhacks/aislpc-bootloader-tool
 
@@ -45,8 +46,9 @@ in `.gitmodules` meant submodules only resolved for people with an SSH key.
 
 ## State of the port
 
-The 2026-09-29 image is released and runs on the device; 2026-09-16 was the
-first release of this fork. What was checked, on hardware:
+The current release is 1.2 (build 10182026, 2026-10-18); from 1.1 on, a card
+updates over the air (OTA.md). 2026-09-16 was the first release of this fork.
+What was checked on hardware in those first weeks:
 
 | | |
 |---|---|

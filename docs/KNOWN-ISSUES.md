@@ -1,20 +1,23 @@
 # Known issues
 
 All of these are visible in the build log. `make rg52mini` ends with an audit
-that names them, so start there rather than reading 80 000 lines. The 10142026
-build (release 1.1), the last one before ECWolf was repaired:
+that names them, so start there rather than reading 80 000 lines. Build
+20261018052939 (release 1.2):
 
     ==================== COMPONENT AUDIT ====================
-      EMPTY       /opt/ecwolf
       ---
-      with binaries: 36   empty: 1   no executable: 0
+      with binaries: 37   empty: 0   no executable: 0
 
       Build steps that gave up (from build.log):
-              1 ecwolf-patch-002-add-exit-menu.patch
+        none
 
       Packages that failed to install:
         Could not install needed library libfuse2.
         Could not install needed library libpcap0.8.
+
+      Cached failures (an empty tarball under a key that still matches,
+      so every later build restores the failure instead of retrying):
+        none
     ========================================================
 
 `libfuse2` and `libpcap0.8` do not exist in trixie under those names.
@@ -508,7 +511,8 @@ taken over from GammaOS Next, where it proved stable.
   simple_ondemand with a 900 MHz ceiling, and the GPU idle at 300 MHz.
 
 **Not yet checked:**
-- the ES menu entry itself, which needs the next image's ES build;
+- the ES menu entry on screen; the ES of 1.2 does have it in its list
+  (performance, overclock, ondemand, powersave);
 - a long session in a heavy game;
 - other boards: GammaOS measured bin L3, and a chip that does not take
   2208/1000 shows it only in this mode.
@@ -663,7 +667,8 @@ which Debian does not have.
 GameTank was the one built here: `gametank-patch-002-performance-tweak.patch`,
 rewritten upstream in July, put `-mcpu=cortex-a55` back without `-march`. It
 says `cortex-a53` now (`rk3562_core_builds` 0bb7d88), and `build_gametank.sh`
-keys its cache on the recipe as well, so the next build compiles it again.
+keys its cache on the recipe as well, so it was compiled again; the 1.2 image
+has that build.
 Other patches with `-mcpu=cortex-a55` either also pass `-march=armv8-a...`,
 which keeps the baseline at ARMv8.0 (yabasanshiro), or belong to cores this
 build downloads instead of compiling.
@@ -866,7 +871,7 @@ worked but put the whole device to sleep for it. A fbdev blank without unbinding
 fbcon does not work at all: fbcon switches the output back 38 ms later and
 produces the very black screen it was meant to cure.
 
-## Every card had the same SSH host keys — fixed after 1.1
+## Every card had the same SSH host keys — fixed in 1.2
 
 The keys were made once, when the build installed openssh-server, and nothing
 replaced them: every card written from one image, and every dual-boot card made
@@ -887,7 +892,7 @@ skipped by the condition.
 `/etc/machine-id` makes systemd treat the boot as the first one and apply the
 unit presets, which would enable services the build disables.
 
-## apt and ldconfig could take the GPU libraries back from Mali — fixed after 1.1
+## apt and ldconfig could take the GPU libraries back from Mali — fixed in 1.2
 
 The build points `libEGL`, `libGLESv2`, `libgbm` and the rest at `libMali.so`,
 and `libvulkan.so.1` at the BSP loader, over files Debian packages own. Two
@@ -920,7 +925,7 @@ The OTA client and `hooks/all-ldconfig.sh` now run `ldconfig -X`, and
 `hooks/all-gpu-links.sh` puts the links back after the 1.1 client's plain
 ldconfig. Diversions reach existing cards with the package database.
 
-## Emulators never ran at nice -19 — fixed after 1.1
+## Emulators never ran at nice -19 — fixed in 1.2
 
 `es_systems.cfg` starts emulators with `nice -n -19` and `limits.conf` gives
 ark nice -20, but limits.conf is pam_limits, and EmulationStation is a service
@@ -931,7 +936,7 @@ on upstream dArkOS too. `LimitNICE=-20` in `emulationstation.service`
 core busy, and the exit hotkey still closed it within 100 ms: killer_daemon and
 the like wake on input and are not starved.
 
-## Zipped ROMs did not start in RetroArch — in 1.1, fixed after it
+## Zipped ROMs did not start in RetroArch — in 1.1, fixed in 1.2
 
 In 1.1 a zipped Game Boy, GBA, NES, Game Gear, Neo Geo Pocket, SG-1000 ...
 game went straight back to ES. RetroArch's log:
@@ -959,7 +964,7 @@ Building that test RetroArch outside the image build: GCC 14 rejects
 without declaring; the image build gets only a warning there, so it needed
 `#include "../common/gl_common.h"` to build by hand.
 
-## Games in GammaOS's folders were invisible here — aliases after 1.1
+## Games in GammaOS's folders were invisible here — aliases in 1.2
 
 On a dual-boot card /roms is GammaOS's ROMs folder, and GammaOS lays it out
 for ES-DE (every folder has ES-DE's `systeminfo.txt`). Where ES-DE and dArkOS
@@ -991,7 +996,7 @@ through fbneo; with a game only in `/roms/tg16`, TurboGrafx-16 was an ordinary
 system with the game in it; systems whose alias folders are empty looked as
 before. The "GROUPED SYSTEMS" option of ES can still split a group.
 
-## Apple II in linapple did not start — in 1.1 and before, fixed after 1.1
+## Apple II in linapple did not start — in 1.1 and before, fixed in 1.2
 
 linapple, the default emulator for Apple II, needs `libSDL_image-1.2.so.0`. In
 the image that was a link to itself (`/usr/lib/libSDL_image-1.2.so.0` ->
@@ -1010,8 +1015,9 @@ libSDL_image-1.2.so.0.8.4`, the link a plain `ldconfig` makes.
 Found on 2026-10-18 by comparing a card updated by OTA with a fresh image. On
 that card `apt install` had run a plain `ldconfig`, which fixed the link, so a
 card where anything was installed with apt already works. With the image's
-link put back there, linapple failed as above. The next OTA package carries
-the link; cards that ldconfig fixed already have it and skip it.
+link put back there, linapple failed as above. The 1.1 → 1.2 package carries
+the link; cards that ldconfig fixed already have it and skip it. In 1.2 the
+Apple II system starts linapple (its own Master.dsk, 2026-10-18).
 
 ## HDMI output does nothing
 
@@ -1076,20 +1082,42 @@ Where to start is in TODO.
   available") on revision B: the AIC8800 registers hci0 a few seconds into
   boot, after the script's `bluetoothctl power on`. bluetoothd powered the
   controller anyway, so only the unit's state was wrong. The script now waits
-  up to 15 s for a controller and never fails the unit (after 1.1).
+  up to 15 s for a controller and never fails the unit (1.2).
 * **The PC-98 core could not load.** `np2kai` on christianhaitian's rg503
   branch since 2026-09-07 (NP2kai 5939e0c) leaves six `ymzadpcm_*` symbols
   undefined: "Failed to open libretro core". `build_retroarch.sh` takes the
   build before it (retroarch-cores e2a8f88be5), which loads on the device
-  (after 1.1; found in llj503/dArkOS_ngp45ht).
+  (1.2; found in llj503/dArkOS_ngp45ht).
 * **fluidsynth runs all the time**, at 7-13 % of one core with nothing
   playing: Debian's `fluidsynth.service` user unit starts with ark's session
   and keeps a MIDI synth on the ALSA sequencer (client 128), with the sound
   device open. Nothing in the image was found to use that port - lzdoom links
   libfluidsynth itself - but a port that plays MIDI through ALSA would.
-  Disabled for all users by `finishing_touches-rk3562.sh` after 1.1
+  Disabled for all users by `finishing_touches-rk3562.sh` in 1.2
   (`systemctl --global disable fluidsynth`); a port that needs it can start
   it with `systemctl --user start fluidsynth`.
+* **ScummVM asks about "fluidsynth" in MIDI games.** Day of the Tentacle, for
+  one, opens on "The preferred audio device 'fluidsynth' was not found ...
+  Attempting to fall back to the next available device"; after OK the game
+  runs on the fallback. `~/.config/scummvm/scummvm.ini` sets
+  `gm_device=fluidsynth` and `mt32_device=fluidsynth` with
+  `soundfont=.../Roland_SC-55.sf2`, but `/opt/scummvm/scummvm` is built
+  without FluidSynth (no libfluidsynth linked, no plugin strings) and the
+  SoundFont is not on the card. Not caused by the fluidsynth service above:
+  ScummVM's device is its own driver. The same in 1.1, whose ScummVM and ini
+  are identical (seen on the device on 2026-10-18).
+* **A loud speaker on a nearly empty battery resets the console** (revision
+  B, measured 2026-10-18 on battery only): the external amplifier's current
+  peaks pull VSYS under the RK817's undervoltage threshold, and the PMIC
+  restarts the board (ON_SOURCE 0xF5 = 0x10, RESTART_RESETB). With a
+  full-scale signal and `DAC Playback Volume` at 252 (−1.1 dB, the most
+  `rk817_dac_vol_put` accepts) it reset at 15 % after 20–40 s and at 11 %
+  (3.49 V) within a second. dArkOS does not get there by itself: on a fresh
+  card `alsactl init` sets the DAC to −20 dB (203), the value is stored and
+  restored from then on, and ES and the volume keys only move the softvol
+  `Master`. At 203, two 70 s runs at 15 % did not reset it. GammaOS hits it
+  because Android puts the DAC at 252. Raising the DAC here needs a limit tied
+  to the battery level; the GammaOS port is writing one for the rk817 codec.
 * **`liblc3-0`, `libreadline7` "could not install"** — these are deliberate.
   `bluetooth_needed_packages.txt` lists the names from several Debian releases
   side by side, and the ones that do not exist in trixie are simply skipped.

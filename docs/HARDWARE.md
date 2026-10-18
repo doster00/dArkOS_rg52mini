@@ -1,14 +1,36 @@
 # Hardware fixes
 
-Four patches carried in [mamaich/kernel_rk3562](https://github.com/mamaich/kernel_rk3562),
-on top of bmdhacks' `557e5c28a`. They were written and tested against the
-Android port of this device and replayed onto this tree; the trees share no
+Patches carried in [mamaich/kernel_rk3562](https://github.com/mamaich/kernel_rk3562),
+on top of bmdhacks' `557e5c28a`. The first four were written and tested against
+the Android port of this device and replayed onto this tree; the trees share no
 history, so they were applied as patches rather than merged.
 
     ad4b47f2e  Type-C role switching, speaker click fix, Bluetooth over SDIO
     b5c61cb7d  usb: dwc3: backport the LOA babble filter quirk
     9e1972482  arm64: dts: rg52mini: add the high temperature voltage limit
     db0453bd6  ASoC: rk817: program the ADC sample rate register
+
+The rest came later; this page, KNOWN-ISSUES and PERFORMANCE say what each
+one fixed. As of release 1.2 (pinned at `8311d0e31`):
+
+    626c2a040  zram: build in writeback support
+    7af0e0275  Draw a boot logo from the kernel, because U-Boot cannot
+    7f2c05f1a  zram: build in lz4 as well
+    a9450795f  drm/rockchip: stop a silent RGB bridge from taking the display with it
+    cf236becd  Turn on the hang detectors, turn off credential debugging
+    89e35dba7  pstore: collect the bootloader log too
+    a46a6e56a  arm64: dts: rk3562: describe OP-TEE so the driver can bind
+    baefd4778  Stop paying for debugging this device never reads
+    63501ef80  Do not build the OP-TEE driver
+    e4cc90135  Turn off debugging in the GPU driver that actually binds
+    7dbf78f7b  Drop the two Mali drivers this device never binds
+    ce7970d9f  aic8800: stop freeing an skb that hci_recv_frame() already freed
+    7483a4f83  drm/bridge: dw-mipi-dsi: keep the link off long enough before re-enabling
+    23506d78f  arm64: dts: rg52mini: wait after display-off and sleep-in, as stock does
+    fa0452d3b  mali: park the GPU at 300 MHz before power-off, not 200
+    cc3acb8c3  arm64: dts: rockchip: rk3562-rg52mini: optional overclock OPPs
+    76814b747  arm64: dts: rockchip: rk3562-rg52mini: drop the 2112 MHz overclock OPP
+    8311d0e31  arm64: dts: rockchip: rk3562-rg52mini: 1.125 V for 2016 MHz on bin L3
 
 ## USB host — needs the Type-C controller described
 

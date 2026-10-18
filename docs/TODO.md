@@ -52,7 +52,7 @@ it. Confirmed on the device.
 
 The sync with christianhaitian/dArkOS and rk3566_core_builds (see the commits
 of that date) was done by reading, not by running. Each of these needs a look
-on the device after the next build:
+on the device:
 
 1. **DSperate** — checked on the device on 2026-10-07 (v10062026, revision B),
    with the Pokemon Diamond & Pearl and Dragon Quest Monsters Joker 2 demos and
@@ -100,6 +100,26 @@ on the device after the next build:
 6. Not taken, to be decided on the device: libOpenCL.so symlink (upstream
    says it breaks video previews), Dolphin Stretch option, batteryplus,
    headphone auto-switch (needs kernel work), bluealsa conf path.
+
+## Found while testing 1.2 (2026-10-18)
+
+* **ScummVM's MIDI device.** Its ini asks for `fluidsynth`, which this
+  ScummVM build does not have, so MIDI games open on a "device not found"
+  dialog (KNOWN-ISSUES, smaller things). Either build ScummVM with
+  libfluidsynth and ship a SoundFont, or set `gm_device`/`mt32_device` to
+  something it has.
+* **Speaker volume.** The DAC stays at −20 dB, which is what keeps the
+  low-battery reset away (KNOWN-ISSUES). If the speaker is to get louder,
+  take the battery-dependent limit the GammaOS port is writing for the rk817
+  codec rather than raising the DAC.
+* **`create_image.sh` packs every `*.img` in the build directory** into 7z,
+  so OTA base images kept next to the build (1.1, older test builds) cost a
+  few minutes and 4 GB each per build. Keep them in another directory, or
+  pack only the image just made.
+* **`ota/make-ota.py -o DIR`** fails at the very end, after three minutes of
+  comparing, when DIR does not exist. Create it first, or let the script.
+* **`retroarch32` with `parallel_n64` ignored SIGTERM** in the test harness:
+  systemd killed it after 90 s. The exit hotkey was not tried; worth a look.
 
 ## Revision A black screen: fixed — decide whether panel-kick can go
 
@@ -205,8 +225,8 @@ patches; and ECWolf builds again (2026-10-15).
 
 ## RetroArch fixes after v1.22.2 that need porting by hand
 
-The 1.1 build carries upstream's fixes that apply as they are
-(`retroarch-patch-0021`, `-0022`). These are in v1.22.2 too, but master
+Releases 1.1 and 1.2 carry upstream's fixes that apply as they are
+(`retroarch-patch-0021`, `-0022`; 0022 with the zip fix of 1.2). These are in v1.22.2 too, but master
 rewrote the code around them, so each needs a small port. Recheck whether a
 tag newer than v1.22.2 has appeared first: moving to it would replace all of
 this.
