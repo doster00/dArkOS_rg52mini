@@ -24,7 +24,10 @@ if [ -f "Arkbuild_package_cache/${CHIPSET}/emulationstation.tar.gz" ] && [ "$(ca
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/emulationstation.tar.gz
     sudo rm Arkbuild/home/ark/ES_VARIABLES.txt
 else
-    call_chroot "apt-get -y update && eatmydata apt-get -y install libfreeimage3 fonts-droid-fallback libfreetype6 curl vlc-bin libsdl2-mixer-2.0-0"
+    # No fonts-droid-fallback (upstream installs it here): ES has its own
+    # DroidSansFallbackFull.ttf, and the build downloads one more below. Installed
+    # only when ES was rebuilt, it made images differ by the state of the cache.
+    call_chroot "apt-get -y update && eatmydata apt-get -y install libfreeimage3 libfreetype6 curl vlc-bin libsdl2-mixer-2.0-0"
     sudo rm -rf Arkbuild/home/ark/es-patches
     sudo mkdir -p Arkbuild/home/ark/es-patches
     sudo cp Emulationstation/patches-rk3562/*.patch Arkbuild/home/ark/es-patches/
