@@ -1,3 +1,16 @@
 {
- "response": []
+ "response": [
+  {
+   "device": "rg52mini",
+   "version": "1.2",
+   "build_id": "20261018052939",
+   "from_version": "1.1",
+   "from_build_id": "20261014145009",
+   "datetime": 1792335394,
+   "filename": "dArkOS_rg52mini_ota_1.1_20261014145009-to-1.2_20261018052939.tar",
+   "size": 48742400,
+   "sha256": "24d896a25ab36342cd8bef3d4c0701f64997dc73858a5a382909012b22f304c3",
+   "url": "https://github.com/mamaich/dArkOS_rg52mini/releases/download/v1.2/dArkOS_rg52mini_ota_1.1_20261014145009-to-1.2_20261018052939.tar"
+  }
+ ]
 }
