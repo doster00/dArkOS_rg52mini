@@ -101,7 +101,7 @@ if [ -f /boot/dualboot ] || \
   dualboot=1
 fi
 if [ -n "$dualboot" ]; then
-  dialog --infobox "Dual-boot card: the partitions stay as they are. The ROMs come from the Android storage (the ROMs folder) once the Android system has been started at least once." $height $width 2>&1 > /dev/tty1
+  dialog --infobox "Dual-boot card: the partitions stay as they are. The ROMs come from the Android storage (the ROMs folder) once the Android system has been started at least once.\n\nThis screen appears once, while the card is set up on its first start. Please do not press anything: the system restarts by itself in a few seconds." $height $width 2>&1 > /dev/tty1
   sudo touch /boot/dualboot
   getent group media_rw > /dev/null 2>&1 || sudo groupadd -g 1023 media_rw
   sudo usermod -aG media_rw ark
