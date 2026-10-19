@@ -123,6 +123,9 @@ on the device:
 
 ## Nintendo 3DS: try the Azahar libretro core (next build, 2026-10-19)
 
+In order, as the owner set it on 2026-10-19: first the 1.3 build and its OTA
+test, then the measurements and compiler flags (next section), then this.
+
 No ArkOS or dArkOS has a 3DS emulator. ROCKNIX ships Azahar standalone
 (`azahar-sa`, Qt6) only on RK3588, Snapdragon and S922X. GammaOS Next runs its
 own azahar-nano on this board at a usable speed: Azahar (Citra's successor)
@@ -141,8 +144,11 @@ port of Azahar.
 - Theme: the default `es-theme-nes-box` (Jetup13) has no `3ds` folder; the
   bundled `es-theme-switch` has one. The original nes-box (KALEL1981, Travis
   Wilson) has a `3ds` folder in the same layout, but its readme asks not to
-  share modified versions or reuse its graphics, so it is not copied in
-  without a decision.
+  share modified versions or reuse its graphics, so it is not copied in.
+  Decided: a `3ds` folder of our own for nes-box (`system.png` logo,
+  `background_icon.png`, `theme.xml` as in its `nds`), laid over the clone in
+  the build, borrowing what fits from es-theme-switch's `3ds` art (check that
+  theme's licence first).
 
 ## Heavy emulators: measure, then try compiler flags (planned for 1.3, 2026-10-19)
 
