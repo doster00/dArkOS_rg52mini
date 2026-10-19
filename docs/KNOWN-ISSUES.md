@@ -1229,6 +1229,17 @@ Where to start is in TODO.
   `Master`. At 203, two 70 s runs at 15 % did not reset it. GammaOS hits it
   because Android puts the DAC at 252. Raising the DAC here needs a limit tied
   to the battery level; the GammaOS port is writing one for the rk817 codec.
+* **A PortMaster port on a card without PortMaster** (a fresh card, the port
+  copied over by hand) started without `control.txt` and `mod_dArkOS.txt`: no
+  PortMaster controls, no E2BIG guard, no `LIBGL_GLES`, so Don't Starve's
+  world was black again on the dual-boot card on 2026-10-19 although gl4es-fix
+  was in the image. The image only ships the installer, in Tools. After 1.2,
+  `runport.sh` runs it before the first PortMaster port (with
+  `~/no_es_restart`, or it restarts EmulationStation under the port), then
+  `portmaster-e2big.sh`, then the port: seen on the device, the installer's
+  output, then the game with its world, EmulationStation not restarted.
+  Don't Starve's own shader fix (above) is in the game's files and has to be
+  made again on a fresh copy of the port.
 * **`rk3562-poweroff.service` failed at every shutdown**: "Failed to execute
   /usr/local/bin/rk3562-poweroff.sh: No such file or directory". Upstream's
   script has CRLF line ends, so `#!/bin/bash\r` is no interpreter. It is not
