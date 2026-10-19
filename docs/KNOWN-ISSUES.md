@@ -1019,6 +1019,56 @@ link put back there, linapple failed as above. The 1.1 → 1.2 package carries
 the link; cards that ldconfig fixed already have it and skip it. In 1.2 the
 Apple II system starts linapple (its own Master.dsk, 2026-10-18).
 
+## Sleep emptied the battery in a day, the black screensaver in ten hours — fixed after 1.2
+
+A report on 1.0: the battery ran flat "in sleep". Measured on revision B on
+2026-10-19, on battery, with the RK817's coulomb counter (Q_PRESS, registers
+0x74-0x77; the driver's own `cap` before and after a suspend agrees):
+
+| state                                            | current     | 4654 mAh last |
+|--------------------------------------------------|-------------|---------------|
+| ES, backlight 200                                | ~700 mA     | ~6.5 h        |
+| ES with the "black" screensaver (backlight 0)    | ~450-470 mA | ~10 h         |
+| no ES, backlight 0                               | ~315 mA     |               |
+| suspended, s2idle (`freeze`, up to 1.2)          | ~185 mA     | ~25 h         |
+| suspended, deep (`mem`)                          | ~42 mA      | ~4.5 days     |
+
+* **Sleep was s2idle.** `finishing_touches-rk3562.sh` set
+  `SuspendState=freeze`, as the RK3566 scripts do, though the kernel offers
+  `s2idle [deep]`. In s2idle the cores only idle and the SoC and the PMIC stay
+  up. Deep sleep goes through ATF, with the cores, VOP, DSI and the SDIO Wi-Fi
+  off. It is `mem` now. Seven wakes from deep sleep by the RTC and three by the
+  power key: picture, sound, Wi-Fi and Bluetooth came back every time.
+  `SuspendState=` is a list, and a drop-in with only `SuspendState=mem` adds
+  to `freeze` (systemd takes the first state the kernel has, and that is still
+  s2idle); a drop-in has to clear it with an empty `SuspendState=` first.
+* **The "black" screensaver is not sleep.** It only turns the backlight off:
+  the device runs on at ~450 mA and looks exactly like it sleeps.
+  `screensaver-autosleep` (`scripts/rk3562/screensaver-autosleep.sh`), started
+  by ES's sleep event and stopped by its wake event
+  (`Emulationstation/scripts.rk3562`), suspends the device when a screensaver,
+  any of them, has run for `ScreenSaverTime` again on battery, so twice the
+  timeout after the last input; on the charger the count starts over. The
+  power key then wakes the device into ES as it was: ES takes the press and
+  ends the screensaver. A wake without a press (the RTC alarm; maybe the
+  charger, not tried) leaves the black screensaver dark, since the sleep hook
+  does not light the backlight while the screensaver's mark says `on`, and the
+  device goes back to sleep after one more timeout. Seen on the device with a
+  one-minute timeout: asleep at 2 min, by the alarm awake with the screen dark,
+  asleep again a minute later; a 3 h 40 min sleep, then the power key.
+* **What deep sleep still draws** is unexplained. Not the radios (wlan and bt
+  soft-blocked: the same 42 mA), not the `rockchip-suspend` node (disabled in
+  the vendor DT as well; enabled with the vendor's `sleep-mode-config` 0x5e2,
+  the same). Every suspend also costs about 300 µAh for the way down and up.
+* **"Quit → Shutdown System" powers off.** The report said the battery was
+  flat after that too, maybe. ES runs `sudo shutdown -h now`; systemd gets to
+  "System Power Off" in about 3 s, and the kernel sets DEV_OFF in the RK817:
+  screen and LEDs dark, a short press boots through U-Boot, the battery the
+  same 64 % before and after. The same path since the first kernel, so in 1.0
+  too. The menu item does not go through `finish.sh`, whose
+  `.SWAPPOWERANDSUSPEND` branch ("Switch power button tap to off") suspends
+  instead.
+
 ## HDMI output does nothing
 
 Reported from the device on 2026-10-01: plugging a cable produces no reaction
@@ -1118,6 +1168,12 @@ Where to start is in TODO.
   `Master`. At 203, two 70 s runs at 15 % did not reset it. GammaOS hits it
   because Android puts the DAC at 252. Raising the DAC here needs a limit tied
   to the battery level; the GammaOS port is writing one for the rk817 codec.
+* **`rk3562-poweroff.service` failed at every shutdown**: "Failed to execute
+  /usr/local/bin/rk3562-poweroff.sh: No such file or directory". Upstream's
+  script has CRLF line ends, so `#!/bin/bash\r` is no interpreter. It is not
+  installed any more (after 1.2): the kernel powers the PMIC off itself, after
+  systemd-shutdown's last sync, and the script's i2cset would have cut the
+  power before that sync.
 * **`liblc3-0`, `libreadline7` "could not install"** — these are deliberate.
   `bluetooth_needed_packages.txt` lists the names from several Debian releases
   side by side, and the ones that do not exist in trixie are simply skipped.

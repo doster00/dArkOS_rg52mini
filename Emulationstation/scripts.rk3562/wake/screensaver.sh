@@ -4,6 +4,7 @@
 # own, kept from an earlier screensaver if at all, in the background; the one
 # from the mark goes after it. The mark becomes "off <ms>": pause.sh then
 # knows that a press of the power key a moment ago only woke the screen.
+sudo rm -f /run/darkos-autosleep
 m=/run/darkos-screensaver
 read -r s b _ < $m 2> /dev/null
 [ "$s" = on ] || exit 0

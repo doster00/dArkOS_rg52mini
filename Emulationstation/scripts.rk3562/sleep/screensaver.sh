@@ -10,6 +10,9 @@
 # makes it "off <ms>". The other screensavers leave the backlight on, and the
 # power key works as always. ES sets the backlight in the background, hence
 # the wait.
+# With any screensaver, screensaver-autosleep puts the device to sleep once it
+# has run as long again on battery; the wake script stops it.
+setsid -f /usr/local/bin/screensaver-autosleep > /dev/null 2>&1 < /dev/null
 ( for i in $(seq 1 10); do
     if [ "$(cat /sys/class/backlight/backlight/brightness)" = 0 ]; then
       b=$(cat /run/darkos-brightness 2> /dev/null || cat /var/local/cur_bright.state 2> /dev/null)

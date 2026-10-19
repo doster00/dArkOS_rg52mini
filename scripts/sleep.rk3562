@@ -100,8 +100,14 @@ case $1 in
     # Restore the stick-RGB LED state on wake (no-op unless configured)
     [ -f /home/ark/.config/led.cfg ] && /usr/local/bin/ledctl apply 2>/dev/null
 
-    # Restore brightness
-    echo $(cat /var/local/cur_bright.state) | sudo tee /sys/class/backlight/backlight/brightness
+    # Restore brightness, unless the "black" screensaver of ES is still on: then
+    # no press woke the system (the RTC alarm, the charger), or ES takes the
+    # press, and its wake script lights the screen (Emulationstation/
+    # scripts.rk3562). screensaver-autosleep puts it back to sleep on battery.
+    read -r s _ pid < /run/darkos-screensaver 2> /dev/null
+    if [ "$s" != on ] || ! kill -0 "$pid" 2> /dev/null; then
+      echo $(cat /var/local/cur_bright.state) | sudo tee /sys/class/backlight/backlight/brightness
+    fi
 
     # Restore governor settings
     sudo sleep_governors.sh RestoreSettingsOnWake

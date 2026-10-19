@@ -121,6 +121,23 @@ on the device:
 * **`retroarch32` with `parallel_n64` ignored SIGTERM** in the test harness:
   systemd killed it after 90 s. The exit hotkey was not tried; worth a look.
 
+## Battery in sleep (2026-10-19)
+
+Sleep is deep now and the black screensaver ends in sleep on battery
+(KNOWN-ISSUES). Left:
+
+* **~42 mA in deep sleep**, about 4.5 days from full. Look for what stays
+  powered: the regulators' suspend states (`regulator-state-mem` in the DT,
+  `/sys/kernel/debug/regulator/regulator_summary`), the panel supply, the
+  speaker amplifier's enable, the USB-C controller (husb311), the stick-RGB
+  LED MCU. The same counter under GammaOS would tell whether Android's sleep
+  gets lower on this board.
+* **A long sleep still ends in an empty battery.** One answer is to wake by
+  the RTC after some hours of sleep on battery and power off; a game left
+  suspended is then lost. Needs a decision.
+* **Wake by plugging the charger in** was not tried: whether it wakes the
+  device, and that the screen stays dark under the black screensaver then.
+
 ## Revision A black screen: fixed — decide whether panel-kick can go
 
 What breaks the panel is known (KNOWN-ISSUES): switched off and on again too

@@ -324,11 +324,14 @@ SYSCTLEOF
 
 call_chroot "systemctl enable zram-swap"
 
-# Sleep script and set default SuspendState to freeze
+# Sleep script, and deep sleep: upstream's freeze (s2idle) keeps the SoC and the
+# PMIC awake, ~185 mA against ~42 mA (KNOWN-ISSUES).
 sudo mkdir -p Arkbuild/usr/lib/systemd/system-sleep
 sudo cp scripts/sleep.${CHIPSET} Arkbuild/usr/lib/systemd/system-sleep/sleep
 sudo chmod 777 Arkbuild/usr/lib/systemd/system-sleep/sleep
-sudo sed -i "/SuspendState\=/c\SuspendState\=freeze" Arkbuild/etc/systemd/sleep.conf
+sudo sed -i "/SuspendState\=/c\SuspendState\=mem" Arkbuild/etc/systemd/sleep.conf
+# From ES's screensaver on battery to sleep (Emulationstation/scripts.rk3562).
+sudo install -m 755 scripts/rk3562/screensaver-autosleep.sh Arkbuild/usr/local/bin/screensaver-autosleep
 
 # Set DRM on boot
 sudo chroot Arkbuild/ bash -c "(crontab -l 2>/dev/null; echo \"@reboot /usr/local/bin/hdmi-test.sh &\") | crontab -"
@@ -592,12 +595,12 @@ echo 'ACTION=="add", SUBSYSTEM=="platform", DRIVER=="rk3562-joystick", RUN+="/bi
 # Left stick inversion override -- disable DT-default inversion on boot if flag file exists
 echo 'ACTION=="add", SUBSYSTEM=="platform", DRIVER=="rk3562-joystick", RUN+="/bin/sh -c '\''test -f /home/ark/.config/.LEFT_STICK_NOT_INVERTED && echo 0 > /sys%p/left_stick_invert'\''"' | sudo tee Arkbuild/etc/udev/rules.d/99-joystick-invert.rules
 
-# RK817 PMIC poweroff service — bypasses ATF's broken SYSTEM_OFF
-# (ATF asserts SLPPIN with pmic-reset-func=0 → resets instead of powering off)
-sudo cp scripts/rk3562-poweroff.sh Arkbuild/usr/local/bin/rk3562-poweroff.sh
-sudo chmod 755 Arkbuild/usr/local/bin/rk3562-poweroff.sh
-sudo cp scripts/rk3562-poweroff.service Arkbuild/etc/systemd/system/rk3562-poweroff.service
-call_chroot "systemctl enable rk3562-poweroff"
+# No rk3562-poweroff service (upstream 90d8c47, "bypasses ATF's broken
+# SYSTEM_OFF"): the kernel powers the RK817 off itself (rockchip,system-power-
+# controller in rk3562-rk817.dtsi, DEV_OFF in its syscore shutdown, after
+# systemd-shutdown's last sync), and the service's i2cset would cut the power
+# before that sync. Its script has CRLF line ends and never ran anyway: "Failed
+# to execute ... No such file or directory" at every shutdown (KNOWN-ISSUES).
 
 # RG43H Pro: warm-white panel LUT in VOP2 hardware gamma table.
 # The JC4505 panel module ships with a cool white point (~7500K+) and there
