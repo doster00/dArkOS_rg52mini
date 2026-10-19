@@ -121,6 +121,29 @@ on the device:
 * **`retroarch32` with `parallel_n64` ignored SIGTERM** in the test harness:
   systemd killed it after 90 s. The exit hotkey was not tried; worth a look.
 
+## Nintendo 3DS: try the Azahar libretro core (next build, 2026-10-19)
+
+No ArkOS or dArkOS has a 3DS emulator. ROCKNIX ships Azahar standalone
+(`azahar-sa`, Qt6) only on RK3588, Snapdragon and S922X. GammaOS Next runs its
+own azahar-nano on this board at a usable speed: Azahar (Citra's successor)
+behind a C ABI, built with the NDK, LTO and upstream's PGO profile, with its
+own shell. The cheapest way here is `azahar_libretro`, the official libretro
+port of Azahar.
+
+- Build it like the other RetroArch cores. Azahar needs GLES 3.2 or Vulkan
+  (Mali-G52 has both), and its dynarmic JIT has an ARM64 backend.
+- Add an ES system `3ds` (`.3ds .cci .cxi .3dsx .app .elf .axf`; encrypted dumps
+  do not run). On a dual-boot card GammaOS keeps 3DS games in `n3ds`; alias it
+  as for the other GammaOS folders in 1.2.
+- Compare FPS in the test game (`T:\Dump\RG52Mini\games\_SD\ROMs\3ds`) with
+  azahar-nano under GammaOS. If it lags far behind, LTO, and PGO as planned
+  below.
+- Theme: the default `es-theme-nes-box` (Jetup13) has no `3ds` folder; the
+  bundled `es-theme-switch` has one. The original nes-box (KALEL1981, Travis
+  Wilson) has a `3ds` folder in the same layout, but its readme asks not to
+  share modified versions or reuse its graphics, so it is not copied in
+  without a decision.
+
 ## Heavy emulators: measure, then try compiler flags (planned for 1.3, 2026-10-19)
 
 First find where the time goes, then change flags where it can pay.
