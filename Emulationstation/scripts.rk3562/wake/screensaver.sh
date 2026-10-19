@@ -6,7 +6,7 @@
 # knows that a press of the power key a moment ago only woke the screen.
 sudo rm -f /run/darkos-autosleep
 m=/run/darkos-screensaver
-read -r s b _ < $m 2> /dev/null
+read -r s b _ 2> /dev/null < $m
 [ "$s" = on ] || exit 0
 echo "off $(date +%s%3N)" | sudo tee $m > /dev/null
 ( sleep 0.1

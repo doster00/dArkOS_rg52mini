@@ -1050,12 +1050,33 @@ A report on 1.0: the battery ran flat "in sleep". Measured on revision B on
   any of them, has run for `ScreenSaverTime` again on battery, so twice the
   timeout after the last input; on the charger the count starts over. The
   power key then wakes the device into ES as it was: ES takes the press and
-  ends the screensaver. A wake without a press (the RTC alarm; maybe the
-  charger, not tried) leaves the black screensaver dark, since the sleep hook
+  ends the screensaver. A wake without a press (the RTC alarm) leaves the
+  black screensaver dark, since the sleep hook
   does not light the backlight while the screensaver's mark says `on`, and the
   device goes back to sleep after one more timeout. Seen on the device with a
   one-minute timeout: asleep at 2 min, by the alarm awake with the screen dark,
   asleep again a minute later; a 3 h 40 min sleep, then the power key.
+* **Two hours asleep on battery, then off.** Even deep sleep empties the
+  battery in days, so the sleep hook (`scripts/sleep.rk3562`) sets the RTC
+  alarm on the way down, two hours on, and when that alarm wakes the device
+  on battery it powers off; a game left suspended is lost. On the charger it
+  sleeps on for another two hours. A power key press clears the time.
+* **The cable woke the device.** Plugging the charger in or pulling it out
+  wakes it from deep sleep: "Resume caused by IRQ 71, rk817" and "IRQ 96,
+  husb311" (the USB-C controller), where the power key and the RTC alarm are
+  rk817 alone. The hook then lit the screen, and on the charger nothing put
+  the device back to sleep. Now, with husb311 among the causes, it goes back
+  to sleep with the screen dark, and the time to the power-off runs on. Once,
+  with the black screensaver on, ES ended the screensaver itself right after
+  such a wake; the next time, under an input logger, no event came and the
+  screen stayed dark.
+* **logind refuses a power-off or a suspend from the hook**: "Call to
+  PowerOff failed: Action suspend already in progress". Both are started from
+  a transient unit that waits for the wake to end and retries for 30 s.
+  Seen on the device with the time cut to 90 s: asleep, the cable in (awake,
+  asleep again), the cable out (the same), off at 90 s, a short press booted
+  through U-Boot. With the cable left in, the alarm put it back to sleep every
+  two minutes, seven times, the screen dark.
 * **What deep sleep still draws** is unexplained. Not the radios (wlan and bt
   soft-blocked: the same 42 mA), not the `rockchip-suspend` node (disabled in
   the vendor DT as well; enabled with the vendor's `sleep-mode-config` 0x5e2,

@@ -123,8 +123,9 @@ on the device:
 
 ## Battery in sleep (2026-10-19)
 
-Sleep is deep now and the black screensaver ends in sleep on battery
-(KNOWN-ISSUES). Left:
+Sleep is deep now, the black screensaver ends in sleep on battery, two hours
+asleep on battery end in a power-off, and the cable no longer wakes the device
+for good (KNOWN-ISSUES). Left:
 
 * **~42 mA in deep sleep**, about 4.5 days from full. Look for what stays
   powered: the regulators' suspend states (`regulator-state-mem` in the DT,
@@ -132,11 +133,8 @@ Sleep is deep now and the black screensaver ends in sleep on battery
   speaker amplifier's enable, the USB-C controller (husb311), the stick-RGB
   LED MCU. The same counter under GammaOS would tell whether Android's sleep
   gets lower on this board.
-* **A long sleep still ends in an empty battery.** One answer is to wake by
-  the RTC after some hours of sleep on battery and power off; a game left
-  suspended is then lost. Needs a decision.
-* **Wake by plugging the charger in** was not tried: whether it wakes the
-  device, and that the screen stays dark under the black screensaver then.
+* **Plugging the charger into a device that is off**: whether it boots, and
+  into what (U-Boot's charge screen, or the system). Not tried.
 
 ## Revision A black screen: fixed — decide whether panel-kick can go
 
