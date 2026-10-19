@@ -127,12 +127,15 @@ Sleep is deep now, the black screensaver ends in sleep on battery, two hours
 asleep on battery end in a power-off, and the cable no longer wakes the device
 for good (KNOWN-ISSUES). Left:
 
-* **~42 mA in deep sleep**, about 4.5 days from full. Look for what stays
-  powered: the regulators' suspend states (`regulator-state-mem` in the DT,
-  `/sys/kernel/debug/regulator/regulator_summary`), the panel supply, the
-  speaker amplifier's enable, the USB-C controller (husb311), the stick-RGB
-  LED MCU. The same counter under GammaOS would tell whether Android's sleep
-  gets lower on this board.
+* **~42 mA in deep sleep**, about 4.5 days from full; mostly the board
+  itself. GammaOS (Android 14) on the same unit, measured the same way on
+  2026-10-19: 37-38 mA in deep sleep, Wi-Fi on or off within 1 mA, and its DT
+  has the same regulator states in suspend as ours (on: vcc_ddr, vcc_3v3,
+  vcca1v8_pmu, vdda0v9_pmu, vcc3v3_pmu; `rockchip-suspend` disabled in both).
+  The 4-5 mA left between the two (about 12 %) is small; if it is worth
+  chasing, compare what the drivers leave on: the pwm-fan's `fan-vcc` GPIO
+  rail (no state-mem), the stick-RGB LED MCU, Bluetooth (off in the Android
+  run), the USB-C controller (husb311).
 
 ## Revision A black screen: fixed — decide whether panel-kick can go
 
