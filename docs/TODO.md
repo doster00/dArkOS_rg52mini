@@ -133,8 +133,6 @@ for good (KNOWN-ISSUES). Left:
   speaker amplifier's enable, the USB-C controller (husb311), the stick-RGB
   LED MCU. The same counter under GammaOS would tell whether Android's sleep
   gets lower on this board.
-* **Plugging the charger into a device that is off**: whether it boots, and
-  into what (U-Boot's charge screen, or the system). Not tried.
 
 ## Revision A black screen: fixed — decide whether panel-kick can go
 

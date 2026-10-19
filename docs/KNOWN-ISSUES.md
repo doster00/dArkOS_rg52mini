@@ -1077,6 +1077,11 @@ A report on 1.0: the battery ran flat "in sleep". Measured on revision B on
   asleep again), the cable out (the same), off at 90 s, a short press booted
   through U-Boot. With the cable left in, the alarm put it back to sleep every
   two minutes, seven times, the screen dark.
+* **The charger plugged into a device that is off** starts U-Boot's charge
+  screen (`charge-animation`, `rockchip,uboot-charge-on`), not the system: the
+  screen goes dark by itself after 15 s, a short press shows it again, a long
+  press boots, and with the cable out U-Boot powers the device off; a short
+  press then boots as usual. All four seen on the device on 2026-10-19.
 * **What deep sleep still draws** is unexplained. Not the radios (wlan and bt
   soft-blocked: the same 42 mA), not the `rockchip-suspend` node (disabled in
   the vendor DT as well; enabled with the vendor's `sleep-mode-config` 0x5e2,
