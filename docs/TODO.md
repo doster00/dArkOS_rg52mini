@@ -121,6 +121,30 @@ on the device:
 * **`retroarch32` with `parallel_n64` ignored SIGTERM** in the test harness:
   systemd killed it after 90 s. The exit hotkey was not tried; worth a look.
 
+## Heavy emulators: measure, then try compiler flags (planned for 1.3, 2026-10-19)
+
+First find where the time goes, then change flags where it can pay.
+
+1. **Measure.** In the heaviest games (PS2, GameCube, PSP, Dreamcast, N64 from
+   the test set), each from one savestate in one scene, with the FPS counter
+   and `perf` (linux-perf from Debian, not in the image):
+   - how much is in the emulator's compiled code;
+   - how much in its JIT output;
+   - how much in libmali and the kernel;
+   - whether the game is held by the GPU at all.
+2. **LTO first**, where the compiled code weighs: `-flto=auto` or
+   `CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON`. It needs no training, and none of
+   the heavy emulators has it now (`build_pcsx2sa.sh` sets only `-O3
+   -mcpu=cortex-a53`; DuckStation and mupen64plus nothing of their own). For
+   the RetroArch cores (shared objects), `-fno-semantic-interposition` too.
+3. **PGO for one or two**, only if LTO showed the compiled code matters. An
+   instrumented build is trained on the device, its `.gcda` brought back, and
+   the profile kept in the repo; it goes stale with every update of the
+   emulator. AutoFDO is out: the Cortex-A53 has no branch records the kernel
+   can sample.
+
+Each step is A/B against the same scene; a flag stays only with a measured gain.
+
 ## Battery in sleep (2026-10-19)
 
 Sleep is deep now, the black screensaver ends in sleep on battery, two hours
