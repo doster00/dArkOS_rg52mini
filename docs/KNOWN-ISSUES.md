@@ -533,6 +533,22 @@ game drew a 1280x720 viewport into it, and the RGA pass scaled the 640x360 it
 got onto the panel. Scaled surfaces are now for exclusive fullscreen only
 (`(flags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN`).
 
+The size changed under the app: SDL said 1280x720 until the first swaps, where
+KMSDRM remakes the surfaces it marked dirty, and the scaled size after them. So
+any desktop-fullscreen window asked for smaller than the panel was hit, if the
+app took the size once. On the device, with a GL window, its drawable before
+and after the context and after three swaps, against EGL_WIDTH/HEIGHT:
+
+| window asked for            | 1.2 SDL, after the swaps | fixed SDL          |
+|-----------------------------|--------------------------|--------------------|
+| 0x0, FULLSCREEN_DESKTOP     | 640x360 (1280x720 before)| 1280x720 all along |
+| 640x480, FULLSCREEN_DESKTOP | 640x480 (1280x720 before)| 1280x720 all along |
+| 854x480, FULLSCREEN         | 854x480                  | 854x480            |
+
+The gtasa port, back on AUTO, was whole with the fixed library. A 0x0 window in
+exclusive fullscreen still gets 640x360, the smallest mode SDL finds for it, but
+SDL says so from the start.
+
 On 1.0 to 1.2, give such a port its size: for gtasa, `screen_width 1280` and
 `screen_height 720` in `config_gtasa.txt`, which made it whole on the device.
 
