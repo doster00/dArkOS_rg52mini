@@ -130,7 +130,7 @@ SDL_KMSDRM_SCALED_MODES=0 leaves the modes out.
          return drm_mode;
      }
  }
-@@ -1258,6 +1335,23 @@
+@@ -1258,6 +1335,25 @@
      }
  }
  
@@ -138,7 +138,9 @@ SDL_KMSDRM_SCALED_MODES=0 leaves the modes out.
 +{
 +    SDL_DisplayData *dispdata = (SDL_DisplayData *)SDL_GetDisplayForWindow(window)->driverdata;
 +
-+    if ((window->flags & SDL_WINDOW_FULLSCREEN) == SDL_WINDOW_FULLSCREEN &&
++    /* A scaled mode only in exclusive fullscreen: FULLSCREEN_DESKTOP has the
++       FULLSCREEN bit too, and there SDL gives the app the desktop size. */
++    if ((window->flags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN &&
 +        dispdata->fullscreen_scaled_w && dispdata->fullscreen_scaled_h) {
 +        *w = dispdata->fullscreen_scaled_w;
 +        *h = dispdata->fullscreen_scaled_h;

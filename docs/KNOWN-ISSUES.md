@@ -517,6 +517,25 @@ taken over from GammaOS Next, where it proved stable.
 - other boards: GammaOS measured bin L3, and a chip that does not take
   2208/1000 shows it only in this mode.
 
+## A desktop-fullscreen window got a scaled surface — in 1.0 to 1.2, fixed after 1.2
+
+Seen on 2026-10-19 with a GTA San Andreas port (the gtasa Android wrapper, R36S
+lineage): only the lower left of the picture, about a quarter, magnified to the
+whole screen. Its `config_gtasa.txt` has `screen_width -1`, `screen_height -1`
+("screen mode: AUTO"), and then it creates its window with 0x0 and
+`SDL_WINDOW_FULLSCREEN_DESKTOP` and takes `SDL_GL_GetDrawableSize`, which was
+right: 1280x720. The surface under it was not. `sdl2-patch-0008` (scaled modes)
+picks the mode closest to the window's size when the window is made, which for
+0x0 is the smallest scaled mode, 640x360, and its check for fullscreen,
+`(flags & SDL_WINDOW_FULLSCREEN) == SDL_WINDOW_FULLSCREEN`, holds for
+FULLSCREEN_DESKTOP too, which has that bit. So the GBM surface was 640x360, the
+game drew a 1280x720 viewport into it, and the RGA pass scaled the 640x360 it
+got onto the panel. Scaled surfaces are now for exclusive fullscreen only
+(`(flags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN`).
+
+On 1.0 to 1.2, give such a port its size: for gtasa, `screen_width 1280` and
+`screen_height 720` in `config_gtasa.txt`, which made it whole on the device.
+
 ## SDL2 under KMSDRM re-raised every SIGSEGV (fixed in our SDL after v10062026)
 
 Found with the native Halo: Combat Evolved port (kirklandsig's
