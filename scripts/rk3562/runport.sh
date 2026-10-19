@@ -47,6 +47,33 @@ if [ -f /boot/dualboot ] && [ -d /roms/ports ]; then
 	fix_new_ports
 fi
 
+# A PortMaster port on a card that has no PortMaster yet - a fresh card, the
+# port copied over by hand - starts without control.txt and mod_dArkOS.txt: no
+# controls, no E2BIG guard, no gl4es-fix (Don't Starve: a black world). So the
+# first one installs it, from the installer the image puts in Tools, which
+# carries PortMaster.zip and needs no network. It would restart
+# EmulationStation when done, under the port, unless ~/no_es_restart is there.
+# portmaster-e2big adds our lines to the new mod_dArkOS.txt from its path unit;
+# run here as well, they are in before the port reads it. The folders are the
+# ones port scripts look in for control.txt.
+install_portmaster() {
+	local d inst
+	for d in /opt/system/Tools /opt/tools "${XDG_DATA_HOME:-$HOME/.local/share}" /roms/ports; do
+		[ -f "$d/PortMaster/control.txt" ] && return
+	done
+	for inst in /opt/system/Tools/Install.PortMaster.sh /roms/tools/Install.PortMaster.sh; do
+		[ -f "$inst" ] || continue
+		touch "$HOME/no_es_restart"
+		bash "$inst"
+		rm -f "$HOME/no_es_restart"
+		sudo /usr/local/bin/portmaster-e2big.sh
+		return
+	done
+}
+if grep -q "control\.txt" "$port" 2>/dev/null; then
+	install_portmaster
+fi
+
 # A script without the execute bit still runs, through bash.
 
 if grep -q "control\.txt" "$port" 2>/dev/null || [ "$(id -u)" -eq 0 ]; then
