@@ -1073,6 +1073,20 @@ ES also shows the full name in its menus (systems to show, emulator settings,
 scraper). Nothing else in the image reads it; ES keys its settings, gamelists
 and collections on `<name>`, which did not change.
 
+## PS2: the pause menu closed the game — fixed after 1.3's test build
+
+Select+X (PCSX2's `OpenPauseMenu`) showed the pause menu for half a second,
+then PCSX2 closed as if the game had ended: the log shows "Pausing...", the
+play time being saved and the VM released, and no crash. The fork's SDL
+frontend handles a paused VM and a shut down one in the same branch of its CPU
+thread loop, and with nothing pending and no FullscreenUI session, which is
+every game EmulationStation starts (it passes the ISO on the command line), it
+took the paused game for finished. `pcsx2/patches/pcsx2-0001` ends the frontend
+only when the VM is gone; a paused one gets the input polling FullscreenUI's
+idle state has, so its menu works (Resume, Close Game and the rest).
+`build_pcsx2sa.sh` applies `pcsx2/patches/*.patch` and keys its cache on them.
+ARMSX2's `pcsx2-sdl`, the same frontend further on, has the same branch.
+
 ## Apple II in linapple did not start — in 1.1 and before, fixed in 1.2
 
 linapple, the default emulator for Apple II, needs `libSDL_image-1.2.so.0`. In

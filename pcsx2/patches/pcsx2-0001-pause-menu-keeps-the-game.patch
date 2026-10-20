@@ -1,0 +1,33 @@
+From: dArkOS RG52 Mini port
+Subject: The pause menu no longer quits a game started from the command line
+
+The SDL frontend handles a paused VM and a shut down one in the same branch
+of its CPU thread loop: with nothing pending and no FullscreenUI session
+(a game passed on the command line, which is how EmulationStation starts
+every one), it takes the game for finished and quits. Opening the pause
+menu (Select+X here) paused the VM, the menu showed for half a second and
+PCSX2 closed as if the game had ended. Only a VM that is gone ends the
+frontend now; a paused one gets the input pumping the FullscreenUI idle
+state has, so its menu works (Resume, Close Game and the rest).
+
+diff --git a/pcsx2-sdl/Main.cpp b/pcsx2-sdl/Main.cpp
+index aabd81690..12d830f0a 100644
+--- a/pcsx2-sdl/Main.cpp
++++ b/pcsx2-sdl/Main.cpp
+@@ -813,10 +813,12 @@ void Pcsx2SDL::CPUThreadMain(VMBootParameters initial_params, bool start_in_fsui
+ 					continue;
+ 				}
+ 
+-				// Nothing pending. If no FSUI session is running, exit cleanly
+-				// — the user's game finished and there is no UI to show next,
+-				// so the frontend's job is done.
+-				if (!start_in_fsui)
++				// Nothing pending. If the VM is gone and no FSUI session is
++				// running, exit cleanly — the user's game finished and there
++				// is no UI to show next, so the frontend's job is done. A
++				// paused VM is not finished: its pause menu is up, and it
++				// needs the same input pumping as the FSUI idle state below.
++				if (state == VMState::Shutdown && !start_in_fsui)
+ 				{
+ 					s_shutdown_requested.store(true, std::memory_order_release);
+ 					break;

@@ -40,7 +40,9 @@ fi
 
 PCSX2_SHA=$(git -C "${PCSX2_SRC}" rev-parse HEAD)
 SDL3_SHA=$(cat "Arkbuild_package_cache/${CHIPSET}/sdl3-shim.commit" 2>/dev/null || echo "no-shim")
-CACHE_KEY="${PCSX2_SHA}_${SDL3_SHA}_${UNIT}"
+# Our fixes to the fork (pcsx2/patches): a change to them rebuilds it too
+PATCHES_SHA=$(cat pcsx2/patches/*.patch | sha1sum | cut -c1-12)
+CACHE_KEY="${PCSX2_SHA}_${SDL3_SHA}_${UNIT}_${PATCHES_SHA}"
 
 if [ -f "Arkbuild_package_cache/${CHIPSET}/pcsx2sa_${UNIT}.tar.gz" ] && \
    [ "$(cat Arkbuild_package_cache/${CHIPSET}/pcsx2sa_${UNIT}.commit 2>/dev/null)" == "${CACHE_KEY}" ]; then
@@ -68,6 +70,12 @@ if [ ! -f "Arkbuild/opt/pcsx2/bin/pcsx2-sdl" ]; then
     # as plain libshaderc.so / libshaderc.so.1.  Teach the find module
     # to accept the Debian naming too.
     sed -i 's/NAMES shaderc_shared.1 shaderc_shared/NAMES shaderc_shared.1 shaderc_shared shaderc.1 shaderc/' "${PCSX2_SRC}/cmake/FindShaderc.cmake"
+
+    # Our fixes, on the tree as fetched above (each patch says what it fixes)
+    for p in pcsx2/patches/*.patch; do
+        patch -d "${PCSX2_SRC}" -Np1 < "$p"
+        verify_action
+    done
 
     # Build plutovg/plutosvg as prereqs — Trixie doesn't ship them and the
     # fork doesn't vendor them.
