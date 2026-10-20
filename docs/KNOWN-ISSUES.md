@@ -1064,9 +1064,10 @@ With `SortSystems` = `alpha` (our `es_settings.cfg`) ES sorts the systems by
 of them: `N64`, `NDS`, `NES`, `C64`, `DOS`, `CPC`, `Megadrive` ... The menu
 shows the theme's logos, so it read "Nintendo 64, Nintendo DS, Neo Geo, Neo
 Geo Pocket, Nintendo, Nintendo 3DS". Our two `es_systems.cfg.rk3562*` now
-give the consoles' names (Nintendo 64, Nintendo Entertainment System, Amstrad
-CPC, Commodore 64, MS-DOS, Mega Drive ...; 38 systems and the `snesna` alias).
-A group sorts by the full name of its main system (the ES patch above).
+give the consoles' names (Nintendo 64, Super Nintendo, Amstrad CPC, Commodore
+64, MS-DOS, Mega Drive ...; 38 systems and the `snesna` alias). NES is
+"Nintendo", as its logo reads, so it comes first of the Nintendo systems. A
+group sorts by the full name of its main system (the ES patch above).
 
 ES also shows the full name in its menus (systems to show, emulator settings,
 scraper). Nothing else in the image reads it; ES keys its settings, gamelists
