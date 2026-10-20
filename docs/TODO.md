@@ -150,29 +150,60 @@ port of Azahar.
   the build, borrowing what fits from es-theme-switch's `3ds` art (check that
   theme's licence first).
 
-## Heavy emulators: measure, then try compiler flags (planned for 1.3, 2026-10-19)
+## Heavy emulators: compiler flags measured, none kept (1.3, 2026-10-20)
 
-First find where the time goes, then change flags where it can pay.
+Measured on the 1.3 test build (OTA from 1.1), volume at 0, no input, ES
+stopped. Frames are counted by the kernel (ftrace `drm_vblank_event_delivered`,
+one per flip of GL, RetroArch KMS or Mali's Vulkan display alike); it matched
+Dolphin's own counter.
 
-1. **Measure.** In the heaviest games (PS2, GameCube, PSP, Dreamcast, N64 from
-   the test set), each from one savestate in one scene, with the FPS counter
-   and `perf` (linux-perf from Debian, not in the image):
-   - how much is in the emulator's compiled code;
-   - how much in its JIT output;
-   - how much in libmali and the kernel;
-   - whether the game is held by the GPU at all.
-2. **LTO first**, where the compiled code weighs: `-flto=auto` or
-   `CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON`. It needs no training, and none of
-   the heavy emulators has it now (`build_pcsx2sa.sh` sets only `-O3
-   -mcpu=cortex-a53`; DuckStation and mupen64plus nothing of their own). For
-   the RetroArch cores (shared objects), `-fno-semantic-interposition` too.
-3. **PGO for one or two**, only if LTO showed the compiled code matters. An
-   instrumented build is trained on the device, its `.gcda` brought back, and
-   the profile kept in the repo; it goes stale with every update of the
-   emulator. AutoFDO is out: the Cortex-A53 has no branch records the kernel
-   can sample.
+| Game | Emulator | FPS | Busiest thread |
+|---|---|---|---|
+| PS2 Jak and Daxter (PAL), intro | PCSX2 | 42-48, 17-18 in its heaviest part | EE 95% |
+| GC ND Demo | Dolphin | 40-41 | CPU 86%, video 76% |
+| PSP FF Anniversary | PPSSPP | 60 | 46% |
+| DC Crazy Taxi | flycast | 60 | 67% |
+| Atomiswave kov7sprt, attract | flycast | 60 (30 on its title) | 79% |
+| N64 AeroGauge | RetroArch32 parallel_n64 | 59 | 55% |
 
-Each step is A/B against the same scene; a flag stays only with a measured gain.
+Only PS2 and GameCube run below full speed. `perf` (linux-perf from Debian
+installed on the test device, not in the image) splits them:
+- **PCSX2:** the EE thread is about half its own compiled code and half JIT.
+  The compiled half is flat: the top function, `spu2Mix`, has 4.6%.
+- **Dolphin:** the CPU thread, which holds the frame rate, is about 90% JIT.
+
+**PCSX2 builds**, against the image's (gcc 14, `-O3 -march=armv8-a
+-moutline-atomics`), in fps over frames 300-1850 of the intro:
+
+| Build | Difference from the image |
+|---|---|
+| clang 18, same flags | -3% |
+| clang + ThinLTO | -2% |
+| clang + ThinLTO + `-mcpu=cortex-a53` | -1% |
+| clang + full LTO + `-mcpu=cortex-a53` | 0% |
+| clang + `-mcpu=cortex-a53` | -4% |
+| clang `-O2` | -5% |
+| gcc 14 + `-mcpu=cortex-a53` | -3% |
+| gcc 14 full LTO | starts and exits at once (below) |
+
+Spread between runs of one build is about 1.5%.
+- **gcc LTO** links only with `common/FastJmp.cpp` built without LTO, because
+  GCC LTO drops the symbols of its top-level asm. The binary then exits at start
+  without a line of log. Not pursued, since clang's LTO gained nothing.
+- **How it was measured.** Fps averaged over a wall-clock window cannot compare
+  builds on a scripted intro: the faster one reaches a heavier part sooner, and
+  a run at 1.6 GHz scored the same as at 2.0. Fps between fixed frame numbers
+  of the deterministic intro does see the clock: -17% for -20% of it.
+- **Thermal.** Runs go back to back only after the SoC cools below 62 C. The
+  thermal governor holds 75 C, and a warm device lost 3% within an hour.
+
+**Dolphin** is built with LTO already (`ENABLE_LTO=ON` in its recipe). A build
+with `-mcpu=cortex-a53` added is being measured.
+
+**Decision: no flag changes in the build scripts.** On the in-order A53 these
+emulators wait on memory and JIT code, and the compiler does not reach either.
+PGO stays the one untried option. It would need a training run in real
+gameplay with the owner, and the flat profile leaves it little to work on.
 
 ## Battery in sleep (2026-10-19)
 
