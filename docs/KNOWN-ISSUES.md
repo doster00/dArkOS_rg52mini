@@ -1057,6 +1057,21 @@ through fbneo; with a game only in `/roms/tg16`, TurboGrafx-16 was an ordinary
 system with the game in it; systems whose alias folders are empty looked as
 before. The "GROUPED SYSTEMS" option of ES can still split a group.
 
+## Systems were sorted by short names, not by the consoles' — fixed after 1.3's test build
+
+With `SortSystems` = `alpha` (our `es_settings.cfg`) ES sorts the systems by
+`<fullname>`, and upstream's `es_systems.cfg` has short internal names in many
+of them: `N64`, `NDS`, `NES`, `C64`, `DOS`, `CPC`, `Megadrive` ... The menu
+shows the theme's logos, so it read "Nintendo 64, Nintendo DS, Neo Geo, Neo
+Geo Pocket, Nintendo, Nintendo 3DS". Our two `es_systems.cfg.rk3562*` now
+give the consoles' names (Nintendo 64, Nintendo Entertainment System, Amstrad
+CPC, Commodore 64, MS-DOS, Mega Drive ...; 38 systems and the `snesna` alias).
+A group sorts by the full name of its main system (the ES patch above).
+
+ES also shows the full name in its menus (systems to show, emulator settings,
+scraper). Nothing else in the image reads it; ES keys its settings, gamelists
+and collections on `<name>`, which did not change.
+
 ## Apple II in linapple did not start — in 1.1 and before, fixed in 1.2
 
 linapple, the default emulator for Apple II, needs `libSDL_image-1.2.so.0`. In

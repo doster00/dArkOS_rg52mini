@@ -33,7 +33,7 @@ ALIASES = [
     ("sega32xjp",   "/roms/sega32x",       "Super 32X (Japan)"),
     ("sega32xna",   "/roms/sega32x",       "Genesis 32X"),
     ("saturnjp",    "/roms/saturn",        "Saturn (Japan)"),
-    ("snesna",      "/roms/snes",          "SNES (North America)"),
+    ("snesna",      "/roms/snes",          "Super Nintendo (North America)"),
     ("tg16",        "/roms/turbografx",    "TurboGrafx-16"),
     ("tg-cd",       "/roms/turbografxcd",  "TurboGrafx-CD"),
     ("neogeocdjp",  "/roms/neogeocd",      "Neo Geo CD (Japan)"),
