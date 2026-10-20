@@ -197,8 +197,9 @@ Spread between runs of one build is about 1.5%.
 - **Thermal.** Runs go back to back only after the SoC cools below 62 C. The
   thermal governor holds 75 C, and a warm device lost 3% within an hour.
 
-**Dolphin** is built with LTO already (`ENABLE_LTO=ON` in its recipe). A build
-with `-mcpu=cortex-a53` added is being measured.
+**Dolphin** is built with LTO already (`ENABLE_LTO=ON` in its recipe). The same
+build with `-mcpu=cortex-a53` added ran the ND Demo at 41.0 fps against the
+image's 41.5 (two interleaved runs each, spread about 1%): no gain either.
 
 **Decision: no flag changes in the build scripts.** On the in-order A53 these
 emulators wait on memory and JIT code, and the compiler does not reach either.
