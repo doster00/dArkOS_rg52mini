@@ -1174,10 +1174,25 @@ A report on 1.0: the battery ran flat "in sleep". Measured on revision B on
 
 ## Nintendo 3DS: Azahar in RetroArch (after 1.3's test build)
 
-The 3DS system runs `azahar_libretro` (Azahar 2126.2, the libretro build of
-Citra's successor) in RetroArch. Its folder is `/roms/3ds`; on a dual-boot card
-GammaOS's `n3ds` is an alias of it. Encrypted dumps do not run.
+The 3DS system runs `azahar_libretro` in RetroArch: Azahar 2126.1.2 (the
+libretro build of Citra's successor) with GammaOS's azahar-nano changes on top.
+Its folder is `/roms/3ds`; on a dual-boot card GammaOS's `n3ds` is an alias of
+it. Encrypted dumps do not run.
 
+- **azahar-nano** is TheGammaSqueeze's fork for GammaOS: about 130 commits of
+  speed work for Mali GPUs and in-order cores, such as fastmem and dispatch
+  work in the arm64 JIT, a GPU thread (`AzaharGpu`) that runs the PICA command
+  lists beside the emulation thread, and no GPU wait on a repeated frame
+  (`azahar-patch-000`, from GammaOSNextDistribution-14 8d68e5ecaab). The 1.3
+  test build shipped plain 2126.2. In Super Mario 3D Land with the CPU capped
+  at 1008 MHz that ran at 24 fps, this core at the game's full 30; at 2 GHz
+  its emulation thread is 29% busy against 54%.
+- **Its switches** (about 90; Android properties
+  `persist.gammaos.azahar_nano.<name>` on GammaOS) are environment variables
+  here, named the same with dots as underscores:
+  `persist_gammaos_azahar_nano_fastmem=0` turns fastmem off
+  (`azahar-patch-002`). Unset, each keeps its default, which for most is on
+  when the GPU is a Mali (`/dev/mali0`), as on Android.
 - **Vulkan, not GL.** On RetroArch's gl driver (GLES here) the Mali driver
   links each new shader in `glLinkProgram` on the emulation thread, seconds at
   a time: Super Mario 3D Land stood on its title. A per-core override
@@ -1185,15 +1200,23 @@ GammaOS's `n3ds` is an alias of it. Encrypted dumps do not run.
   this core, where Azahar builds its pipelines on worker threads.
 - **Layout** defaults to "Large Screen, Small Screen" (patch on the core's
   default), which fills the 16:9 screen better than the screens stacked.
-- **Speed.** Built with clang and a profile from playing Super Mario 3D Land
-  (PGO): in one demanding place it went from 27.3 to 29.8 fps, the game's own
-  30, against 27.7-28.1 for ThinLTO alone. RetroArch counts the frames the game
-  draws, so 30 is full speed for a 30 fps game; azahar-nano counts the 3DS's
-  60 refreshes and shows 60 for the same speed.
+- **Speed: PGO.** Built with clang and a profile from playing Super Mario 3D
+  Land on this device with an instrumented build of the same recipe, merged
+  with GammaOS's own profile for azahar-nano (six games). Theirs alone did
+  nothing here: in 1-1 with the CPU capped at 816 MHz the core ran at 24.7 fps
+  without a profile, 24.8 with theirs and the full 30 with the merged one.
+  Theirs comes from an Android build (libc++, the NDK's clang): 44% of its
+  counts are on functions whose code differs in ours, and clang drops them.
+- **Frame rate.** The frames counted are the ones the game draws: Super Mario
+  3D Land draws 30 a second in 1-1 and 60 at the checkpoint of 1-2. GammaOS's
+  azahar-nano app counts the 3DS's 60 refreshes and shows 60 for both.
 - **RetroArch's FPS counter costs about 20%** on the vulkan driver (29.7 fps
-  without it, 24.3 with it, same savestate). Measure without it.
+  without it, 24.3 with it, same savestate, 2126.2). Measure without it.
 - **RGA scaling** (`video_ctx_scaling`) changes nothing on the vulkan driver
   (29.8 against 29.9), so it stays off.
+- **Savestates from the 1.3 test build** (2126.2) load and play. Azahar
+  refuses a state made by another source revision; `azahar-patch-005` makes
+  that a warning in the log.
 - A savestate made in New 3DS mode (the core's default) does not load in Old
   3DS mode: RetroArch quits.
 - The core keeps its NAND and SD card in an `Azahar` folder next to the games,

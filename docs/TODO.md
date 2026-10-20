@@ -123,18 +123,32 @@ on the device:
 
 ## Nintendo 3DS: Azahar is in (2026-10-20)
 
-`azahar_libretro` with clang and PGO, RetroArch on vulkan for it, the large
-screen layout, the `n3ds` alias and our nes-box folder (KNOWN-ISSUES). Left:
+`azahar_libretro` (2126.1.2 with GammaOS's azahar-nano) with clang and PGO,
+RetroArch on vulkan for it, the large screen layout, the `n3ds` alias and our
+nes-box folder (KNOWN-ISSUES). Left:
 
-* **The profile comes from one game.** Train it on two or three more (a 3D one
-  with many effects, a 2D one) and merge the profiles, so other games get the
-  same help. `llvm-profdata merge` adds them up; the recipe names the file.
+* **Our part of the profile comes from one game.** GammaOS's part covers six,
+  but only where their code and ours compile alike. Train ours on two or three
+  more (a 3D one with many effects, a 2D one) and merge them:
+  `llvm-profdata merge -weighted-input=<w>,<file>`, with weights that give each
+  part about the same total count (`llvm-profdata show --detailed-summary`).
+  The recipe names the file.
+* **How well a profile fits the code:** build with `-fprofile-use=<it>
+  -Wno-everything -Wbackend-plugin -Wno-error=backend-plugin -mllvm
+  -pgo-warn-missing-function`, with the externals' `-w` taken out of
+  `externals/CMakeLists.txt` (it reaches everything built against boost).
+  clang names each function whose code changed since training (hash mismatch,
+  its data dropped); their share of the profile's counts (`llvm-profdata show
+  --all-functions --counts`) is what is lost. GammaOS's profile lost 44%.
 * **More games.** Only Super Mario 3D Land was played. Check a heavier one
   (Monster Hunter, Zelda) and what speed it reaches.
-* **The emulation thread waits for the GPU** each frame a game draws nothing
-  new (`scheduler.Finish()` in Azahar's SwapBuffers), and the work is not
-  spread over two frames as azahar-nano's own presenter does. Worth a look if a
-  game falls short of full speed.
+* **azahar-nano's switches:** only their defaults were measured.
+* **A newer azahar-nano** means a new `azahar-patch-000`: the diff of their
+  tree against the 2126.1.2 tag with its submodules, made as its header says,
+  then 002-005 checked on top.
+* **At 600 MHz**, a CPU cap used only for measuring, every build (2126.2 too)
+  stops drawing about a minute into Super Mario 3D Land. Not seen at 816 MHz
+  and up.
 
 ## Heavy emulators: compiler flags measured, none kept (1.3, 2026-10-20)
 
@@ -191,7 +205,8 @@ image's 41.5 (two interleaved runs each, spread about 1%): no gain either.
 emulators wait on memory and JIT code, and the compiler does not reach either.
 PGO stays the one untried option for them. It needs a training run in real
 gameplay with the owner, and the flat profile leaves it little to work on.
-Azahar (3DS) got it, and gained 9% (above).
+Azahar (3DS) got it: a profile trained here took azahar-nano from 24.7 fps to
+the game's full 30 (above).
 
 ## Battery in sleep (2026-10-19)
 
