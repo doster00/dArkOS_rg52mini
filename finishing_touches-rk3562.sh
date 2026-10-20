@@ -821,6 +821,11 @@ sudo mkdir Arkbuild/tempthemes
 sudo git clone --depth=1 https://github.com/Jetup13/es-theme-freeplay.git Arkbuild/tempthemes/es-theme-freeplay
 sudo git clone --depth=1 https://github.com/Jetup13/es-theme-minimal-arkos.git Arkbuild/tempthemes/es-theme-minimal-arkos
 sudo git clone --depth=1 https://github.com/Jetup13/es-theme-nes-box.git Arkbuild/tempthemes/es-theme-nes-box
+# nes-box has no 3ds folder: ours goes into both copies of the theme, and into
+# /usr/share/darkos for the OTA hook that adds it to an installed theme.
+sudo cp -r themes/es-theme-nes-box/3ds Arkbuild/tempthemes/es-theme-nes-box/
+sudo mkdir -p Arkbuild/usr/share/darkos/themes/es-theme-nes-box
+sudo cp -r themes/es-theme-nes-box/3ds Arkbuild/usr/share/darkos/themes/es-theme-nes-box/
 sudo git clone --depth=1 https://github.com/Jetup13/es-theme-switch.git Arkbuild/tempthemes/es-theme-switch
 sudo git clone --depth=1 https://github.com/dani7959/es-theme-replica.git Arkbuild/tempthemes/es-theme-replica
 
@@ -842,8 +847,8 @@ done <game_systems.txt
 # does this for rk3566).  RK3562 is binary-compatible with and as capable as
 # rk3566, so create them here.  gc (Dolphin/GameCube) is the one we actually
 # want; cdimono1/tigerlcd are still in game_systems.txt for us but listed here
-# too for parity (mkdir -p is idempotent).
-for extra_dir in cdimono1 gc tigerlcd
+# too for parity (mkdir -p is idempotent). 3ds (Azahar) is ours.
+for extra_dir in 3ds cdimono1 gc tigerlcd
 do
   echo -e "Creating ${fat32_mountpoint}/${extra_dir}\n"
   sudo mkdir -p ${fat32_mountpoint}/${extra_dir}
@@ -917,6 +922,7 @@ sudo cp -a scummvm/scripts/menu.scummvm ${fat32_mountpoint}/scummvm/
 
 # Clone some themes to the roms/themes folder
 sudo git clone --depth=1 https://github.com/Jetup13/es-theme-nes-box.git ${fat32_mountpoint}/themes/es-theme-nes-box
+sudo cp -r themes/es-theme-nes-box/3ds ${fat32_mountpoint}/themes/es-theme-nes-box/
 sync
 
 # Create roms.tar for use after exfat partition creation

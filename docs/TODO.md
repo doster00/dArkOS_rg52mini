@@ -121,34 +121,20 @@ on the device:
 * **`retroarch32` with `parallel_n64` ignored SIGTERM** in the test harness:
   systemd killed it after 90 s. The exit hotkey was not tried; worth a look.
 
-## Nintendo 3DS: try the Azahar libretro core (next build, 2026-10-19)
+## Nintendo 3DS: Azahar is in (2026-10-20)
 
-In order, as the owner set it on 2026-10-19: first the 1.3 build and its OTA
-test, then the measurements and compiler flags (next section), then this.
+`azahar_libretro` with clang and PGO, RetroArch on vulkan for it, the large
+screen layout, the `n3ds` alias and our nes-box folder (KNOWN-ISSUES). Left:
 
-No ArkOS or dArkOS has a 3DS emulator. ROCKNIX ships Azahar standalone
-(`azahar-sa`, Qt6) only on RK3588, Snapdragon and S922X. GammaOS Next runs its
-own azahar-nano on this board at a usable speed: Azahar (Citra's successor)
-behind a C ABI, built with the NDK, LTO and upstream's PGO profile, with its
-own shell. The cheapest way here is `azahar_libretro`, the official libretro
-port of Azahar.
-
-- Build it like the other RetroArch cores. Azahar needs GLES 3.2 or Vulkan
-  (Mali-G52 has both), and its dynarmic JIT has an ARM64 backend.
-- Add an ES system `3ds` (`.3ds .cci .cxi .3dsx .app .elf .axf`; encrypted dumps
-  do not run). On a dual-boot card GammaOS keeps 3DS games in `n3ds`; alias it
-  as for the other GammaOS folders in 1.2.
-- Compare FPS in the test game (`T:\Dump\RG52Mini\games\_SD\ROMs\3ds`) with
-  azahar-nano under GammaOS. If it lags far behind, LTO, and PGO as planned
-  below.
-- Theme: the default `es-theme-nes-box` (Jetup13) has no `3ds` folder; the
-  bundled `es-theme-switch` has one. The original nes-box (KALEL1981, Travis
-  Wilson) has a `3ds` folder in the same layout, but its readme asks not to
-  share modified versions or reuse its graphics, so it is not copied in.
-  Decided: a `3ds` folder of our own for nes-box (`system.png` logo,
-  `background_icon.png`, `theme.xml` as in its `nds`), laid over the clone in
-  the build, borrowing what fits from es-theme-switch's `3ds` art (check that
-  theme's licence first).
+* **The profile comes from one game.** Train it on two or three more (a 3D one
+  with many effects, a 2D one) and merge the profiles, so other games get the
+  same help. `llvm-profdata merge` adds them up; the recipe names the file.
+* **More games.** Only Super Mario 3D Land was played. Check a heavier one
+  (Monster Hunter, Zelda) and what speed it reaches.
+* **The emulation thread waits for the GPU** each frame a game draws nothing
+  new (`scheduler.Finish()` in Azahar's SwapBuffers), and the work is not
+  spread over two frames as azahar-nano's own presenter does. Worth a look if a
+  game falls short of full speed.
 
 ## Heavy emulators: compiler flags measured, none kept (1.3, 2026-10-20)
 
@@ -203,8 +189,9 @@ image's 41.5 (two interleaved runs each, spread about 1%): no gain either.
 
 **Decision: no flag changes in the build scripts.** On the in-order A53 these
 emulators wait on memory and JIT code, and the compiler does not reach either.
-PGO stays the one untried option. It would need a training run in real
+PGO stays the one untried option for them. It needs a training run in real
 gameplay with the owner, and the flat profile leaves it little to work on.
+Azahar (3DS) got it, and gained 9% (above).
 
 ## Battery in sleep (2026-10-19)
 

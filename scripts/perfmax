@@ -29,6 +29,17 @@ for _devfreq in /sys/class/devfreq/*.gpu; do
   break
 done
 
+# ES runs "perfmax %GOVERNOR% %ROM%", and %GOVERNOR% is empty unless a governor
+# was chosen in its menus. Then $1 is the ROM: every write of "$1" below to a
+# governor failed with "Invalid argument", CPU, GPU and memory stayed on their
+# ondemand governors, and the loading image was looked up next to nothing. On
+# the RG52 Mini that cost Super Mario 3D Land (Azahar) 10%: 24.0 fps against
+# 26.7 with performance. No governor given means performance.
+case "$1" in
+  performance|overclock|ondemand|powersave|kodi) ;;
+  *) set -- performance "$@" ;;
+esac
+
 if [[ ! -z "$isitrk3326" ]] && [[ $(tty) != *"pts"* ]]; then
   rm /home/ark/.asoundrc
 fi

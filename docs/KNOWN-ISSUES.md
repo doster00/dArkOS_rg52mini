@@ -242,7 +242,10 @@ OPP table starts at 300; the NPU list is untouched. `drivers/rknpu/` also parks
 at 200 MHz — fine with this BL31, but needs the same check if a future table
 drops the NPU's lowest step.
 
-## DSperate (NDS) is slow unless the governor is performance
+## DSperate (NDS) is slow unless the governor is performance — fixed after 1.3's test build
+
+`perfmax` now sets `performance` when no governor was chosen (next section), so
+the workaround below is what every game gets by default.
 
 DSperate, the second NDS emulator since v10062026, keeps about one CPU core
 busy. Under the default `ondemand` governor that reads as light load, and the
@@ -960,6 +963,29 @@ The OTA client and `hooks/all-ldconfig.sh` now run `ldconfig -X`, and
 `hooks/all-gpu-links.sh` puts the links back after the 1.1 client's plain
 ldconfig. Diversions reach existing cards with the package database.
 
+## Games ran on the ondemand governors unless one was chosen — fixed after 1.3's test build
+
+ES starts nearly every system as `sudo perfmax %GOVERNOR% %ROM%`, and
+`%GOVERNOR%` is empty unless a governor was picked for the system or the game.
+Then the ROM path is perfmax's first argument: it wrote that path into the
+CPU, GPU and memory governors, each write failed with "Invalid argument" (three
+lines in every game's journal), and the game ran on `ondemand`,
+`simple_ondemand` and `dmc_ondemand`. The loading image was looked up next to
+nothing as well, since the ROM was not where perfmax expected it.
+
+`ondemand` reads an emulator that keeps one core about half busy as light
+load. Super Mario 3D Land in Azahar, from one savestate:
+
+| Governors | fps (game's own rate is 30) |
+|---|---|
+| left as they were (the bug) | 24.0 |
+| `performance` | 26.7 |
+| `overclock` | 29.9 |
+
+perfmax now puts `performance` first when its first argument is not a
+governor, so a game gets what the menus call the default. DSperate (above) was
+the same thing seen from one emulator.
+
 ## Emulators never ran at nice -19 — fixed in 1.2
 
 `es_systems.cfg` starts emulators with `nice -n -19` and `limits.conf` gives
@@ -1129,6 +1155,37 @@ A report on 1.0: the battery ran flat "in sleep". Measured on revision B on
   too. The menu item does not go through `finish.sh`, whose
   `.SWAPPOWERANDSUSPEND` branch ("Switch power button tap to off") suspends
   instead.
+
+## Nintendo 3DS: Azahar in RetroArch (after 1.3's test build)
+
+The 3DS system runs `azahar_libretro` (Azahar 2126.2, the libretro build of
+Citra's successor) in RetroArch. Its folder is `/roms/3ds`; on a dual-boot card
+GammaOS's `n3ds` is an alias of it. Encrypted dumps do not run.
+
+- **Vulkan, not GL.** On RetroArch's gl driver (GLES here) the Mali driver
+  links each new shader in `glLinkProgram` on the emulation thread, seconds at
+  a time: Super Mario 3D Land stood on its title. A per-core override
+  (`~/.config/retroarch/config/Azahar/Azahar.cfg`) puts RetroArch on vulkan for
+  this core, where Azahar builds its pipelines on worker threads.
+- **Layout** defaults to "Large Screen, Small Screen" (patch on the core's
+  default), which fills the 16:9 screen better than the screens stacked.
+- **Speed.** Built with clang and a profile from playing Super Mario 3D Land
+  (PGO): in one demanding place it went from 27.3 to 29.8 fps, the game's own
+  30, against 27.7-28.1 for ThinLTO alone. RetroArch counts the frames the game
+  draws, so 30 is full speed for a 30 fps game; azahar-nano counts the 3DS's
+  60 refreshes and shows 60 for the same speed.
+- **RetroArch's FPS counter costs about 20%** on the vulkan driver (29.7 fps
+  without it, 24.3 with it, same savestate). Measure without it.
+- **RGA scaling** (`video_ctx_scaling`) changes nothing on the vulkan driver
+  (29.8 against 29.9), so it stays off.
+- A savestate made in New 3DS mode (the core's default) does not load in Old
+  3DS mode: RetroArch quits.
+- The core keeps its NAND and SD card in an `Azahar` folder next to the games,
+  as RetroArch keeps saves next to them here.
+- Theme: nes-box has no 3ds folder, and ours goes into the theme (both of the
+  image's copies, and by an OTA hook into an installed one). Its logo is
+  Nintendo's own 3DS logo in nes-box's white and red; the picture is Samus from
+  Nintendo's press render for Metroid: Samus Returns.
 
 ## HDMI output does nothing
 

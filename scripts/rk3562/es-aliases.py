@@ -51,6 +51,7 @@ ALIASES = [
     ("to8",         "/roms/thomson",       "Thomson TO8"),
     ("pc",          "/roms/dos",           "IBM PC"),
     ("laserdisc",   "/roms/daphne",        "LaserDisc"),
+    ("n3ds",        "/roms/3ds",           "Nintendo 3DS"),
 ]
 
 BLOCK = re.compile(r"[ \t]*<system>.*?</system>[ \t]*\n", re.S)

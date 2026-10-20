@@ -91,6 +91,13 @@ sudo cp retroarch/configs/retroarch.cfg.bak.${UNIT} Arkbuild/home/ark/.config/re
 sudo cp retroarch/configs/retroarch-core-options.cfg.${UNIT} Arkbuild/home/ark/.config/retroarch/retroarch-core-options.cfg
 sudo cp retroarch/configs/retroarch-core-options.cfg.bak.${UNIT} Arkbuild/home/ark/.config/retroarch/retroarch-core-options.cfg.bak
 sudo cp retroarch/configs/controller/*.cfg Arkbuild/home/ark/.config/retroarch/autoconfig/udev/
+# Per-core overrides. Azahar (3DS) on the gl driver gets GLES, where the Mali
+# driver links each new shader on the emulation thread and the game stalls for
+# seconds at a time; on vulkan its pipelines build on worker threads.
+if [ "$CHIPSET" == "rk3562" ]; then
+  sudo mkdir -p Arkbuild/home/ark/.config/retroarch/config
+  sudo cp -r retroarch/configs/config/Azahar Arkbuild/home/ark/.config/retroarch/config/
+fi
 sudo cp retroarch/scripts/retroarch Arkbuild/usr/local/bin/
 sudo mkdir -p Arkbuild/opt/cmds
 sudo cp retroarch/scripts/retroarch.sh Arkbuild/opt/cmds
@@ -236,6 +243,8 @@ if [ "$CHIPSET" == "rk3562" ]; then
   build_a53_core flycast pinned flycast flycast_rumble
   build_a53_core puzzlescript https://github.com/nwhitehead/pzretro.git puzzlescript
   build_a53_core samecdi https://github.com/libretro/same_cdi.git same_cdi
+  # Nintendo 3DS: not in rg503's set at all, built here from a pinned release
+  build_a53_core azahar pinned azahar
 fi
 
 # Build freej2me-lr.jar and freej2me-plus-lr.jar
