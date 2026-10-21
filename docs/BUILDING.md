@@ -13,6 +13,40 @@ alone. Only `make clean_complete` throws them away.
 note in KNOWN-ISSUES first, because Kodi's dependency resolution has broken
 other components before.
 
+## Compilers that run natively in the chroot
+
+Everything in `Arkbuild` runs under qemu, and a compiler under qemu is slow:
+Azahar's core took 573 minutes there. `xtool.sh` keeps Debian's amd64 build of
+the chroot's clang in `Arkbuild_package_cache/xtool-trixie-amd64` (a minbase
+debootstrap with clang-19, lld-19, llvm-19 and libeatmydata1, about 1 GB) and
+mounts it into the chroot for the recipes that build with clang:
+`build_pcsx2sa.sh` (ARMSX2) and `build_a53_core azahar` in `build_retroarch.sh`.
+The host's CPU runs it as it is; cmake, ninja, the shell, GNU ld and strip
+still go through qemu. It compiles inside the chroot, against the chroot's
+headers, libraries and GCC installation, at the chroot's paths, so a PGO
+profile still finds its functions.
+
+Checked on 2026-10-21: Azahar's core built that way in 11 minutes, and differs
+from the one the chroot's own clang built in 573 only by the build time Azahar
+writes into it and the build ID that follows from it.
+
+How it is put together, for whoever has to touch it:
+
+- The x86-64 loader is `/lib64/ld-linux-x86-64.so.2`, and arm64 Debian has no
+  `/lib64`. `mount_xtool` makes it a symlink to `usr/lib/x86_64-linux-gnu`,
+  where the amd64 libraries are bind-mounted read-only, and puts the amd64 LLVM
+  at `/usr/lib/llvm-19-amd64`. The arm64 loader and ldconfig look in neither.
+  `umount_xtool` takes all three out again, and `remove_arkbuild` calls it
+  first, so the `rm -rf` of `make clean` cannot reach the cache through them.
+- clang takes its target from the name it is run by:
+  `aarch64-linux-gnu-clang(++)` are links in the amd64 tree.
+- `setup_xtool` installs the source version of clang-19 the chroot has, from
+  the chroot's own apt sources, and builds and runs a test program in the
+  chroot. If any of that fails it says so in one line, and the recipe builds
+  with the chroot's clang under qemu, as before.
+- eatmydata preloads `libeatmydata.so` by name; the amd64 tree has its own, so
+  the amd64 processes load that one.
+
 ## WSL
 
 Upstream says WSL "will not work due to no support for chroot". That is not

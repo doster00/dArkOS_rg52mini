@@ -141,6 +141,13 @@ if [ ! -f "Arkbuild/opt/pcsx2/bin/armsx2-sdl" ]; then
     # - RPATH: SDL3 shim and PCSX2's own lib dir.
     # - The resources ninja install copies lack ARMSX2's per-game overrides,
     #   which its build puts next to the binary: copied as the build does.
+    # - The compilers: the amd64 build of the chroot's clang when it can
+    #   (xtool.sh), which runs natively; under qemu this build takes hours.
+    pcsx2_cc=clang pcsx2_cxx=clang++
+    if setup_xtool; then
+      mount_xtool
+      pcsx2_cc=${XTOOL_LLVM}/bin/aarch64-linux-gnu-clang pcsx2_cxx=${XTOOL_LLVM}/bin/aarch64-linux-gnu-clang++
+    fi
     flags="-march=armv8-a -moutline-atomics -O3 -fprofile-use=/home/ark/armsx2/armsx2.profdata -Wno-profile-instr-unprofiled -Wno-profile-instr-out-of-date -Wno-backend-plugin"
     call_chroot "set -e &&
         export PKG_CONFIG_PATH=/opt/sdl3-shim/lib/pkgconfig:/usr/local/lib/pkgconfig:\${PKG_CONFIG_PATH} &&
@@ -150,7 +157,7 @@ if [ ! -f "Arkbuild/opt/pcsx2/bin/armsx2-sdl" ]; then
         cd ${PCSX2_BUILD} &&
         cmake /home/ark/armsx2 -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_COMPILER=${pcsx2_cc} -DCMAKE_CXX_COMPILER=${pcsx2_cxx} \
             -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld \
             -DPACKAGE_MODE=ON \
             -DCMAKE_INSTALL_PREFIX=/opt/pcsx2 \
@@ -173,6 +180,9 @@ if [ ! -f "Arkbuild/opt/pcsx2/bin/armsx2-sdl" ]; then
         mkdir -p /opt/pcsx2/lib &&
         cp -av /usr/local/lib/libplutovg.so* /usr/local/lib/libplutosvg.so* /opt/pcsx2/lib/
     "
+    pcsx2_rc=$?
+    umount_xtool
+    (exit $pcsx2_rc)
     verify_action
     # the source and the build (several GB) are not for the image
     sudo rm -rf "${PCSX2_SRC}"

@@ -224,7 +224,18 @@ build_a53_core() {  # builds-alt target, upstream git URL or "pinned", cores it 
     sudo tar -xvzpf $cache.tar.gz
     return
   fi
-  call_chroot "cd /home/ark/${CHIPSET}_core_builds && eatmydata ./builds-alt.sh ${target}"
+  # Azahar builds with clang: with its amd64 build when it can (xtool.sh),
+  # which runs natively; under qemu the core takes nine and a half hours.
+  local xenv=""
+  if [ "$target" == "azahar" ]; then
+    call_chroot "dpkg -s clang >/dev/null 2>&1 || (apt-get -y update && eatmydata apt-get -y install clang)"
+    if setup_xtool; then
+      mount_xtool
+      xenv="CLANG_CC=${XTOOL_LLVM}/bin/aarch64-linux-gnu-clang CLANG_CXX=${XTOOL_LLVM}/bin/aarch64-linux-gnu-clang++"
+    fi
+  fi
+  call_chroot "cd /home/ark/${CHIPSET}_core_builds && ${xenv} eatmydata ./builds-alt.sh ${target}"
+  umount_xtool
   for c in "$@"; do
     if [ ! -f Arkbuild/home/ark/${CHIPSET}_core_builds/cores64/${c}_libretro.so ]; then
       echo "${c} did not build; the image keeps rg503's, which cannot run on the A53"

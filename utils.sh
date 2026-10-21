@@ -181,6 +181,8 @@ function setup_arkbuild32() {
 }
 
 function remove_arkbuild() {
+  # before the rm -rf below can reach the amd64 compilers' tree
+  umount_xtool
   for m in home/ark/Arkbuild_ccache proc dev/pts dev dev sys
   do
     if grep -qs "Arkbuild/${m} " /proc/mounts; then
@@ -269,3 +271,6 @@ function protect_package() {
      fi
   done
 }
+
+# Compilers that run natively in the chroot
+source ./xtool.sh

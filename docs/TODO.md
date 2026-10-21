@@ -160,6 +160,22 @@ nes-box folder (KNOWN-ISSUES). Left:
   stops drawing about a minute into Super Mario 3D Land. Not seen at 816 MHz
   and up.
 
+## Build: what still runs under qemu (2026-10-21)
+
+ARMSX2 and Azahar compile with the amd64 build of the chroot's clang now
+(BUILDING.md, "Compilers that run natively in the chroot"); Azahar's core went
+from 573 minutes to 11 with the same code. Left under qemu, largest first:
+
+* **The dependency stage**, about two hours of apt and dpkg in the chroot on
+  every build. A copy of the rootfs after it, keyed by the package lists, with
+  `apt-get upgrade` on top, would leave minutes.
+* **Recipes that build with gcc.** Debian's gcc-14-aarch64-linux-gnu is the
+  same compiler built as a cross compiler; whether its output matches the
+  native gcc's has to be checked as Azahar's was, component by component.
+* **cmake and ninja themselves**: Azahar's configure took 5 minutes under qemu.
+  Kodi's 71 addons spent most of a 43-hour build there (KNOWN-ISSUES); it is
+  cached, so this matters only when it has to be built again.
+
 ## PS2: ARMSX2 with a profile and ThinLTO (2026-10-21)
 
 ARMSX2 replaced the old PCSX2 fork (KNOWN-ISSUES). `build_pcsx2sa.sh` builds
