@@ -56,6 +56,10 @@ function setup_xtool() {
   # clang takes its target from the name it is run by
   sudo ln -sfn clang "$XTOOL/usr/lib/llvm-19/bin/aarch64-linux-gnu-clang"
   sudo ln -sfn clang++ "$XTOOL/usr/lib/llvm-19/bin/aarch64-linux-gnu-clang++"
+  # and CMake looks for the archiver of LTO objects by that name's prefix
+  # (ARMSX2's LTO_PCSX2_CORE: CMAKE_CXX_COMPILER_AR-NOTFOUND without these)
+  sudo ln -sfn llvm-ar "$XTOOL/usr/lib/llvm-19/bin/aarch64-linux-gnu-llvm-ar"
+  sudo ln -sfn llvm-ranlib "$XTOOL/usr/lib/llvm-19/bin/aarch64-linux-gnu-llvm-ranlib"
   # Smoke test: a program the amd64 clang links in the chroot runs there
   mount_xtool
   echo 'int main(void) { return 0; }' | sudo tee Arkbuild/tmp/xtool-test.c >/dev/null
