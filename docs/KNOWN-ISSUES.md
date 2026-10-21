@@ -1123,6 +1123,18 @@ core alike. Without the extension all 72 convert pipelines build.
 for the fp16 extension next to it. LSFG is off by default and nothing in
 the image turns it on.
 
+## PS2: the system list showed its name as plain text — fixed after 1.3's test build
+
+nes-box, the default theme, has no ps2 folder, so ES wrote "PlayStation 2" in
+its plain font where the other systems have a logo and a picture. Ours goes in
+as the 3ds one does (both of the image's copies of the theme, and by the OTA
+hook `1.3-nesbox-folders.sh` into an installed one). The logo is
+`PlayStation_2_logo.svg` from Wikimedia Commons in white, as nes-box draws the
+PSP's; the picture is Kratos cut out of a God of War II wallpaper the owner
+chose, without the flames around the blade, which did not come away from the
+fog. Checked on the device on 2026-10-21, in the system list and above the
+game list.
+
 ## Apple II in linapple did not start — in 1.1 and before, fixed in 1.2
 
 linapple, the default emulator for Apple II, needs `libSDL_image-1.2.so.0`. In
