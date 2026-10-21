@@ -8,6 +8,15 @@ echo -e "Bootstrapping Debian for RK3562....\n\n"
 # Set noninteractive frontend to avoid debconf warnings in chroot
 export DEBIAN_FRONTEND=noninteractive
 export DEBCONF_NONINTERACTIVE_SEEN=true
+
+# What this script makes comes from Arkbuild_package_cache when nothing it is
+# made of has changed (rootfs_cache.sh); then only the mounts are left to do.
+if restore_rootfs_cache bootstrap; then
+  mount_arkbuild
+  echo "Bootstrap complete for RK3562 (from the cache)"
+  return 0
+fi
+
 if [ -f "Arkbuild_package_cache/debian_${DEBIAN_CODE_NAME}_rootfs.tar.gz" ] && [ "$(cat Arkbuild_package_cache/debian_${DEBIAN_CODE_NAME}_rootfs.commit)" == "$(curl -s https://deb.debian.org/debian/dists/stable/Release | grep "^Version:" | cut -d' ' -f2)" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/debian_${DEBIAN_CODE_NAME}_rootfs.tar.gz
 else
@@ -46,23 +55,20 @@ fi
 sudo chown root:root Arkbuild/
 sudo chmod 755 Arkbuild/
 
-# Bind essential host filesystems into chroot for networking
-sudo mount --bind /dev Arkbuild/dev
-sudo mount -t devpts none Arkbuild/dev/pts -o newinstance,ptmxmode=0666
-sudo mount --bind /proc Arkbuild/proc
-sudo mount --bind /sys Arkbuild/sys
-echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1" | sudo tee Arkbuild/etc/resolv.conf > /dev/null
+mount_arkbuild
 
 # Avoid service autostarts
 echo "exit 101" | sudo tee Arkbuild/usr/sbin/policy-rc.d > /dev/null
 sudo chmod 0755 Arkbuild/usr/sbin/policy-rc.d
 sudo chroot Arkbuild/ mount -t proc proc /proc
 
-# Install base runtime packages (use noninteractive to avoid debconf prompts)
-sudo chroot Arkbuild/ bash -c "DEBIAN_FRONTEND=noninteractive eatmydata apt-get -y update"
-sudo chroot Arkbuild/ bash -c "DEBIAN_FRONTEND=noninteractive eatmydata apt-get -y upgrade"
-sudo chroot Arkbuild/ bash -c "DEBIAN_FRONTEND=noninteractive eatmydata apt-get install -y btrfs-progs initramfs-tools sudo evtest network-manager systemd-sysv locales locales-all ssh dosfstools fluidsynth"
-sudo chroot Arkbuild/ bash -c "DEBIAN_FRONTEND=noninteractive eatmydata apt-get install -y python3 python3-pip"
+# Install base runtime packages (use noninteractive to avoid debconf prompts).
+# A failed apt run leaves the stage out of the cache (rootfs_cache.sh): the
+# next build may well get its packages.
+sudo chroot Arkbuild/ bash -c "DEBIAN_FRONTEND=noninteractive eatmydata apt-get -y update" || ROOTFS_STAGE_FAILED=y
+sudo chroot Arkbuild/ bash -c "DEBIAN_FRONTEND=noninteractive eatmydata apt-get -y upgrade" || ROOTFS_STAGE_FAILED=y
+sudo chroot Arkbuild/ bash -c "DEBIAN_FRONTEND=noninteractive eatmydata apt-get install -y btrfs-progs initramfs-tools sudo evtest network-manager systemd-sysv locales locales-all ssh dosfstools fluidsynth" || ROOTFS_STAGE_FAILED=y
+sudo chroot Arkbuild/ bash -c "DEBIAN_FRONTEND=noninteractive eatmydata apt-get install -y python3 python3-pip" || ROOTFS_STAGE_FAILED=y
 sudo sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' Arkbuild/etc/locale.gen
 echo 'LANG="en_US.UTF-8"' | sudo tee -a Arkbuild/etc/default/locale > /dev/null
 echo -e "export LC_All=en_US.UTF-8" | sudo tee -a Arkbuild/root/.bashrc > /dev/null
@@ -72,7 +78,7 @@ sudo chroot Arkbuild/ bash -c "locale-gen"
 sudo chroot Arkbuild/ systemctl enable NetworkManager
 
 # Install libdrm and GBM libraries
-sudo chroot Arkbuild/ bash -c "DEBIAN_FRONTEND=noninteractive eatmydata apt-get install -y libdrm-dev libgbm1"
+sudo chroot Arkbuild/ bash -c "DEBIAN_FRONTEND=noninteractive eatmydata apt-get install -y libdrm-dev libgbm1" || ROOTFS_STAGE_FAILED=y
 
 setup_ark_user
 sleep 10
@@ -114,4 +120,5 @@ sudo chroot Arkbuild/ sync
 sleep 5
 sudo chroot Arkbuild/ umount /proc
 
+save_rootfs_cache bootstrap
 echo "Bootstrap complete for RK3562"

@@ -5,7 +5,7 @@
     make rg52mini
 
 The first build takes most of a day; later ones are much shorter because the
-Debian rootfs, ccache and every emulator are cached under
+Debian rootfs with the build's packages, ccache and every emulator are cached under
 `Arkbuild_package_cache/` and `Arkbuild_ccache/`, and `make clean` leaves both
 alone. Only `make clean_complete` throws them away.
 
@@ -46,6 +46,52 @@ How it is put together, for whoever has to touch it:
   with the chroot's clang under qemu, as before.
 - eatmydata preloads `libeatmydata.so` by name; the amd64 tree has its own, so
   the amd64 processes load that one.
+
+## The chroot from the cache
+
+`bootstrap_rootfs-rk3562.sh` and `build_deps.sh` took 30 minutes and 3 h 20 min
+of the 2026-10-19 build, nearly all of it apt and dpkg under qemu, and on most
+builds they do what they did the time before. `rootfs_cache.sh` keeps what they
+leave in `Arkbuild_package_cache/rk3562/`:
+
+- `rootfs-bootstrap.tar.zst`: the whole chroot after the bootstrap;
+- `rootfs-deps.tar.zst` and `rootfs-deps.removed`: what `build_deps.sh` wrote,
+  and what it deleted, on top of exactly that bootstrap copy.
+
+Each has a key in its `.key`: a hash of the stage's script and package lists,
+the functions and settings they use, the BSP files it installs, Debian's point
+release (from `dists/trixie/Release`; the suite's packages change only then),
+and, for deps, the bootstrap copy under it. A build whose keys match unpacks
+the two in minutes. `rm Arkbuild_package_cache/rk3562/rootfs-*` makes the next
+build run them again.
+
+- The kernel step runs between the two and is not in either: the deps copy
+  leaves out `/boot`, `/usr/lib/modules` and `/var/lib/initramfs-tools`. A new
+  kernel unpacks both copies, and its initrd is made from the system as the
+  bootstrap leaves it, as before. Running the kernel step after the deps
+  instead would change the initrd: they install fuse3, ntfs-3g, dmsetup and
+  xfsprogs, which add initramfs hooks.
+- A copy is kept only if apt failed nowhere in the stage (`install_package`,
+  and the bootstrap's own apt-get runs), and becomes one to unpack only when
+  its build gets to the end (`commit_rootfs_cache`, after `create_image.sh`).
+  A stage can go wrong without stopping the build, and the copy would put the
+  same fault in every image after it.
+- What the stages fetch without a version (meson and libgo2 from their default
+  branches, the 32-bit Mali blob from christianhaitian's repository) stays as
+  it was when the copy was made, until a key changes.
+- The deps copy leaves out the packages apt downloaded;
+  `cleanup_filesystem.sh` deletes them anyway.
+- Both are read and written through a bind mount of `Arkbuild` that has none of
+  the mounts inside it: the copies hold the image's filesystem only, including
+  what lies under `/dev` and the rest, and nothing deleted when the deps copy
+  is unpacked can be the host's.
+
+The deps copy is the difference between two lists of every path with its inode
+and ctime, one taken before the stage and one after. A path that is new or has
+another inode or ctime goes into the archive, with the directory it is in, and
+a path that is gone into `rootfs-deps.removed`. ctime changes with anything
+done to a file, its contents, mode, owner or links, and cannot be set back;
+the mtime cannot tell, because dpkg sets it from the package.
 
 ## WSL
 

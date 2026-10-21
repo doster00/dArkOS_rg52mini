@@ -180,6 +180,15 @@ function setup_arkbuild32() {
   fi
 }
 
+function mount_arkbuild() {
+  # Bind essential host filesystems into chroot for networking
+  sudo mount --bind /dev Arkbuild/dev
+  sudo mount -t devpts none Arkbuild/dev/pts -o newinstance,ptmxmode=0666
+  sudo mount --bind /proc Arkbuild/proc
+  sudo mount --bind /sys Arkbuild/sys
+  echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1" | sudo tee Arkbuild/etc/resolv.conf > /dev/null
+}
+
 function remove_arkbuild() {
   # before the rm -rf below can reach the amd64 compilers' tree
   umount_xtool
@@ -247,6 +256,8 @@ function install_package() {
        if [[ $? != "0" ]]; then
          echo " "
          echo "Could not install needed library ${libs}${NEEDED_ARCH}."
+         # rootfs_cache.sh keeps no stage this happened in
+         ROOTFS_STAGE_FAILED=y
        else
 	     echo "${libs}${NEEDED_ARCH} was successfully installed."
        fi
@@ -274,3 +285,5 @@ function protect_package() {
 
 # Compilers that run natively in the chroot
 source ./xtool.sh
+# The chroot after bootstrap and build_deps, from Arkbuild_package_cache
+source ./rootfs_cache.sh

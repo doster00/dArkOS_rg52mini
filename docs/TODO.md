@@ -164,11 +164,19 @@ nes-box folder (KNOWN-ISSUES). Left:
 
 ARMSX2 and Azahar compile with the amd64 build of the chroot's clang now
 (BUILDING.md, "Compilers that run natively in the chroot"); Azahar's core went
-from 573 minutes to 11 with the same code. Left under qemu, largest first:
+from 573 minutes to 11 with the same code. The bootstrap and the dependency
+stage, nearly four hours, come from a copy when nothing they are made of has
+changed (BUILDING.md, "The chroot from the cache"). Left under qemu, largest
+first, with the times of the 2026-10-19 build:
 
-* **The dependency stage**, about two hours of apt and dpkg in the chroot on
-  every build. A copy of the rootfs after it, keyed by the package lists, with
-  `apt-get upgrade` on top, would leave minutes.
+* **cleanup_filesystem.sh**, 2 h 6 min. Most of it goes to the loops over
+  `needed_packages*.txt` that put back what the removal of the dev packages
+  took: a dpkg -s and an `apt-mark manual` for each line, each a start of apt
+  under qemu. One `dpkg-query` and one `apt-mark` for each list would leave the
+  installs alone.
+* **The 32-bit chroot**, 1 h 13 min: `setup_arkbuild32` debootstraps it and
+  runs `build_deps.sh 32` and SDL2 in it on every build. It is only for
+  building; a copy kept as the 64-bit one is would do.
 * **Recipes that build with gcc.** Debian's gcc-14-aarch64-linux-gnu is the
   same compiler built as a cross compiler; whether its output matches the
   native gcc's has to be checked as Azahar's was, component by component.

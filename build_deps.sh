@@ -12,6 +12,20 @@ else
   CHROOT_DIR="Arkbuild"
 fi
 
+# Bind ccache to chroot to speed up consecutive builds
+[ ! -d "${CHROOT_DIR}/home/ark/Arkbuild_ccache" ] && sudo mkdir -p ${CHROOT_DIR}/home/ark/Arkbuild_ccache
+sudo mount --bind ${PWD}/Arkbuild_ccache ${CHROOT_DIR}/home/ark/Arkbuild_ccache
+
+# The rest, in the 64-bit chroot, comes from Arkbuild_package_cache when
+# nothing it is made of has changed (rootfs_cache.sh): under qemu it takes
+# over three hours, nearly all of it apt.
+if [ "$BIT" == "64" ]; then
+  if restore_rootfs_cache deps; then
+    return 0
+  fi
+  rootfs_delta_begin
+fi
+
 # Install additional needed packages and protect them from autoremove
 while read NEEDED_PACKAGE; do
   if [[ ! "$NEEDED_PACKAGE" =~ ^# ]]; then
@@ -39,9 +53,7 @@ if (( GCC_VERSION > 12 )); then
   sudo chroot ${CHROOT_DIR}/ bash -c "update-alternatives --set g++ /usr/bin/g++-12"
 fi
 
-# Bind ccache to chroot to speed up consecutive builds
-[ ! -d "${CHROOT_DIR}/home/ark/Arkbuild_ccache" ] && sudo mkdir -p ${CHROOT_DIR}/home/ark/Arkbuild_ccache
-sudo mount --bind ${PWD}/Arkbuild_ccache ${CHROOT_DIR}/home/ark/Arkbuild_ccache
+# Point the chroot's root at the ccache mounted above
 sudo chroot ${CHROOT_DIR}/ bash -c "[ -z \$(echo \$CCACHE_DIR | grep ccache) ]" && echo -e "export CCACHE_DIR=/home/ark/Arkbuild_ccache" | sudo tee -a ${CHROOT_DIR}/root/.bashrc > /dev/null
 sudo chroot ${CHROOT_DIR}/ bash -c "[ -z \$(echo \$PATH | grep ccache) ]" && echo -e "export PATH=/usr/lib/ccache:\$PATH" | sudo tee -a ${CHROOT_DIR}/root/.bashrc > /dev/null
 sudo chroot ${CHROOT_DIR}/ bash -c "/usr/sbin/update-ccache-symlinks"
@@ -182,3 +194,7 @@ sudo chroot ${CHROOT_DIR}/ bash -c "cd /home/ark &&
   mkdir -p /usr/include/go2 &&
   cp -L src/*.h /usr/include/go2/
   "
+
+if [ "$BIT" == "64" ]; then
+  save_rootfs_cache deps
+fi
