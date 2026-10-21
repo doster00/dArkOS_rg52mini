@@ -27,12 +27,14 @@ ARMSX2_COMMIT="a7ad4534dcf82f2ff5da0cb24024bc4278be175a"
 PCSX2_SRC="Arkbuild/home/ark/armsx2"
 PCSX2_BUILD="/home/ark/armsx2/build-${UNIT}"
 # Profile for clang's profile-guided optimisation: ARMSX2 at the commit above
-# with our patches, instrumented, on an RG52 Mini (2026-10-20): Jak and
-# Daxter's intro, its menus, and the BIOS screens.  Its file-local functions
-# are named by the path of their source, so it is made for this tree at
-# /home/ark/armsx2, where the chroot builds it.
-PGO="pcsx2/pgo/armsx2-20261020.profdata.gz"
-PGO_SHA256="6ca23b0760a7db1a47998e500c9361ac0eca539940ba9124d2edb173bcddabe1"
+# with our patches, instrumented, on an RG52 Mini: Jak and Daxter's intro,
+# its menus and the BIOS screens (2026-10-20), and the owner playing Jak, God
+# of War's demo and Burnout 3's (2026-10-21), merged with weights that give
+# each of the four about the same total count (docs/TODO.md).  Its file-local
+# functions are named by the path of their source, so it is made for this
+# tree at /home/ark/armsx2, where the chroot builds it.
+PGO="pcsx2/pgo/armsx2-20261021.profdata.gz"
+PGO_SHA256="3db83b503d541293f9a3d9e92243b1f984eddd2b5847126825b2560b512ecffb"
 
 if [ ! -d "Arkbuild_package_cache/${CHIPSET}" ]; then
   mkdir -p "Arkbuild_package_cache/${CHIPSET}"

@@ -188,7 +188,8 @@ first, with the times of the 2026-10-19 build:
 
 ARMSX2 replaced the old PCSX2 fork (KNOWN-ISSUES). `build_pcsx2sa.sh` builds
 it with clang 19, a profile trained here (Jak and Daxter's intro, its menus,
-the BIOS screens) and `LTO_PCSX2_CORE`, ARMSX2's switch for ThinLTO of the
+the BIOS screens, and since 2026-10-21 the owner's play, below) and
+`LTO_PCSX2_CORE`, ARMSX2's switch for ThinLTO of the
 core. Measured as in the next section: fps over frames 300-1850 of the PAL
 intro, the SDL frontend on Vulkan, volume 0, ES stopped, and ARMSX2's AutoTune
 off (it changes settings while the game runs). Each series rebooted first and
@@ -250,18 +251,37 @@ by 1-2%.
   and Select+R1 seemed dead. Written again every 3 ms while held, they work:
   the pause menu (`pcsx2-0001`) opens on ARMSX2 started from ES, stays, and
   Resume goes back to the game.
+- **The owner's play in the profile** (2026-10-21). An instrumented build
+  (`-fprofile-generate`, the same tree at `/home/ark/armsx2`) was
+  bind-mounted over `/opt/pcsx2/bin/armsx2-sdl` behind a script that runs it
+  under another name: killer_daemon's hotkey sends `pkill` and at once
+  `kill -9` to what `pidof` still finds by that name, and a profile is
+  written only on a clean exit, so the script passes the SIGTERM on and
+  waits. The owner played Jak and Daxter, God of War's demo, Burnout 3's
+  demo and the Sopranos disc (its BIOS screen, a minute and a half). Merged
+  with `-weighted-input` so that the old profile, Jak, God of War and
+  Burnout have about the same total count each (17, 10, 26, 34; Sopranos 10,
+  its own size). The core is 340 KB larger with it. Three rounds of each in
+  turn after a reboot, old profile against new: Jak's intro (300-1850)
+  34.57 and 34.31, Jak's opening cutscene (100-1500) 24.86 and 24.79, God of
+  War on the ship from the owner's savestate (600-2000) 26.25 and 26.36: all
+  within the spread. What other games run hot, the profile from Jak's intro
+  covered already: the recompilers, GS, SPU2 and the VUs are ARMSX2's own
+  code, and a game's own code runs as JIT output, which clang never sees.
+  The new one is kept: it is trained on the owner's games and costs nothing
+  measurable. The God of War savestate was made in the game's pause menu
+  (50 fps, PAL's limit); the harness presses Cross 15 s after the launch.
 
 Left:
-* **Train on gameplay with the owner** and merge the profiles, as for Azahar.
-* **The recipe has not run in the arm64 chroot yet.** A host cross-build of
-  the same tree (`/home/ark/armsx2`, as the chroot builds it), profile and
-  flags matches the measured binary byte for byte in size, every function
-  the same size; clang is 19.1.1 there and 19.1.7 in the chroot. The
-  recipe's host side (fetch of the pinned commit, sed, patches, the profile
-  check and unpacking) was run for real. Under qemu, with LTO, the build
-  will take hours.
-* **Burnout 3's demo disc** (cue/bin) does not open in ARMSX2 or in the old
-  fork: "Opening CDVD... VMManager::Initialize failed". Not looked into.
+* **The chroot's build was not measured.** The recipe ran in the arm64
+  chroot on 2026-10-21 with the amd64 clang (`xtool.sh`), in 7 minutes.
+  With the first profile its binary (clang 19.1.7) was 3.7 KB larger than
+  the host cross-build of the same tree, profile and flags (19.1.1) that
+  the numbers above are for.
+* **Burnout 3's demo disc** opens from its `.bin` (the owner played it,
+  2026-10-21), but from its `.cue`, which ES lists too, ARMSX2 exits at
+  once (earlier: "Opening CDVD... VMManager::Initialize failed"). Not
+  looked into.
 * **No `patches.zip`.** ARMSX2 logs "Failed to open patches.zip. Built-in game
   patches are not available": PCSX2's per-game patches (pcsx2_patches) are a
   separate download, not in the source, and the old fork's build lacked them
