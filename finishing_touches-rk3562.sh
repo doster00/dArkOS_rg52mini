@@ -854,7 +854,7 @@ do
   sudo mkdir -p ${fat32_mountpoint}/${extra_dir}
 done
 
-# PS2 emulation (pcsx2-sdl) needs specific subdirs visible on the ROMs
+# PS2 emulation (armsx2-sdl) needs specific subdirs visible on the ROMs
 # partition before first launch, so users can drop BIOS files via SMB / USB
 # without having to launch a game first to trigger the launcher's mkdir -p.
 sudo mkdir -p ${fat32_mountpoint}/ps2/bios

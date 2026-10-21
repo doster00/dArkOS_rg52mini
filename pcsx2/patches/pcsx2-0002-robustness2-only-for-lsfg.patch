@@ -1,0 +1,29 @@
+From: dArkOS RG52 Mini port
+Subject: VK_EXT_robustness2 only while LSFG frame generation is on
+
+ARMSX2 enables VK_EXT_robustness2 (nullDescriptor) on every device that
+has it, for LSFG frame generation alone. On the RG52 Mini (RK3562,
+Mali-G52, Arm driver g29p1) the driver then crashes in its shader compiler
+(cmpbe_v2_compile_multiple_shaders) building the first convert pipeline
+that reads with texelFetch (RGBA8_TO_DEPTH32, bilinear), so the GS never
+starts and every game aborts at boot, on the SDL frontend and the libretro
+core alike. Without the extension all 72 convert pipelines build and games
+run. Ask for it only while LSFG is on, as the fp16 extension next to it is.
+
+diff --git a/pcsx2/GS/Renderers/Vulkan/GSDeviceVK.cpp b/pcsx2/GS/Renderers/Vulkan/GSDeviceVK.cpp
+index 60a219f..755e587 100644
+--- a/pcsx2/GS/Renderers/Vulkan/GSDeviceVK.cpp
++++ b/pcsx2/GS/Renderers/Vulkan/GSDeviceVK.cpp
+@@ -615,7 +615,11 @@ bool GSDeviceVK::SelectDeviceExtensions(ExtensionList* extension_list, bool enab
+ 	// LSFG frame generation only. PCSX2 targets Vulkan 1.1, where neither is core — the memory
+ 	// model is 1.2 and nullDescriptor never became core at all — so both come in as extensions.
+ 	m_optional_extensions.vk_khr_vulkan_memory_model = SupportsExtension(VK_KHR_VULKAN_MEMORY_MODEL_EXTENSION_NAME, false);
+-	m_optional_extensions.vk_ext_robustness2_null_descriptor = SupportsExtension(VK_EXT_ROBUSTNESS_2_EXTENSION_NAME, false);
++	// nullDescriptor only while LSFG is on, as fp16 below: with it enabled, Mali's g29p1 driver
++	// (RK3562, Mali-G52) crashes in its shader compiler building the first convert pipeline that
++	// uses texelFetch (RGBA8_TO_DEPTH32, bilinear), so the GS never starts.
++	m_optional_extensions.vk_ext_robustness2_null_descriptor =
++		GSConfig.LsfgEnabled && SupportsExtension(VK_EXT_ROBUSTNESS_2_EXTENSION_NAME, false);
+ 	// LSFG's half-precision shaders, only while that option is on (the rest of the renderer has no
+ 	// fp16), so it takes effect from the next device, which is the next game.
+ 	m_optional_extensions.vk_khr_shader_float16_int8 =

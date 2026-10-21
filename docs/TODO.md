@@ -150,6 +150,90 @@ nes-box folder (KNOWN-ISSUES). Left:
   stops drawing about a minute into Super Mario 3D Land. Not seen at 816 MHz
   and up.
 
+## PS2: ARMSX2 with a profile and ThinLTO (2026-10-21)
+
+ARMSX2 replaced the old PCSX2 fork (KNOWN-ISSUES). `build_pcsx2sa.sh` builds
+it with clang 19, a profile trained here (Jak and Daxter's intro, its menus,
+the BIOS screens) and `LTO_PCSX2_CORE`, ARMSX2's switch for ThinLTO of the
+core. Measured as in the next section: fps over frames 300-1850 of the PAL
+intro, the SDL frontend on Vulkan, volume 0, ES stopped, and ARMSX2's AutoTune
+off (it changes settings while the game runs). Each series rebooted first and
+ran its builds in turn, three rounds; the base is ARMSX2 with the old recipe's
+flags (`-march=armv8-a -moutline-atomics -O3`) and no profile.
+
+| Build: the base flags and | Series 1 | 2 | 3 | 4 |
+|---|---|---|---|---|
+| nothing (base) | 31.59 | 31.29 | 31.54 | 31.49 |
+| the profile | 33.23 | | | |
+| the profile, `-mcpu=cortex-a53` | 33.98 | 33.75 | 33.70 | 33.30 |
+| **the profile, ThinLTO (the recipe)** | | **34.28** | **34.06** | **34.09** |
+| the profile, ThinLTO, `-mcpu` | 33.95 | | | |
+| ThinLTO | | 31.96 | | |
+| ThinLTO, `-mcpu` | 31.90 | | | |
+| the IOP thread forced on | | 30.58 | | |
+| the profile, `-mcpu`, `-mno-outline-atomics` | | | 33.70 | |
+| the same, `-fomit-frame-pointer` | | | 33.76 | |
+| the profile, ThinLTO, `-mno-outline-atomics -fomit-frame-pointer` | | | | 34.05 |
+| the same, `-mcpu` | | | | 33.98 |
+| the profile, `-mcpu`, SPU2 `LightweightMode` | | | 34.13 | |
+
+The recipe's build is 8.6% faster than the base (34.1 against 31.4); the
+profile alone gives 7%, ThinLTO without it 1.5-2%. Runs of one build spread
+by 1-2%.
+- **`-mcpu=cortex-a53`** gains nothing with the profile and LTO; without a
+  profile it lost 2.4%. `-mno-outline-atomics` (the A53 has no LSE, so every
+  atomic goes through a helper that checks for it) and
+  `-fomit-frame-pointer` changed nothing measurable either.
+- **The IOP thread** (forced on in a test build; ARMSX2 turns it on only with
+  six cores or more) costs 2% on four: it takes a core from the EE, GS and
+  MTVU threads.
+- **`LightweightMode`** (`[SPU2/Output]`, skips the reverb) gained 1.3% over
+  the same build in the same series, within the spread, and changes the
+  sound. Not set.
+- **Where the time goes** (`perf`, 30 s of the intro, the profile build): the
+  EE thread 40% of the busy samples, GS 28%, MTVU 12%, Mali's driver thread
+  9%. About half the EE thread is ARMSX2's own code, and 39% of that is audio
+  (`spu2Mix` 25%, reverb 6%, TimeStretch 4%). In GS: vertex kicks 13%,
+  `GSState::Transfer` 13%, `GSRendererHW::Draw` 10%, and about 12% in the
+  software rasteriser, which the GameIndex's `cpuSpriteRenderBW: 4` for Jak
+  asks for (a correctness fix, kept).
+- **Hot device.** It was on the charger: the SoC at 80-82 C during runs, the
+  GPU held at its lowest step by the thermal governor and the CPU at times at
+  1608 MHz. The absolute numbers belong to that; the builds ran in turn, so
+  the differences hold.
+
+Left:
+* **Check the controls in ARMSX2 by hand before a release.** Presses written
+  into the joystick's evdev node (as rg52remote does) reached Jak and Daxter
+  for Start and A only. The d-pad, the left stick, Select+X (the pause menu)
+  and Select+R1 (save state) did nothing in its menu or its memory card
+  dialog. A small SDL3 program on the same shim, with the launcher's mapping,
+  got every one of them right while the game ran. Started from ES's own
+  launcher with the owner's PCSX2.ini, Select+X did not open the pause menu
+  either. With the real buttons: move in Jak's menu with the d-pad and the
+  stick, open the pause menu with Select+X. If that fails too, the fault is
+  in ARMSX2's input path.
+* **The pause-menu patch** (`pcsx2-0001`) is not yet confirmed on ARMSX2 on the
+  device, for the same reason.
+* **A stretch the profile was not trained on.** The measured intro is also the
+  training. A savestate in the game (`armsx2-sdl --state-from-file <file>`
+  resumes one) would give a fixed stretch of gameplay. It needs the controls
+  above to get there.
+* **Train on gameplay with the owner** and merge the profiles, as for Azahar.
+* **The recipe has not run in the arm64 chroot yet.** A host cross-build of
+  the same tree (`/home/ark/armsx2`, as the chroot builds it), profile and
+  flags matches the measured binary byte for byte in size, every function
+  the same size; clang is 19.1.1 there and 19.1.7 in the chroot. The
+  recipe's host side (fetch of the pinned commit, sed, patches, the profile
+  check and unpacking) was run for real. Under qemu, with LTO, the build
+  will take hours.
+* **Burnout 3's demo disc** (cue/bin) does not open in ARMSX2 or in the old
+  fork: "Opening CDVD... VMManager::Initialize failed". Not looked into.
+* **No `patches.zip`.** ARMSX2 logs "Failed to open patches.zip. Built-in game
+  patches are not available": PCSX2's per-game patches (pcsx2_patches) are a
+  separate download, not in the source, and the old fork's build lacked them
+  too. GameIndex.yaml's fixes do apply.
+
 ## Heavy emulators: compiler flags measured, none kept (1.3, 2026-10-20)
 
 Measured on the 1.3 test build (OTA from 1.1), volume at 0, no input, ES
@@ -206,7 +290,8 @@ emulators wait on memory and JIT code, and the compiler does not reach either.
 PGO stays the one untried option for them. It needs a training run in real
 gameplay with the owner, and the flat profile leaves it little to work on.
 Azahar (3DS) got it: a profile trained here took azahar-nano from 24.7 fps to
-the game's full 30 (above).
+the game's full 30 (above). So did PS2, with ARMSX2 in place of the old fork:
+the profile and ThinLTO gave it 8.6% on the intro (above).
 
 ## Battery in sleep (2026-10-19)
 

@@ -49,7 +49,7 @@ ROOT_EXCLUDE = [
     "var/cache/", "var/log/", "var/tmp/", "var/backups/",
     "var/lib/apt/lists/", "var/lib/dpkg/status-old", "var/lib/dpkg/*-old",
     "var/lib/systemd/", "var/lib/darkos-ota/", "var/lib/bluetooth/",
-    "home/ark/pcsx2/", "home/ark/sdl3/", "root/.bash_history",
+    "home/ark/pcsx2/", "home/ark/armsx2/", "home/ark/sdl3/", "root/.bash_history",
     "home/ark/.bash_history", "home/ark/.cache/",
 ]
 # Files of the package database that hooks/all-merge-dpkg.sh merges with the

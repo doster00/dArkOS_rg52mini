@@ -1085,7 +1085,41 @@ took the paused game for finished. `pcsx2/patches/pcsx2-0001` ends the frontend
 only when the VM is gone; a paused one gets the input polling FullscreenUI's
 idle state has, so its menu works (Resume, Close Game and the rest).
 `build_pcsx2sa.sh` applies `pcsx2/patches/*.patch` and keys its cache on them.
-ARMSX2's `pcsx2-sdl`, the same frontend further on, has the same branch.
+ARMSX2, which replaced the fork after 1.3 (below), has the same frontend and
+the same branch; the patch is made against its `armsx2-sdl`.
+
+## PS2: Jak and Daxter hung and drew with glitches — ARMSX2 replaces the fork after 1.3
+
+Up to 1.3 the image built bmdhacks' PCSX2 fork. On the RG52 Mini Jak and
+Daxter (PAL) hung in the game and drew with glitches. ARMSX2
+(github.com/ARMSX2/ARMSX2) is the fork the work went on in: the same arm64
+recompilers and SDL frontend, a newer GS with workarounds for Mali drivers.
+It draws Jak and Daxter right. `build_pcsx2sa.sh` builds it at a pinned
+commit, with clang (vtlb's JIT handlers use `preserve_most`, which gcc has
+not got), a profile trained here and ThinLTO of the core, 8.6% faster than
+its plain build on Jak's intro (TODO: "PS2: ARMSX2 with a profile and
+ThinLTO"); its binary is `/opt/pcsx2/bin/armsx2-sdl`.
+
+Its data stays where it was: `standalone-pcsx2sa` links
+`~/.config/ARMSX2` (ARMSX2's dir under `XDG_CONFIG_HOME`) to the same
+`/roms/ps2/pcsx2` that `~/.config/PCSX2` was, so the PCSX2.ini of 1.3 carries
+over, and with it the memory cards in `/roms/ps2/memcards`. Whether the old
+fork's savestates load was not checked (the test card had none). ARMSX2
+ignores the old fork's SPU2 keys in that ini (`Interpolation`, `SynchMode`,
+`OutputModule`) and uses its defaults: TimeStretch sync, cubeb.
+
+## PS2: ARMSX2 aborted every game on Mali's driver — fixed before it went in
+
+ARMSX2 enables `VK_EXT_robustness2` (`nullDescriptor`) on every device that
+has it, for its LSFG frame generation alone. With it enabled, the Mali-G52's
+g29p1 driver crashes in its shader compiler
+(`cmpbe_v2_compile_multiple_shaders`) building the first convert pipeline
+that reads with `texelFetch` (RGBA8_TO_DEPTH32, bilinear): the GS never
+starts and every game aborts at boot, in the SDL frontend and the libretro
+core alike. Without the extension all 72 convert pipelines build.
+`pcsx2/patches/pcsx2-0002` asks for it only while LSFG is on, as ARMSX2 does
+for the fp16 extension next to it. LSFG is off by default and nothing in
+the image turns it on.
 
 ## Apple II in linapple did not start — in 1.1 and before, fixed in 1.2
 

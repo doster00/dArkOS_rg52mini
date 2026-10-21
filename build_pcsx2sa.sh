@@ -1,13 +1,17 @@
 #!/bin/bash
 #
-# Build the bmdhacks PCSX2 fork's SDL3 frontend (binary "pcsx2-sdl") and
-# install it under /opt/pcsx2/.  Source:
+# Build ARMSX2's SDL3 frontend (binary "armsx2-sdl") and install it under
+# /opt/pcsx2/.  Source:
 #
-#   https://git.sr.ht/~bmdhacks/pcsx2  branch upstream-pr
+#   https://github.com/ARMSX2/ARMSX2  at ${ARMSX2_COMMIT} below
 #
-# Replaces the abandoned binary AetherSX2 path (commit 0c660f1 on
-# branch aethersx2-attempt) — see /home/bmd/.claude/plans/ok-so-i-ve-been-giggly-lagoon.md
-# for the full design rationale.
+# ARMSX2 is the PCSX2 fork for ARM64 that the bmdhacks fork built here up to
+# 1.3 went into (bmdhacks works on it): the same arm64 recompilers and SDL
+# frontend, carried further, and a newer GS with workarounds for Mali drivers.
+# On the RG52 Mini it draws Jak and Daxter without the old fork's glitches.
+# It builds with clang only (vtlb's handlers, called from the JIT, use
+# __attribute__((preserve_most))), so the chroot gets clang, lld and llvm
+# (llvm-ar, for LTO) here.
 #
 # Depends on /opt/sdl3-shim (built by build_sdl3shim.sh) for SDL3 headers
 # and libSDL3.so.0.  RK3562-only.
@@ -16,41 +20,34 @@ if [ "$CHIPSET" != "rk3562" ]; then
     return 0
 fi
 
-PCSX2_REMOTE="https://git.sr.ht/~bmdhacks/pcsx2"
-PCSX2_BRANCH="upstream-pr"
-PCSX2_SRC="Arkbuild/home/ark/pcsx2"
-PCSX2_BUILD="/home/ark/pcsx2/build-${UNIT}"
+ARMSX2_REMOTE="https://github.com/ARMSX2/ARMSX2"
+# Pinned: upstream moves every day; a newer commit is a deliberate update
+# (patches checked, profile retrained).
+ARMSX2_COMMIT="a7ad4534dcf82f2ff5da0cb24024bc4278be175a"
+PCSX2_SRC="Arkbuild/home/ark/armsx2"
+PCSX2_BUILD="/home/ark/armsx2/build-${UNIT}"
+# Profile for clang's profile-guided optimisation: ARMSX2 at the commit above
+# with our patches, instrumented, on an RG52 Mini (2026-10-20): Jak and
+# Daxter's intro, its menus, and the BIOS screens.  Its file-local functions
+# are named by the path of their source, so it is made for this tree at
+# /home/ark/armsx2, where the chroot builds it.
+PGO="pcsx2/pgo/armsx2-20261020.profdata.gz"
+PGO_SHA256="6ca23b0760a7db1a47998e500c9361ac0eca539940ba9124d2edb173bcddabe1"
 
 if [ ! -d "Arkbuild_package_cache/${CHIPSET}" ]; then
   mkdir -p "Arkbuild_package_cache/${CHIPSET}"
 fi
 
-# Host-side fetch (HTTPS — no auth)
-if [ ! -d "${PCSX2_SRC}/.git" ]; then
-    sudo rm -rf "${PCSX2_SRC}"
-    sudo mkdir -p "$(dirname "${PCSX2_SRC}")"
-    git clone -b "${PCSX2_BRANCH}" "${PCSX2_REMOTE}" "${PCSX2_SRC}"
-    verify_action
-    sudo chown -R 1000:1000 "${PCSX2_SRC}"
-else
-    git -C "${PCSX2_SRC}" fetch origin "${PCSX2_BRANCH}"
-    git -C "${PCSX2_SRC}" checkout "${PCSX2_BRANCH}"
-    git -C "${PCSX2_SRC}" reset --hard "origin/${PCSX2_BRANCH}"
-fi
-
-PCSX2_SHA=$(git -C "${PCSX2_SRC}" rev-parse HEAD)
 SDL3_SHA=$(cat "Arkbuild_package_cache/${CHIPSET}/sdl3-shim.commit" 2>/dev/null || echo "no-shim")
-# Our fixes to the fork (pcsx2/patches): a change to them rebuilds it too
-PATCHES_SHA=$(cat pcsx2/patches/*.patch | sha1sum | cut -c1-12)
-CACHE_KEY="${PCSX2_SHA}_${SDL3_SHA}_${UNIT}_${PATCHES_SHA}"
+# This recipe, our fixes (pcsx2/patches) and the profile: a change to any of
+# them rebuilds it
+RECIPE_SHA=$(cat build_pcsx2sa.sh pcsx2/patches/*.patch ${PGO} | sha1sum | cut -c1-12)
+CACHE_KEY="${ARMSX2_COMMIT}_${SDL3_SHA}_${UNIT}_${RECIPE_SHA}"
 
 if [ -f "Arkbuild_package_cache/${CHIPSET}/pcsx2sa_${UNIT}.tar.gz" ] && \
    [ "$(cat Arkbuild_package_cache/${CHIPSET}/pcsx2sa_${UNIT}.commit 2>/dev/null)" == "${CACHE_KEY}" ]; then
     sudo tar -xvzpf "Arkbuild_package_cache/${CHIPSET}/pcsx2sa_${UNIT}.tar.gz"
-    # Tarballs from before the plutovg/plutosvg bundling lack the libs in
-    # /opt/pcsx2/lib (they only existed in the chroot's /usr/local/lib, which
-    # isn't cached) — treat those as incomplete too.
-    if [ ! -f "Arkbuild/opt/pcsx2/bin/pcsx2-sdl" ] || \
+    if [ ! -f "Arkbuild/opt/pcsx2/bin/armsx2-sdl" ] || \
        ! ls Arkbuild/opt/pcsx2/lib/libplutosvg.so* >/dev/null 2>&1; then
         echo "WARNING: pcsx2sa cache tarball is incomplete, rebuilding from source..."
         sudo rm -f "Arkbuild_package_cache/${CHIPSET}/pcsx2sa_${UNIT}.tar.gz"
@@ -58,24 +55,43 @@ if [ -f "Arkbuild_package_cache/${CHIPSET}/pcsx2sa_${UNIT}.tar.gz" ] && \
     fi
 fi
 
-if [ ! -f "Arkbuild/opt/pcsx2/bin/pcsx2-sdl" ]; then
-    # PCSX2's BuildParameters.cmake hardcodes -march=armv8.1-a for arm64,
-    # but Cortex-A53 is ARMv8.0-A (no LSE atomics).  Patch that line down
-    # to armv8-a and rely on -moutline-atomics to handle locked operations
-    # via runtime-dispatched libgcc helpers.
-    sed -i 's/"-march=armv8.1-a"/"-march=armv8-a"/' "${PCSX2_SRC}/cmake/BuildParameters.cmake"
+if [ ! -f "Arkbuild/opt/pcsx2/bin/armsx2-sdl" ]; then
+    sudo rm -rf Arkbuild/opt/pcsx2
+    if [ "$(sha256sum ${PGO} | cut -c1-64)" != "${PGO_SHA256}" ]; then
+        echo "The ARMSX2 PGO profile ${PGO} is missing or not the one this recipe names.  Stopping here."
+        exit 1
+    fi
 
-    # PCSX2's FindShaderc.cmake only knows the upstream Khronos library
-    # name (libshaderc_shared.so), but Debian's libshaderc-dev ships it
-    # as plain libshaderc.so / libshaderc.so.1.  Teach the find module
-    # to accept the Debian naming too.
-    sed -i 's/NAMES shaderc_shared.1 shaderc_shared/NAMES shaderc_shared.1 shaderc_shared shaderc.1 shaderc/' "${PCSX2_SRC}/cmake/FindShaderc.cmake"
+    # Host-side fetch of the one commit (HTTPS, no history: upstream has
+    # 27k commits)
+    sudo rm -rf "${PCSX2_SRC}"
+    sudo mkdir -p "${PCSX2_SRC}"
+    sudo chown "$(id -u):$(id -g)" "${PCSX2_SRC}"
+    git -C "${PCSX2_SRC}" init -q
+    git -C "${PCSX2_SRC}" remote add origin "${ARMSX2_REMOTE}"
+    git -C "${PCSX2_SRC}" fetch --depth=1 origin "${ARMSX2_COMMIT}"
+    verify_action
+    git -C "${PCSX2_SRC}" checkout -q --force FETCH_HEAD
+    verify_action
+
+    # Debian's libshaderc-dev names the library libshaderc.so / .so.1, which
+    # ARMSX2's FindShaderc.cmake does not look for (it loads it by that name
+    # at run time already).
+    sed -i 's/shaderc_shared.1 shaderc_shared/shaderc_shared.1 shaderc_shared shaderc.1 shaderc/' "${PCSX2_SRC}/cmake/FindShaderc.cmake"
 
     # Our fixes, on the tree as fetched above (each patch says what it fixes)
     for p in pcsx2/patches/*.patch; do
         patch -d "${PCSX2_SRC}" -Np1 < "$p"
         verify_action
     done
+    gunzip -c "${PGO}" > "${PCSX2_SRC}/armsx2.profdata"
+    sudo chown -R 1000:1000 "${PCSX2_SRC}"
+
+    # clang, lld and llvm (ARMSX2 builds with clang only; Debian trixie's
+    # clang is 19, the profile was made with llvm-profdata 19; CMake archives
+    # the LTO part of the core with llvm-ar)
+    call_chroot "dpkg -s clang lld llvm >/dev/null 2>&1 || (apt-get -y update && eatmydata apt-get -y install clang lld llvm)"
+    verify_action
 
     # Build plutovg/plutosvg as prereqs — Trixie doesn't ship them and the
     # fork doesn't vendor them.
@@ -105,51 +121,61 @@ if [ ! -f "Arkbuild/opt/pcsx2/bin/pcsx2-sdl" ]; then
     "
     verify_action
 
-    # Configure + build PCSX2 SDL frontend.
+    # Configure + build the SDL frontend.
+    # - clang with the profile, linking with lld, and LTO_PCSX2_CORE, ARMSX2's
+    #   own switch for ThinLTO of the core.  -march=armv8-a: the Cortex-A53
+    #   is ARMv8.0, without LSE atomics (ARMSX2 adds its own armv8.1-a only
+    #   when no -march is given).  Jak and Daxter's intro on an RG52 Mini,
+    #   frames 300-1850, against the same build without the profile and LTO:
+    #   +8.6% (31.4 -> 34.1 fps, three series of three runs); the profile
+    #   alone +7%.  -mcpu=cortex-a53, -mno-outline-atomics and
+    #   -fomit-frame-pointer changed nothing measurable (TODO.md).
     # - SDL3 from /opt/sdl3-shim via PKG_CONFIG_PATH.
     # - HOST_PAGE_SIZE=4096 / HOST_CACHE_LINE_SIZE=64: BuildParameters.cmake
-    #   calls detect_page_size() / detect_cache_line_size() which try_run a
-    #   sysconf probe on the build host; if the chroot ever runs on a 16K-page
-    #   aarch64 host (e.g. Asahi M2) the detected values get baked into the
-    #   binary and it bails with "Page size mismatch" on the 4K-page RK3562.
-    #   Setting the cache vars directly pre-empts the auto-detect (set(...
-    #   CACHE ...) respects an existing value). NB: -DOVERRIDE_HOST_PAGE_SIZE
-    #   on the cmdline is silently ignored — that's the generated #define name,
-    #   not a cmake input.
+    #   would try_run a probe on the build host; if the chroot ever runs on a
+    #   16K-page aarch64 host (e.g. Asahi M2) the detected values get baked
+    #   into the binary and it bails with "Page size mismatch" on the 4K-page
+    #   RK3562.
     # - X11_API/WAYLAND_API OFF: VK_KHR_display direct-to-monitor is the
-    #   only display path PCSX2 needs — no compositor, no SDL_Vulkan_CreateSurface.
+    #   only display path needed — no compositor.
     # - RPATH: SDL3 shim and PCSX2's own lib dir.
+    # - The resources ninja install copies lack ARMSX2's per-game overrides,
+    #   which its build puts next to the binary: copied as the build does.
+    flags="-march=armv8-a -moutline-atomics -O3 -fprofile-use=/home/ark/armsx2/armsx2.profdata -Wno-profile-instr-unprofiled -Wno-profile-instr-out-of-date -Wno-backend-plugin"
     call_chroot "set -e &&
         export PKG_CONFIG_PATH=/opt/sdl3-shim/lib/pkgconfig:/usr/local/lib/pkgconfig:\${PKG_CONFIG_PATH} &&
         export LD_LIBRARY_PATH=/opt/sdl3-shim/lib:/usr/local/lib:\${LD_LIBRARY_PATH} &&
         rm -rf ${PCSX2_BUILD} &&
         mkdir -p ${PCSX2_BUILD} &&
         cd ${PCSX2_BUILD} &&
-        cmake /home/ark/pcsx2 -G Ninja \
+        cmake /home/ark/armsx2 -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld \
             -DPACKAGE_MODE=ON \
             -DCMAKE_INSTALL_PREFIX=/opt/pcsx2 \
             -DENABLE_SDL_FRONTEND=ON \
-            -DENABLE_QT_UI=OFF \
+            -DENABLE_QT_UI=OFF -DENABLE_LIBRETRO=OFF -DENABLE_TESTS=OFF \
             -DUSE_VULKAN=ON -DUSE_OPENGL=ON \
             -DUSE_BACKTRACE=OFF \
             -DX11_API=OFF -DWAYLAND_API=OFF \
             -DHOST_PAGE_SIZE=4096 \
             -DHOST_CACHE_LINE_SIZE=64 \
-            -DCMAKE_C_FLAGS='-march=armv8-a -moutline-atomics -O3' \
-            -DCMAKE_CXX_FLAGS='-march=armv8-a -moutline-atomics -O3' \
+            -DLTO_PCSX2_CORE=ON \
+            -DCMAKE_C_FLAGS='${flags}' \
+            -DCMAKE_CXX_FLAGS='${flags}' \
             -DCMAKE_BUILD_RPATH='/opt/sdl3-shim/lib;/opt/pcsx2/lib' \
             -DCMAKE_INSTALL_RPATH='/opt/sdl3-shim/lib;/opt/pcsx2/lib' &&
         ninja -j\$(nproc) &&
         ninja install &&
-        strip /opt/pcsx2/bin/pcsx2-sdl 2>/dev/null || true &&
-        mkdir -p /opt/pcsx2/share/PCSX2 &&
-        cp -a /home/ark/pcsx2/bin/resources /opt/pcsx2/share/PCSX2/ &&
+        strip /opt/pcsx2/bin/armsx2-sdl &&
+        cp /home/ark/armsx2/bin/resources-overlay/armsx2_overrides.yaml /opt/pcsx2/share/PCSX2/resources/ &&
         mkdir -p /opt/pcsx2/lib &&
-        cp -av /usr/local/lib/libplutovg.so* /usr/local/lib/libplutosvg.so* /opt/pcsx2/lib/ &&
-        ln -sf /usr/lib/aarch64-linux-gnu/libshaderc.so.1 /opt/pcsx2/lib/libshaderc_shared.so.1
+        cp -av /usr/local/lib/libplutovg.so* /usr/local/lib/libplutosvg.so* /opt/pcsx2/lib/
     "
     verify_action
+    # the source and the build (several GB) are not for the image
+    sudo rm -rf "${PCSX2_SRC}"
 
     if [ -f "Arkbuild_package_cache/${CHIPSET}/pcsx2sa_${UNIT}.tar.gz" ]; then
       sudo rm -f "Arkbuild_package_cache/${CHIPSET}/pcsx2sa_${UNIT}.tar.gz"
@@ -171,4 +197,4 @@ sudo cp pcsx2/scripts/standalone-pcsx2sa Arkbuild/usr/local/bin/standalone-pcsx2
 sudo chmod 755 Arkbuild/usr/local/bin/standalone-pcsx2sa
 
 call_chroot "chown -R ark:ark /opt/pcsx2"
-sudo chmod 755 Arkbuild/opt/pcsx2/bin/pcsx2-sdl
+sudo chmod 755 Arkbuild/opt/pcsx2/bin/armsx2-sdl

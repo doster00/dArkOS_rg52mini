@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# PCSX2 (bmdhacks fork, SDL3 frontend) launcher for dArkOS (RK3562 / KMSDRM).
+# PCSX2 (ARMSX2, SDL3 frontend) launcher for dArkOS (RK3562 / KMSDRM).
 #
-# The fork's pcsx2-sdl binary uses WindowInfo::Type::VulkanDirect and creates
+# ARMSX2's armsx2-sdl binary uses WindowInfo::Type::VulkanDirect and creates
 # its own VK_KHR_display surface — there is no Qt and no compositor.  SDL3
 # is used only for input pumping, audio, and the event loop, and is supplied
 # by the SDL3-on-SDL2 shim at /opt/sdl3-shim/lib/libSDL3.so.0.  At runtime
@@ -25,9 +25,11 @@ playback_path=$(amixer sget 'Playback Path' 2>/dev/null | sed -n "s/.*Item0: '\(
 directory=$(dirname "$ROM" | cut -d "/" -f2)
 
 # All PCSX2 user data lives on the ROMs partition under <mount>/ps2/.  The
-# uppercase PCSX2 dir is what pcsx2-sdl uses (XDG_CONFIG_HOME/PCSX2); we
+# uppercase ARMSX2 dir is what armsx2-sdl uses (XDG_CONFIG_HOME/ARMSX2); we
 # symlink the system path to the ROMs partition so saves, configs, BIOS
-# discovery and shader caches all land on the big exFAT partition.
+# discovery and shader caches all land on the big exFAT partition.  It is
+# the dir the bmdhacks fork used up to 1.3 (as XDG_CONFIG_HOME/PCSX2), so
+# the PCSX2.ini made there carries over.
 # PS2 BIOS lives in the shared /roms/bios (matches PCSX2.ini Bios=), so it is
 # found regardless of which ROMs card the game is launched from.
 mkdir -p "/roms/bios"
@@ -35,7 +37,7 @@ mkdir -p "/$directory/ps2/memcards"
 mkdir -p "/$directory/ps2/savestates"
 mkdir -p "/$directory/ps2/pcsx2/inis"
 mkdir -p "/$directory/ps2/pcsx2/cache"
-ln -sfn "/$directory/ps2/pcsx2" /home/ark/.config/PCSX2
+ln -sfn "/$directory/ps2/pcsx2" /home/ark/.config/ARMSX2
 
 # Seed the per-device PCSX2.ini template into the user dir if absent.
 # (The template lives under /opt/pcsx2/templates/ and is generated per-UNIT
@@ -54,7 +56,7 @@ if [ "$DEVICE" = "RG52MINI" ]; then
 fi
 
 # Tell the killer daemon how to terminate us on hotkey
-echo "VAR=pcsx2-sdl" > /home/ark/.config/KILLIT
+echo "VAR=armsx2-sdl" > /home/ark/.config/KILLIT
 sudo systemctl restart killer_daemon.service
 
 # --- SDL3 shim + PCSX2 lib path ---
@@ -72,19 +74,19 @@ export SDL_AUDIODRIVER=alsa
 export SDL_GAMECONTROLLERCONFIG="1900a4dd726b333536322d6a6f797300,rk3562-joystick,a:b1,b:b0,x:b2,y:b3,back:b8,start:b9,guide:b10,misc1:b17,leftstick:b11,rightstick:b12,dpup:b13,dpdown:b14,dpleft:b15,dpright:b16,leftshoulder:b4,rightshoulder:b5,lefttrigger:a2,righttrigger:a5,leftx:a0,lefty:a1,rightx:a3,righty:a4,platform:Linux,"
 
 # Portrait rotation is handled by the Vulkan present-time rotation path
-# inside pcsx2-sdl (DisplayRotation key in PCSX2.ini, set per-UNIT during
+# inside armsx2-sdl (DisplayRotation key in PCSX2.ini, set per-UNIT during
 # the build).  Nothing to do here.
 
 # Run the SDL frontend with the ROM path as a positional arg.
-# (pcsx2-sdl's argv parser does not accept -fullscreen or the -- separator;
+# (armsx2-sdl's argv parser does not accept -fullscreen or the -- separator;
 # fullscreen is implied / configured via PCSX2.ini.)
-/opt/pcsx2/bin/pcsx2-sdl "$ROM"
+/opt/pcsx2/bin/armsx2-sdl "$ROM"
 
 # Cleanup
 sudo systemctl stop killer_daemon.service
 
 # Restore RK817 codec state after emulator exit (RK3562 devices) —
-# pcsx2-sdl (like PPSSPP) can leave the audio path in a bad state.
+# armsx2-sdl (like PPSSPP) can leave the audio path in a bad state.
 # Put back the path it had before, not a fixed one: the RG52 Mini's speaker
 # amplifier is driven by the codec only on SPK, so the HP set here silenced
 # it after every game, while the RG56Pro and RG43H run the speaker from HP.

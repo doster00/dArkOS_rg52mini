@@ -11,10 +11,10 @@ frontend now; a paused one gets the input pumping the FullscreenUI idle
 state has, so its menu works (Resume, Close Game and the rest).
 
 diff --git a/pcsx2-sdl/Main.cpp b/pcsx2-sdl/Main.cpp
-index aabd81690..12d830f0a 100644
+index 7aa0397..49e4b4f 100644
 --- a/pcsx2-sdl/Main.cpp
 +++ b/pcsx2-sdl/Main.cpp
-@@ -813,10 +813,12 @@ void Pcsx2SDL::CPUThreadMain(VMBootParameters initial_params, bool start_in_fsui
+@@ -974,10 +974,12 @@ void Pcsx2SDL::CPUThreadMain(VMBootParameters initial_params, bool start_in_fsui
  					continue;
  				}
  

@@ -90,6 +90,8 @@ call_chroot "apt remove -y autotools-dev \
   libx11-dev \
   libyaml-dev \
   libzip-dev \
+  lld \
+  llvm \
   ninja-build \
   pkg-config \
   premake4 \
