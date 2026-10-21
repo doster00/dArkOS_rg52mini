@@ -1086,7 +1086,9 @@ only when the VM is gone; a paused one gets the input polling FullscreenUI's
 idle state has, so its menu works (Resume, Close Game and the rest).
 `build_pcsx2sa.sh` applies `pcsx2/patches/*.patch` and keys its cache on them.
 ARMSX2, which replaced the fork after 1.3 (below), has the same frontend and
-the same branch; the patch is made against its `armsx2-sdl`.
+the same branch; the patch is made against its `armsx2-sdl`, and there the
+pause menu stays up and Resume goes back to the game (checked on the device on
+2026-10-21).
 
 ## PS2: Jak and Daxter hung and drew with glitches — ARMSX2 replaces the fork after 1.3
 

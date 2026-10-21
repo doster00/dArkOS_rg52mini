@@ -211,24 +211,23 @@ by 1-2%.
   GPU held at its lowest step by the thermal governor and the CPU at times at
   1608 MHz. The absolute numbers belong to that; the builds ran in turn, so
   the differences hold.
+- **Off the training.** A savestate in Jak and Daxter's opening cutscene
+  (after New Game, in the game engine; `armsx2-sdl --state-from-file`
+  resumes it), frames 100-800, three rounds: base 21.29, the profile and
+  `-mcpu` 23.84 (+12.0%), the recipe's build 24.48 (+15.0%); over frames
+  100-1500, which the first base run after the reboot fell short of, +11%
+  and +14%. The profile helps more here than on the intro it was trained
+  on. The cutscene is heavier than the intro (21-24 fps).
+- **Presses from a script have to be written again while held.** The
+  joystick driver polls B, X, Y and the d-pad and reports their real state
+  every 20 ms, so a press written into its evdev node (as rg52remote does)
+  is released again within 6-20 ms; A and Start it leaves alone. ARMSX2 saw
+  some of those short presses and Jak none, so at first the d-pad, Select+X
+  and Select+R1 seemed dead. Written again every 3 ms while held, they work:
+  the pause menu (`pcsx2-0001`) opens on ARMSX2 started from ES, stays, and
+  Resume goes back to the game.
 
 Left:
-* **Check the controls in ARMSX2 by hand before a release.** Presses written
-  into the joystick's evdev node (as rg52remote does) reached Jak and Daxter
-  for Start and A only. The d-pad, the left stick, Select+X (the pause menu)
-  and Select+R1 (save state) did nothing in its menu or its memory card
-  dialog. A small SDL3 program on the same shim, with the launcher's mapping,
-  got every one of them right while the game ran. Started from ES's own
-  launcher with the owner's PCSX2.ini, Select+X did not open the pause menu
-  either. With the real buttons: move in Jak's menu with the d-pad and the
-  stick, open the pause menu with Select+X. If that fails too, the fault is
-  in ARMSX2's input path.
-* **The pause-menu patch** (`pcsx2-0001`) is not yet confirmed on ARMSX2 on the
-  device, for the same reason.
-* **A stretch the profile was not trained on.** The measured intro is also the
-  training. A savestate in the game (`armsx2-sdl --state-from-file <file>`
-  resumes one) would give a fixed stretch of gameplay. It needs the controls
-  above to get there.
 * **Train on gameplay with the owner** and merge the profiles, as for Azahar.
 * **The recipe has not run in the arm64 chroot yet.** A host cross-build of
   the same tree (`/home/ark/armsx2`, as the chroot builds it), profile and
