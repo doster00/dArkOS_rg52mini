@@ -133,6 +133,16 @@ nes-box folder (KNOWN-ISSUES). Left:
   `llvm-profdata merge -weighted-input=<w>,<file>`, with weights that give each
   part about the same total count (`llvm-profdata show --detailed-summary`).
   The recipe names the file.
+* **A new profile needs the chroot's paths.** clang names file-local functions
+  in a profile by the path of their source. Ours was trained from a tree on
+  the host, and the image builds in `/home/ark/rk3562_core_builds/azahar`
+  in the chroot: the recipe's run there (2026-10-21, 573 min under qemu,
+  exit 0) made a core 600 KB larger than the measured one, without the
+  profile of those functions (6% of its counts). The profile now carries
+  the chroot's paths, and a host build from that path matches the measured
+  core (`.text` within 64 bytes). For a new one: `llvm-profdata merge
+  --text`, the training tree's path replaced, merged back; ARMSX2's has the
+  same treatment.
 * **How well a profile fits the code:** build with `-fprofile-use=<it>
   -Wno-everything -Wbackend-plugin -Wno-error=backend-plugin -mllvm
   -pgo-warn-missing-function`, with the externals' `-w` taken out of
