@@ -13,6 +13,7 @@ else
 	  make install &&
 	  cp /usr/lib/aarch64-linux-gnu/libSDL_image-1.2.so.0* /usr/lib/.
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/linapple
 	sudo cp -a Arkbuild/home/ark/${CHIPSET}_core_builds/linapplesa-64/linapple Arkbuild/opt/linapple/
 	sudo cp -a Arkbuild/home/ark/${CHIPSET}_core_builds/linapple/res/Master.dsk Arkbuild/opt/linapple/

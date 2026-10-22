@@ -26,6 +26,7 @@ else
 		  ln -sf libGL.so.1 libOpenGL.so &&
 		  ln -sf libOpenGL.so libOpenGL.so.0
 		  "
+	verify_action
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/bigpemu.tar.gz" ]; then
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/bigpemu.tar.gz
 	fi

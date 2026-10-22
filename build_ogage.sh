@@ -35,6 +35,7 @@ else
 	  cp target/release/ogage /usr/local/bin/ &&
 	  chmod 777 /usr/local/bin/ogage
 	  "
+	verify_action
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/ogage.tar.gz" ]; then
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/ogage_${branch}.tar.gz
 	fi

@@ -13,6 +13,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  ./builds-alt.sh gametank
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/gametank
 	sudo cp -a Arkbuild/home/ark/${CHIPSET}_core_builds/gametank64/GameTankEmulator Arkbuild/opt/gametank/
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/gametank.tar.gz" ]; then

@@ -5,6 +5,7 @@
 call_chroot "cd /home/ark &&
   git clone --recursive --depth=1 https://github.com/christianhaitian/oga_controls.git -b quitter
   "
+verify_action
 
 # The RK3562 devices use our custom 'play_joystick' input driver (rk3562-joystick),
 # not the rk3566 'singleadc-joypad'. The upstream 'rg503' profile — passed by
@@ -29,4 +30,5 @@ call_chroot "cd /home/ark/oga_controls &&
   chmod 777 /opt/quitter/oga_controls &&
   chown -R ark:ark /opt/quitter
   "
+verify_action
 sudo rm -rf Arkbuild/home/ark/oga_controls

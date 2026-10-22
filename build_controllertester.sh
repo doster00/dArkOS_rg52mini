@@ -11,6 +11,7 @@ call_chroot "cd /home/ark &&
   cp controllerTester /usr/local/bin/ &&
   chmod 777 /usr/local/bin/controllerTester
   "
+verify_action
 
 sudo mkdir -p Arkbuild/opt/system/Advanced/
 sudo cp dArkOS_Tools/Advanced/"Controller Tester.sh" Arkbuild/opt/system/Advanced/.

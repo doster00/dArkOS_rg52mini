@@ -15,6 +15,7 @@ else
 	  eatmydata make -j$(nproc) &&
 	  strip lzdoom
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/lzdoom
 	sudo mkdir -p Arkbuild/home/ark/.config/lzdoom
 	sudo cp -a Arkbuild/home/ark/${CHIPSET}_core_builds/lzdoom/build/lzdoom Arkbuild/opt/lzdoom/

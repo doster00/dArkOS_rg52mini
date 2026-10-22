@@ -781,6 +781,16 @@ components without editing each script. The bad entries were moved to
 If a component is mysteriously missing and the log says it came from the cache,
 look at the size of its tarball first.
 
+Since 2026-10-22 a failed build in the chroot stops the image build instead
+(`verify_action` after each one in the recipes, and RetroArch's retries end
+the build rather than going on), so no archive of it is made. The same day
+showed a second way in: while the network was down the clone of mupen64plus
+failed, and so did the `curl` that gives its key, so the entry was saved with
+an empty key and a 169-byte archive. The next build's check got no answer
+either, found "" equal to "", and the image came out without mupen64plus.
+`utils.sh` now drops, as a build starts, every entry whose key is empty or
+"null" or starts with one of them, and that package is built again.
+
 ## The Bluetooth driver freed every failed packet twice — fixed
 
 `bt_sdio_recv()` in `drivers/net/wireless/aic8800/aic8800_fdrv/btsdio.c` called

@@ -31,6 +31,7 @@ call_chroot "cd /home/ark &&
   ./build_RG351.sh ${BUILD_UNIT} ArkOS /roms ./res &&
   strip 351Files*
   "
+verify_action
 sudo mkdir -p Arkbuild/opt/351Files
 sudo cp Arkbuild/home/ark/351Files/351Files* Arkbuild/opt/351Files/
 sudo chmod 777 Arkbuild/opt/351Files/351Files*

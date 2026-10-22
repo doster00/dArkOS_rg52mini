@@ -20,6 +20,7 @@ else
 	  eatmydata make -j$(nproc) &&
 	  strip bin/*
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/ti99sim/cartridges
 	sudo mkdir -p Arkbuild/opt/ti99sim/console
 	sudo mkdir -p Arkbuild/opt/ti99sim/disks

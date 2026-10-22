@@ -9,6 +9,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  eatmydata ./builds-alt.sh mupen64plussa
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/mupen64plus
 	sudo cp -a Arkbuild/home/ark/${CHIPSET}_core_builds/mupen64plussa-64/* Arkbuild/opt/mupen64plus/
 	sudo rm -f Arkbuild/opt/mupen64plus/*.gz

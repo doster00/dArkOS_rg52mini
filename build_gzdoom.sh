@@ -9,6 +9,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  eatmydata ./builds-alt.sh gzdoom
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/gzdoom
 	sudo mkdir -p Arkbuild/home/ark/.config/gzdoom
 	sudo cp -a Arkbuild/home/ark/${CHIPSET}_core_builds/gzdoom64/gzdoom Arkbuild/opt/gzdoom/

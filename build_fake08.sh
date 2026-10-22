@@ -17,6 +17,7 @@ else
 	  mkdir -p /opt/fake08 &&
 	  cp fake08sa-64/fake08 /opt/fake08/
 	  "
+	verify_action
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/fake08.tar.gz" ]; then
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/fake08.tar.gz
 	fi

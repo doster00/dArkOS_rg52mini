@@ -25,6 +25,7 @@ else
 	  make install &&
 	  apt remove -y libasound2-dev libbluetooth-dev libsbc-dev libfdk-aac-dev libldacbt-abr-dev libldacbt-enc-dev libsbc-dev libdbus-1-dev libglib2.0-dev libopenaptx-dev
 	  "
+	verify_action
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/bluealsa.tar.gz" ]; then
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/bluealsa.tar.gz
 	fi

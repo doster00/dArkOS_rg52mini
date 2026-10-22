@@ -18,6 +18,7 @@ else
 	  mkdir -p /opt/yabasanshiro &&
 	  cp yabasanshirosa64/yabasanshiro /opt/yabasanshiro/
 	  "
+	verify_action
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/yabasanshirosa.tar.gz" ]; then
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/yabasanshirosa.tar.gz
 	fi

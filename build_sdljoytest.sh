@@ -13,3 +13,4 @@ call_chroot "cd /home/ark &&
   cp test_gamepad_SDL2 /usr/local/bin/sdljoytest &&
   chmod 777 /usr/local/bin/{sdljoyinfo,sdljoymap,sdljoytest}
   "
+verify_action

@@ -9,6 +9,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  ./builds-alt.sh xroar
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/xroar
 	sudo cp -a Arkbuild/home/ark/${CHIPSET}_core_builds/xroar64/xroar Arkbuild/opt/xroar/
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/xroar.tar.gz" ]; then

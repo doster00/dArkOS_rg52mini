@@ -9,6 +9,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  eatmydata ./builds-alt.sh solarus
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/solarus
 	sudo cp -R Arkbuild/home/ark/${CHIPSET}_core_builds/solarus64/* Arkbuild/opt/solarus/
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/solarus.tar.gz" ]; then

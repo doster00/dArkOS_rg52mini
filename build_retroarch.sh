@@ -43,9 +43,9 @@ else
 	  if [[ "$?" -ne "0" ]]; then
 		RA_TRIES=$((RA_TRIES+1))
 		if [ "$RA_TRIES" -ge 3 ]; then
-			echo "ERROR: retroarch step failed $RA_TRIES times in a row; giving up"
-			echo "       instead of retrying forever. See the patch errors above."
-			break
+			echo "ERROR: retroarch step failed $RA_TRIES times in a row; stopping the build"
+			echo "       rather than going on without it. See the errors above."
+			exit 1
 		fi
 		sleep 30
 		continue
@@ -184,9 +184,9 @@ else
 	  if [[ "$?" -ne "0" ]]; then
 		RA_TRIES=$((RA_TRIES+1))
 		if [ "$RA_TRIES" -ge 3 ]; then
-			echo "ERROR: retroarch step failed $RA_TRIES times in a row; giving up"
-			echo "       instead of retrying forever. See the patch errors above."
-			break
+			echo "ERROR: retroarch step failed $RA_TRIES times in a row; stopping the build"
+			echo "       rather than going on without it. See the errors above."
+			exit 1
 		fi
 		sleep 30
 		continue
@@ -299,6 +299,7 @@ else
 		cd freej2me &&
 		ant
 		"
+   verify_action
    sudo mkdir -p Arkbuild/usr/local/bin/freej2me_files/
    sudo cp Arkbuild/home/ark/${CHIPSET}_core_builds/freej2me/build/freej2me-lr.jar Arkbuild/usr/local/bin/freej2me_files/
    if [ -f "Arkbuild_package_cache/${CHIPSET}/freej2me.tar.gz" ]; then
@@ -362,9 +363,9 @@ if [[ "${BUILD_ARMHF}" == "y" ]]; then
 		  if [[ "$?" -ne "0" ]]; then
 			RA_TRIES=$((RA_TRIES+1))
 			if [ "$RA_TRIES" -ge 3 ]; then
-				echo "ERROR: retroarch step failed $RA_TRIES times in a row; giving up"
-				echo "       instead of retrying forever. See the patch errors above."
-				break
+				echo "ERROR: retroarch step failed $RA_TRIES times in a row; stopping the build"
+				echo "       rather than going on without it. See the errors above."
+				exit 1
 			fi
 			sleep 30
 			continue

@@ -9,6 +9,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  ./builds-alt.sh mednafen
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/mednafen
 	sudo cp -a Arkbuild/home/ark/${CHIPSET}_core_builds/mednafen64/mednafen Arkbuild/opt/mednafen/
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/mednafen.tar.gz" ]; then

@@ -14,6 +14,7 @@ if [ ! -f "Arkbuild/opt/ppsspp-2021/PPSSPPSDL" ] && [ ! -f "Arkbuild_package_cac
 	  chmod 777 builds-alt.sh &&
 	  eatmydata ./builds-alt.sh ppsspp-2021
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/ppsspp-2021
 	sudo cp -Ra Arkbuild/home/ark/${CHIPSET}_core_builds/ppsspp-2021/build/assets/ Arkbuild/opt/ppsspp-2021/
 	sudo cp -a Arkbuild/home/ark/${CHIPSET}_core_builds/ppsspp-2021/LICENSE.TXT Arkbuild/opt/ppsspp-2021/

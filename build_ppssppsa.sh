@@ -45,6 +45,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  eatmydata ./builds-alt.sh ppsspp
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/ppsspp/backupforromsfolder/ppsspp/PSP/SYSTEM
 	sudo cp -Ra Arkbuild/home/ark/${CHIPSET}_core_builds/ppsspp/build/assets/ Arkbuild/opt/ppsspp/
 	sudo cp -a Arkbuild/home/ark/${CHIPSET}_core_builds/ppsspp/LICENSE.TXT Arkbuild/opt/ppsspp/

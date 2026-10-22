@@ -26,6 +26,24 @@ if [ ! -d "Arkbuild_package_cache/${CHIPSET}" ]; then
   mkdir -p Arkbuild_package_cache/${CHIPSET}
 fi
 
+# A package's cache key that is empty or "null" (jq's answer to an error), or
+# starts with one of them where a key joins a commit and a recipe hash, was
+# written while the server that gives the key did not answer, and the next
+# check that gets no answer finds it equal. On 2026-10-22 an empty key brought
+# back the archive of a mupen64plus build whose clone had failed, and the image
+# came out without it. Such an entry is dropped and its package built again;
+# a failed build in the chroot stops the image build (verify_action in the
+# recipes), so no archive of one is kept.
+for key in Arkbuild_package_cache/${CHIPSET}/*.commit; do
+  [ -f "$key" ] || continue
+  case "$(tr -d '[:space:]' < "$key")" in
+    ""|null|null[-_]*|[-_]*)
+      echo "package cache: ${key##*/} holds no key; building that package again"
+      sudo rm -f "$key" "${key%.commit}.tar.gz"
+      ;;
+  esac
+done
+
 # Setup the necessary exports
 export ARCH=arm64
 export CROSS_COMPILE=aarch64-linux-gnu-

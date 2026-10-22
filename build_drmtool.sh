@@ -18,4 +18,5 @@ call_chroot "cd /home/ark &&
   cp drm_tool /usr/local/bin/panel_drm_tool &&
   chmod 777 /usr/local/bin/panel_drm_tool
   "
+verify_action
 sudo rm -rf Arkbuild/home/ark/drm_tool

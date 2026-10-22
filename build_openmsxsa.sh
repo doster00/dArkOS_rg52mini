@@ -9,6 +9,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  eatmydata ./builds-alt.sh openmsx
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/openmsx/backupconfig/openmsx
 	sudo cp -Ra Arkbuild/home/ark/${CHIPSET}_core_builds/openMSX/share Arkbuild/opt/openmsx/backupconfig/openmsx/
 	sudo cp -a Arkbuild/home/ark/${CHIPSET}_core_builds/openMSX/README Arkbuild/opt/openmsx/

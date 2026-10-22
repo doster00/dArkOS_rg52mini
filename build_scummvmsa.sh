@@ -9,6 +9,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  eatmydata ./builds-alt.sh scummvm
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/scummvm
 	sudo cp -Ra Arkbuild/home/ark/${CHIPSET}_core_builds/scummvm/extra/ Arkbuild/opt/scummvm/
 	sudo cp -Ra Arkbuild/home/ark/${CHIPSET}_core_builds/scummvm/themes/ Arkbuild/opt/scummvm/

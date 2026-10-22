@@ -9,6 +9,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  eatmydata ./builds-alt.sh hypseus-singe
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/hypseus-singe
 	sudo mkdir -p Arkbuild/opt/hypseus-singe/framefile
 	sudo mkdir -p Arkbuild/opt/hypseus-singe/logs

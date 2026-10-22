@@ -48,6 +48,7 @@ else
       chmod 777 /usr/bin/emulationstation &&
       cp -a resources /usr/bin/emulationstation/
       "
+    verify_action
     if [ -f "Arkbuild_package_cache/${CHIPSET}/emulationstation.tar.gz" ]; then
       sudo rm -f Arkbuild_package_cache/${CHIPSET}/emulationstation.tar.gz
     fi

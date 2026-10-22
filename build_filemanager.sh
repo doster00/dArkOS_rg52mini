@@ -28,6 +28,7 @@ call_chroot "cd /home/ark &&
   make -j$(nproc) &&
   strip DinguxCommander
   "
+verify_action
 sudo mkdir -p Arkbuild/opt/dingux
 sudo cp Arkbuild/home/ark/rs97-commander-sdl2/DinguxCommander Arkbuild/opt/dingux/
 sudo chmod 777 Arkbuild/opt/dingux/DinguxCommander

@@ -2,12 +2,14 @@
 #
 # Report components that did not make it into the image.
 #
-# Most build_<emu>sa.sh scripts have no verify_action: when builds-alt.sh fails
-# to patch or clone something, the copy that follows finds nothing, prints one
-# line, and the build moves on. /opt/<name> still exists because mkdir -p ran
-# first, so the directory is there and the binary is not. Across two builds that
-# quietly cost us ECWolf, Hypseus Singe, GameTank, Yabasanshiro, freej2me-plus
-# and Kodi, each discovered only by reading 80k lines of log afterwards.
+# Until 2026-10-22 most build_<emu>sa.sh scripts had no verify_action: when
+# builds-alt.sh failed to patch or clone something, the copy that followed found
+# nothing, printed one line, and the build moved on. /opt/<name> still existed
+# because mkdir -p ran first, so the directory was there and the binary was not.
+# Across two builds that quietly cost us ECWolf, Hypseus Singe, GameTank,
+# Yabasanshiro, freej2me-plus and Kodi, each discovered only by reading 80k
+# lines of log afterwards. A failed build in the chroot stops the image build
+# now; this report still catches one that succeeds without its binary.
 #
 # Rather than hardcode a list of expected binaries that would rot, look for the
 # shape of the failure: a directory under /opt holding no executable at all.

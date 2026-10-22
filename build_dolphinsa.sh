@@ -28,6 +28,7 @@ if [ ! -f "Arkbuild/opt/dolphin/dolphin-emu-nogui" ]; then
 	  chmod 777 builds-alt.sh &&
 	  eatmydata ./builds-alt.sh dolphinsa
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/dolphin
 	sudo mkdir -p Arkbuild/home/ark/.local/share/dolphin-emu
 	sudo cp -Ra Arkbuild/home/ark/${CHIPSET}_core_builds/dolphinsa64/dolphin-emu-nogui Arkbuild/opt/dolphin/

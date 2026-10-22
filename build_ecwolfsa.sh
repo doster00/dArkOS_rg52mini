@@ -13,6 +13,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  eatmydata ./builds-alt.sh ecwolfsa
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/ecwolf
 	sudo cp -a Arkbuild/home/ark/${CHIPSET}_core_builds/ecwolf-64/* Arkbuild/opt/ecwolf/
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/ecwolfsa.tar.gz" ]; then

@@ -9,6 +9,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  eatmydata ./builds-alt.sh piemusa
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/piemu
 	sudo cp -a Arkbuild/home/ark/${CHIPSET}_core_builds/piemusa64/* Arkbuild/opt/piemu/
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/piemu.tar.gz" ]; then

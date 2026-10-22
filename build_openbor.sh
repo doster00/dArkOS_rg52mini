@@ -9,6 +9,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  eatmydata ./builds-alt.sh openbor
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/OpenBor
 	sudo mkdir -p Arkbuild/opt/OpenBor/Paks
 	sudo mkdir -p Arkbuild/opt/OpenBor/Saves

@@ -26,6 +26,7 @@ if [ ! -f "Arkbuild/opt/DSperate/dsperate" ]; then
 	  chmod 777 builds-alt.sh &&
 	  eatmydata ./builds-alt.sh dsperate
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/DSperate/config
 	sudo cp -a Arkbuild/home/ark/${CHIPSET}_core_builds/dsperate-64/dsperate Arkbuild/opt/DSperate/
 	if [ -f "Arkbuild/opt/DSperate/dsperate" ]; then

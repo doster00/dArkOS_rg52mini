@@ -22,6 +22,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  ./builds-alt.sh retrorun
 	  "
+	verify_action
 	sudo cp -a Arkbuild/home/ark/${CHIPSET}_core_builds/retrorun-64/retrorun${ext} Arkbuild/usr/local/bin/retrorun
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/retrorun.tar.gz" ]; then
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/retrorun.tar.gz
@@ -44,6 +45,7 @@ if [[ "${BUILD_ARMHF}" == "y" ]]; then
 		chmod 777 builds-alt.sh &&
 		./builds-alt.sh retrorun
 		"
+	  verify_action
 	  sudo cp -a Arkbuild32/home/ark/${CHIPSET}_core_builds/retrorun-32/retrorun32${ext} Arkbuild/usr/local/bin/retrorun32
 	  if [ -f "Arkbuild_package_cache/${CHIPSET}/retrorun32.tar.gz" ]; then
 	    sudo rm -f Arkbuild_package_cache/${CHIPSET}/retrorun32.tar.gz

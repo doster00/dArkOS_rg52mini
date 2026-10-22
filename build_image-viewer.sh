@@ -9,4 +9,5 @@ call_chroot "cd /home/ark &&
   cp image-viewer /usr/local/bin/ &&
   chmod 777 /usr/local/bin/image-viewer
   "
+verify_action
 sudo rm -rf Arkbuild/home/ark/ThemeMaster-Image_Viewer

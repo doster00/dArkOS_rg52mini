@@ -14,6 +14,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  eatmydata ./builds-alt.sh flycastsa
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/flycastsa
 	if [[ "$CHIPSET" = "rk3326" ]]; then
 	  ext="-rk3326"

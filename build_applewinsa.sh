@@ -9,6 +9,7 @@ else
 	  chmod 777 builds-alt.sh &&
 	  eatmydata ./builds-alt.sh applewinsa
 	  "
+	verify_action
 	sudo mkdir -p Arkbuild/opt/applewin
 	sudo cp -R Arkbuild/home/ark/${CHIPSET}_core_builds/applewinsa-64/applewin Arkbuild/opt/applewin/
 	sudo cp -R Arkbuild/home/ark/${CHIPSET}_core_builds/applewinsa-64/bin/ Arkbuild/opt/applewin/

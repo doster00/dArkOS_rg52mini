@@ -11,6 +11,7 @@ call_chroot "cd /home/ark &&
   cp gptokeyb /opt/inttools/ &&
   chmod 777 /opt/inttools/gptokeyb
   "
+verify_action
 sudo rm -rf Arkbuild/home/ark/gptokeyb
 sudo cp inttools/* Arkbuild/opt/inttools/
 call_chroot "chown -R ark:ark /opt/inttools"

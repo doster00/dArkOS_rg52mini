@@ -15,6 +15,7 @@ else
 	  cp mvem /opt/mvem/ &&
 	  chmod 777 /opt/mvem/mvem
 	  "
+	verify_action
 	sudo cp -R mvem/controls/ Arkbuild/opt/mvem/
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/mvem.tar.gz" ]; then
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/mvem.tar.gz
