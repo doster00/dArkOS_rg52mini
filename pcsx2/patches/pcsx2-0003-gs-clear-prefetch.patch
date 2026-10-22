@@ -1,0 +1,89 @@
+From: dArkOS RG52 Mini port
+Subject: The masked GS memory clears prefetch a kilobyte ahead
+
+GSRendererHW::ClearGSLocalMemory clears whole pages of GS local memory. Its
+masked and 24-bit loops read, mask and write back each 16 bytes, and that
+memory is seldom in the cache: on the RK3562's in-order Cortex-A53 the loads
+wait for DRAM (four fifths of the function's time in God of War, where it was
+13% of the GS thread), as the core's prefetcher does not get far enough ahead
+of the stream. The loops now go 64 bytes at a time and ask for each line a
+kilobyte before they reach it (PRFM PSTL1KEEP). On an RG52 Mini, clearing a
+640x448 frame out of the caches: 468 us against 617 (-24%), the same with 2 or
+4 KB ahead; PSTL1STRM gave -11%, and storing the three low bytes of each
+24-bit pixel without loading (ST3 lane stores) +37%. The memory written is the
+same in every case. In God of War the function fell from 3.9% to 2.8% of all
+samples.
+
+diff --git a/pcsx2/GS/Renderers/HW/GSRendererHW.cpp b/pcsx2/GS/Renderers/HW/GSRendererHW.cpp
+index 803f32d..6ee5b44 100644
+--- a/pcsx2/GS/Renderers/HW/GSRendererHW.cpp
++++ b/pcsx2/GS/Renderers/HW/GSRendererHW.cpp
+@@ -12171,6 +12171,29 @@ bool GSRendererHW::TryGSMemClear(bool no_rt, bool preserve_rt, bool invalidate_r
+ 	return ((invalidate_rt || no_rt) && (invalidate_z || no_ds));
+ }
+ 
++// The masked and 24-bit clears below read, mask and write back whole pages of GS memory, which
++// is seldom in the cache. On an in-order core (the Cortex-A53) every 16-byte load then waits for
++// DRAM - four fifths of this function's time in God of War - as its prefetcher does not get far
++// enough ahead of the stream. Each line is asked for a kilobyte before the loop reaches it.
++static __forceinline void ClearGSLocalMemoryMaskedRun(GSVector4i* ptr, GSVector4i* const end, const GSVector4i& mask, const GSVector4i& vcolor)
++{
++	constexpr int ahead = 1024 / sizeof(GSVector4i);
++	while (end - ptr >= 4)
++	{
++		__builtin_prefetch(ptr + ahead, 1, 3);
++		ptr[0] = (ptr[0] & mask) | vcolor;
++		ptr[1] = (ptr[1] & mask) | vcolor;
++		ptr[2] = (ptr[2] & mask) | vcolor;
++		ptr[3] = (ptr[3] & mask) | vcolor;
++		ptr += 4;
++	}
++	while (ptr != end)
++	{
++		*ptr = (*ptr & mask) | vcolor;
++		ptr++;
++	}
++}
++
+ void GSRendererHW::ClearGSLocalMemory(const GSOffset& off, const GSVector4i& r, u32 vert_color)
+ {
+ 	GL_INS("HW: ClearGSLocalMemory(): %08X %d,%d => %d,%d @ BP %x BW %u %s", vert_color, r.x, r.y, r.z, r.w, off.bp(),
+@@ -12211,11 +12234,7 @@ void GSRendererHW::ClearGSLocalMemory(const GSOffset& off, const GSVector4i& r,
+ 				GSVector4i* const ptr_end = ptr + iterations_per_page;
+ 				if (drawing_mask)
+ 				{
+-					while (ptr != ptr_end)
+-					{
+-						*ptr = (*ptr & mask) | vcolor;
+-						ptr++;
+-					}
++					ClearGSLocalMemoryMaskedRun(ptr, ptr_end, mask, vcolor);
+ 				}
+ 				else
+ 				{
+@@ -12236,11 +12255,7 @@ void GSRendererHW::ClearGSLocalMemory(const GSOffset& off, const GSVector4i& r,
+ 				m_mem.MarkPageRangeWritten(current_page, pages_wide);
+ 				GSVector4i* ptr = reinterpret_cast<GSVector4i*>(m_mem.vm8() + current_page * GS_PAGE_SIZE);
+ 				GSVector4i* const ptr_end = ptr + iterations_per_page;
+-				while (ptr != ptr_end)
+-				{
+-					*ptr = (*ptr & mask) | vcolor;
+-					ptr++;
+-				}
++				ClearGSLocalMemoryMaskedRun(ptr, ptr_end, mask, vcolor);
+ 			}
+ 		}
+ 		else if (format == GSLocalMemory::PSM_FMT_16)
+@@ -12261,11 +12276,7 @@ void GSRendererHW::ClearGSLocalMemory(const GSOffset& off, const GSVector4i& r,
+ 				GSVector4i* const ptr_end = ptr + iterations_per_page;
+ 				if (converted_mask)
+ 				{
+-					while (ptr != ptr_end)
+-					{
+-						*ptr = (*ptr & mask) | vcolor;
+-						ptr++;
+-					}
++					ClearGSLocalMemoryMaskedRun(ptr, ptr_end, mask, vcolor);
+ 				}
+ 				else
+ 				{
