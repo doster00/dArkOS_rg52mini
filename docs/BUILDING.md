@@ -75,7 +75,12 @@ build run them again.
   and the bootstrap's own apt-get runs), and becomes one to unpack only when
   its build gets to the end (`commit_rootfs_cache`, after `create_image.sh`).
   A stage can go wrong without stopping the build, and the copy would put the
-  same fault in every image after it.
+  same fault in every image after it. An older copy is deleted only when a new
+  one replaces it.
+- A build that cannot work out a key says so in its log ("rootfs cache: no key
+  for ...") and runs the stage. The point release is asked of deb.debian.org up
+  to five times: on 2026-10-22 one lost answer had a build run `build_deps.sh`
+  with a matching copy at hand.
 - What the stages fetch without a version (meson and libgo2 from their default
   branches, the 32-bit Mali blob from christianhaitian's repository) stays as
   it was when the copy was made, until a key changes.

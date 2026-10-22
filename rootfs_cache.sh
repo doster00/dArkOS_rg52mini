@@ -38,15 +38,20 @@ ROOTFS_DELTA=""
 # Set by what fails in a stage that may not fail the next time (apt)
 ROOTFS_STAGE_FAILED=""
 
-# The key of a stage on stdout. Fails if Debian cannot be asked for its point
-# release, or, for deps, if Arkbuild came from no bootstrap copy.
+# The key of a stage on stdout. Fails, saying why on stderr, if Debian cannot
+# be asked for its point release, or, for deps, if Arkbuild came from no
+# bootstrap copy. A build on 2026-10-22 lost one answer from deb.debian.org and
+# ran build_deps for three hours with its copy right there, so it asks again.
 function rootfs_cache_key() {
   local release
-  release=$(curl -s https://deb.debian.org/debian/dists/${DEBIAN_CODE_NAME}/Release | grep "^Version:" | cut -d' ' -f2)
+  release=$(curl -s --retry 4 --retry-delay 5 --retry-all-errors --max-time 30 \
+    https://deb.debian.org/debian/dists/${DEBIAN_CODE_NAME}/Release | grep "^Version:" | cut -d' ' -f2)
   if [ -z "$release" ]; then
+    echo "rootfs cache: deb.debian.org did not say ${DEBIAN_CODE_NAME}'s point release" >&2
     return 1
   fi
   if [ "$1" == "deps" ] && [ -z "$ROOTFS_BASE" ]; then
+    echo "rootfs cache: this Arkbuild did not come from a bootstrap copy" >&2
     return 1
   fi
   {
@@ -91,7 +96,10 @@ function rootfs_manifest() {
 # A copy that fails to unpack is deleted, and stops the build.
 function restore_rootfs_cache() {
   local stage=$1 key rc
-  key=$(rootfs_cache_key $stage) || return 1
+  if ! key=$(rootfs_cache_key $stage); then
+    echo "rootfs cache: no key for the ${stage} stage (above); running it"
+    return 1
+  fi
   if [ ! -f "${ROOTFS_CACHE}/rootfs-${stage}.tar.zst" ] || \
      [ "$(cat ${ROOTFS_CACHE}/rootfs-${stage}.key 2>/dev/null)" != "$key" ]; then
     echo "rootfs cache: no copy of the ${stage} stage for this build; running it"
@@ -146,19 +154,21 @@ function rootfs_delta_lists() {
 # (commit_rootfs_cache): a stage can go wrong without stopping the build, and
 # the image would have it wrong in every build after. Not a stage in which apt
 # failed (ROOTFS_STAGE_FAILED), either. Failing to keep it fails nothing else.
+# An older copy goes only when this one replaces it: under its own key it can
+# only be unpacked by a build it fits, which may be the next one (this stage
+# may have run because Debian did not answer).
 function save_rootfs_cache() {
   local stage=$1 key rc
-  # The old copy is not what Arkbuild came from any more
-  sudo rm -f ${ROOTFS_CACHE}/rootfs-${stage}.*
   if [ "$stage" == "deps" ] && [ -z "$ROOTFS_DELTA" ]; then
     return 0
   fi
   if [ -n "$ROOTFS_STAGE_FAILED" ]; then
     echo "rootfs cache: the ${stage} stage is not kept: something in it failed (above), and the next build runs it again"
   elif ! key=$(rootfs_cache_key $stage); then
-    echo "rootfs cache: the ${stage} stage is not kept: no point release from Debian, or no bootstrap copy under it"
+    echo "rootfs cache: the ${stage} stage is not kept: no key for it (above)"
   else
     echo "rootfs cache: keeping the ${stage} stage"
+    sudo rm -f ${ROOTFS_CACHE}/rootfs-${stage}.*
     rootfs_view
     if [ "$stage" == "bootstrap" ]; then
       sudo tar -C "$ROOTFS_VIEW" -I "zstd -T0" -cpf "${ROOTFS_CACHE}/rootfs-bootstrap.tar.zst" \
