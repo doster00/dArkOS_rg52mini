@@ -210,8 +210,11 @@ the GPU is 80% busy or more and the thermal governor holds it (its devfreq cooli
 device in a state above 0), and a step up while the GPU is under 60% busy or the
 SoC is 5 C under the first trip. A CPU taken too low starves the GPU, whose load
 then falls and stops the steps, so how far it goes is found on the device and in
-the room, down to 1200 MHz at the most; the limit (2208 MHz under overclock) is
-put back when the game ends, before perfoc takes boost away.
+the room, down to 1200 MHz at the most; the CPU's top (2208 MHz under overclock)
+is put back when the game ends, before perfoc takes boost away. The top comes
+from `cpuinfo_max_freq`: `scaling_max_freq` reads the thermal governor's limit
+as well (policy->max on 5.10), so a game started on a hot device would have
+taken the held frequency for the top and kept it after the game.
 - Charging, its first version (a 1608 MHz floor, the PS2 launcher only), two
   rounds: God of War 28.02 and 28.19 against 27.03 and 24.96; Jak 34.69 and 34.60
   against 34.02 and 34.67, its limit untouched.

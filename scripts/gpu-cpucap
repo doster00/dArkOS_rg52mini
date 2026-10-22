@@ -19,7 +19,7 @@
 # 60% busy or the SoC is 5 C under the first trip. A CPU taken too low starves
 # the GPU, whose load then falls and stops the steps, so how far it goes is
 # found on the device and in the room it runs in, down to 1200 MHz at most;
-# the limit the CPU had (2208 MHz under overclock) is put back at the end.
+# the CPU's top (2208 MHz under overclock) is put back at the end.
 
 cpu=/sys/devices/system/cpu/cpufreq/policy0
 pidfile=/run/gpu-cpucap.pid
@@ -54,9 +54,16 @@ done
 [ -n "$gpu" ] && [ -n "$zone" ] && [ -w "$cpu/scaling_max_freq" ] || exit 0
 
 floor=1200000
-orig=$(cat "$cpu/scaling_max_freq")
-# the CPU's steps from the floor up to the limit it has now, which under
-# overclock is a boost frequency outside the ordinary list
+# The CPU's top: 2208 MHz under overclock (perfoc turns boost on), 2016
+# otherwise. Not scaling_max_freq: on this kernel it reads the thermal
+# governor's limit as well, so a start on a hot device would take the held
+# frequency for the top, keep the CPU under it for the whole game and leave it
+# there afterwards. Nothing else sets a lower limit for these governors, and
+# the run starts from the top, which also clears a limit left behind.
+orig=$(cat "$cpu/cpuinfo_max_freq")
+echo "$orig" > "$cpu/scaling_max_freq"
+# the CPU's steps from the floor up to that top, which under overclock is a
+# boost frequency outside the ordinary list
 steps=$( (tr ' ' '\n' < "$cpu/scaling_available_frequencies"; echo "$orig") | \
   awk -v lo=$floor -v hi=$orig 'NF && $1 >= lo && $1 <= hi' | sort -n -u -r)
 # Whether the thermal governor holds the GPU down: its devfreq cooling device
