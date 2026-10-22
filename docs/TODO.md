@@ -184,6 +184,65 @@ first, with the times of the 2026-10-19 build:
   Kodi's 71 addons spent most of a 43-hour build there (KNOWN-ISSUES); it is
   cached, so this matters only when it has to be built again.
 
+## PS2: the GPU gets the heat; what else was tried (2026-10-22)
+
+Measured as in the next section (fps between fixed frames, builds in turn, after a
+reboot), on the charger at 99%, the SoC at 67-81 C: Jak and Daxter's intro (frames
+300-1850) and God of War's demo resumed from the owner's savestate on the ship
+(Continue pressed at 15 s, frames 600-2000).
+
+**Where the time goes** (`perf`, the recipe's build with a JIT perf map):
+- Jak's intro waits on the EE thread: 92% of a core, half of it JIT; `spu2Mix` is
+  15.6% of the thread, all IOP and SPU2 work about a third. GS is next (58-92%).
+  Both run 0.44-0.47 instructions a cycle with 4-5 million L2 refills a second:
+  they wait on memory.
+- God of War waits on the GPU: 80-93% busy, while the thermal governor
+  (`power_allocator`, its trip at 75 C) holds it at 300-900 MHz, mostly 400-700,
+  and the CPU stays near 2 GHz.
+
+**Kept: `gpu-cpucap`** (`pcsx2/scripts`, started by the launcher for the game).
+The CPU and the GPU share one thermal budget. With the CPU capped at 1608 MHz,
+God of War's GPU stayed at 900 MHz and the SoC at 74 C: 28.36 fps against 25.33
+(+12%); the same cap cost Jak's intro 11% (31.06 against 34.89), where the GPU is
+30% busy at 900 MHz. So the cap follows the GPU: every 2 s the CPU's limit goes a
+step down (to 1608 MHz at the least) while the GPU is 80% busy or more and below
+its top frequency, and a step up while it is under 60% busy or the SoC is 5 C
+below the trip; the limit is put back when the game ends. Two rounds each: God of
+War 28.02 and 28.19 against 27.03 and 24.96, Jak 34.69 and 34.60 against 34.02 and
+34.67 (its limit stayed at 2016 MHz). On battery the SoC runs cooler and the GPU
+is held back less, so it does less.
+
+**Tried, not kept** (the change against the same build without it):
+
+| Change | Jak's intro | God of War |
+|---|---|---|
+| ARMSX2's IOP thread, forced on four cores | +0.8% | about -4% |
+| the same, a 2 us idle watch, the largest lag | +1.3% | about -4% |
+| the same, asleep until the EE is half the lag ahead | +0.7% | about -5% |
+| GS multi-threading (`GSBackThreadMode = 1`) | -1.3% | -1% |
+| transparent huge pages (a 5.10.226-thp kernel, `always`, shmem too) | +1.3% | -1.4% |
+| a prefetch 1 KB ahead in the masked clears of GS memory | -2.6% | 0 |
+
+- The IOP thread watches the EE's watermark for 500 us before it sleeps, and the
+  EE publishes every few: 64% of a core, taken from GS, MTVU and Mali's thread,
+  and from the GPU's share of the heat. In God of War, which streams from the
+  disc through the IOP, the EE also waits on it.
+- Huge pages were in use (250 MB anonymous, GS memory's 4 MB of shmem): TLB
+  misses are not what costs. The image's kernel config is unchanged.
+- The prefetch cut `ClearGSLocalMemory` from 3.9% to 2.8% of the samples (its
+  loads still wait on DRAM); `spu2Mix` is flat, all 48 voices every sample.
+- DDR runs at its top, 928 MHz, during games already (perfmax).
+- ARMSX2's **AutoTune** (on by default, off for these measurements) has the IOP
+  thread and GS multi-threading among its levers, and keeps one only where it
+  measured a gain.
+
+Left:
+* **`gpu-cpucap` for the other GPU-heavy emulators** (Dolphin, PPSSPP, Azahar),
+  each measured first.
+* **`spu2Mix` runs every voice every sample**, stopped ones too (their addresses
+  still move and can raise IRQs). A faster path for stopped voices has to keep
+  that timing exact.
+
 ## PS2: ARMSX2 with a profile and ThinLTO (2026-10-21)
 
 ARMSX2 replaced the old PCSX2 fork (KNOWN-ISSUES). `build_pcsx2sa.sh` builds

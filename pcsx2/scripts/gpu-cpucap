@@ -1,0 +1,58 @@
+#!/bin/bash
+#
+# gpu-cpucap <process name>: while <process name> runs, give the GPU the CPU's
+# share of the SoC's heat when the GPU is what holds the frame rate.
+#
+# The CPU and the GPU share one thermal budget: past 75 C the power_allocator
+# governor takes frequency from both. A game that waits on the GPU (God of War
+# on ARMSX2: the GPU 80-93% busy) then has its GPU pulled down to 300-700 MHz
+# while the CPU stays near 2 GHz, though the CPU is not what it waits for.
+# Capping the CPU at 1608 MHz kept the SoC at 74 C, the GPU at 900 MHz and
+# God of War at 28.4 fps against 25.3. A game that waits on the CPU (Jak and
+# Daxter's intro: the GPU 30% busy at 900 MHz) loses 10% with the same cap, so
+# the cap follows the GPU: every 2 s, one CPU step down while the GPU is busy
+# and held below its top frequency, one step up while it is not busy or there
+# is room below the trip. Never below 1608 MHz; the CPU's own limit is put back
+# when the process ends.
+
+proc="$1"
+[ -n "$proc" ] || exit 1
+cpu=/sys/devices/system/cpu/cpufreq/policy0
+gpu=$(ls -d /sys/class/devfreq/*.gpu 2>/dev/null | head -1)
+zone=/sys/class/thermal/thermal_zone0
+[ -n "$gpu" ] && [ -w "$cpu/scaling_max_freq" ] || exit 0
+
+floor=1608000
+orig=$(cat "$cpu/scaling_max_freq")
+# the CPU's steps between the floor and its own limit, highest first
+steps=$(tr ' ' '\n' < "$cpu/scaling_available_frequencies" | awk -v lo=$floor -v hi=$orig '$1 >= lo && $1 <= hi' | sort -n -r)
+gpu_top=$(cat "$gpu/max_freq")
+# the first trip point is where the governor starts taking frequency away
+trip=$(cat "$zone/trip_point_0_temp" 2>/dev/null || echo 75000)
+
+restore() { echo "$orig" > "$cpu/scaling_max_freq"; }
+trap 'restore; exit 0' TERM INT HUP
+
+# wait for the game to start, then follow it
+for i in $(seq 1 30); do pgrep -x "$proc" > /dev/null && break; sleep 1; done
+cap=$orig
+while pgrep -x "$proc" > /dev/null; do
+  sleep 2
+  load=$(cut -d@ -f1 "$gpu/load" 2>/dev/null); load=${load:-0}
+  gfreq=$(cat "$gpu/cur_freq")
+  temp=$(cat "$zone/temp")
+  if [ "$load" -ge 80 ] && [ "$gfreq" -lt "$gpu_top" ]; then
+    next=$(echo "$steps" | awk -v c=$cap '$1 < c' | head -1)
+  elif [ "$load" -lt 60 ] || [ "$temp" -lt $((trip - 5000)) ]; then
+    next=$(echo "$steps" | awk -v c=$cap '$1 > c' | tail -1)
+  else
+    next=""
+  fi
+  if [ -n "$next" ] && [ "$next" != "$cap" ]; then
+    cap=$next
+    echo "$cap" > "$cpu/scaling_max_freq"
+  fi
+  # GPU_CPUCAP_LOG=<file>: one line per check, for measuring
+  [ -n "$GPU_CPUCAP_LOG" ] && echo "$(date +%s) gpu=$((gfreq / 1000000))MHz/$load% temp=$((temp / 1000)) cap=$((cap / 1000))" >> "$GPU_CPUCAP_LOG"
+done
+restore
