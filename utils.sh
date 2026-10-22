@@ -70,6 +70,29 @@ function get_file() {
   fi
 }
 
+# git on the host, its network commands tried again after 15, 30 and 60 s. On
+# 2026-10-22 github.com stopped resolving for a minute at a time: one build
+# stopped at a clone, and an empty ls-remote would have made a cached core's
+# key miss and the core rebuild under qemu. A clone that fails removes what
+# it made, so the next try starts clean.
+function git() {
+  local wait rc
+  case "$1" in
+    clone|fetch|pull|ls-remote) ;;
+    -C) case "$3" in clone|fetch|pull|ls-remote) ;; *) command git "$@"; return ;; esac ;;
+    *) command git "$@"; return ;;
+  esac
+  for wait in 0 15 30 60; do
+    if [ $wait != 0 ]; then
+      echo "git $*: failed, trying again in $wait s" >&2
+      sleep $wait
+    fi
+    command git "$@" && return 0
+    rc=$?
+  done
+  return $rc
+}
+
 function call_chroot() {
   sudo chroot Arkbuild bash -c "source /root/.bashrc && $@"
 }
