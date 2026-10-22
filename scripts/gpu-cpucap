@@ -46,8 +46,12 @@ case "$1" in
 esac
 
 gpu=$(ls -d /sys/class/devfreq/*.gpu 2>/dev/null | head -1)
-zone=/sys/class/thermal/thermal_zone0
-[ -n "$gpu" ] && [ -w "$cpu/scaling_max_freq" ] || exit 0
+# the SoC's thermal zone, as perfoc finds it
+zone=""
+for z in /sys/class/thermal/thermal_zone*; do
+  [ "$(cat "$z/type" 2>/dev/null)" = soc-thermal ] && zone=$z && break
+done
+[ -n "$gpu" ] && [ -n "$zone" ] && [ -w "$cpu/scaling_max_freq" ] || exit 0
 
 floor=1200000
 orig=$(cat "$cpu/scaling_max_freq")
@@ -58,9 +62,13 @@ steps=$( (tr ' ' '\n' < "$cpu/scaling_available_frequencies"; echo "$orig") | \
 # Whether the thermal governor holds the GPU down: its devfreq cooling device
 # is in a state above 0. Not max_freq against cur_freq: under throttling the
 # devfreq max_freq is the governor's limit, so one read at a hot start would
-# take the held frequency for the GPU's top.
+# take the held frequency for the GPU's top. The device is the zone's own
+# devfreq one (its cdevN links; the cdevN_* files beside them are not
+# directories): the memory controller can register a devfreq cooling device
+# of the same type, which the zone does not use and which is never above 0.
 gpu_cool=""
-for c in /sys/class/thermal/cooling_device*; do
+for c in "$zone"/cdev*; do
+  [ -d "$c" ] || continue
   case "$(cat "$c/type" 2>/dev/null)" in thermal-devfreq*) gpu_cool=$c; break ;; esac
 done
 [ -n "$gpu_cool" ] || exit 0
