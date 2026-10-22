@@ -59,12 +59,6 @@ fi
 echo "VAR=armsx2-sdl" > /home/ark/.config/KILLIT
 sudo systemctl restart killer_daemon.service
 
-# While the game runs, the CPU leaves the SoC's heat to the GPU when the GPU is
-# what holds the frame rate (gpu-cpucap, which ends with armsx2-sdl and puts the
-# CPU's limit back). One at a time: a quick relaunch ends the last one first.
-sudo pkill -x gpu-cpucap 2>/dev/null
-sudo /usr/local/bin/gpu-cpucap armsx2-sdl > /dev/null 2>&1 &
-
 # --- SDL3 shim + PCSX2 lib path ---
 export LD_LIBRARY_PATH=/opt/sdl3-shim/lib:/opt/pcsx2/lib:/usr/local/lib
 # The SDL3 shim picks up the system SDL2 from this path at runtime.

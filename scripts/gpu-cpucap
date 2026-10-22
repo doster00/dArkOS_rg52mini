@@ -1,0 +1,92 @@
+#!/bin/bash
+#
+# gpu-cpucap start|stop: while a game runs, give the GPU the CPU's share of the
+# SoC's heat when the GPU is what holds the frame rate. perfmax starts it for
+# the performance and overclock governors, after it has set them; perfnorm
+# stops it first, so the CPU's limit is back before perfoc takes boost away.
+#
+# The CPU and the GPU share one thermal budget: past the first trip point the
+# power_allocator governor takes frequency from both. A game that waits on the
+# GPU (God of War on ARMSX2, the GPU 80-93% busy) then has its GPU pulled down
+# to 300-700 MHz while the CPU stays near 2 GHz, though the CPU is not what it
+# waits for. Capping the CPU at 1608 MHz kept an RG52 Mini charging at 74 C,
+# its GPU at 900 MHz and God of War at 28.4 fps against 25.3; a game that waits
+# on the CPU (Jak and Daxter's intro, the GPU 30% busy) lost 11% with the same
+# cap, and a cool device (battery full) has nothing to gain from it.
+#
+# So the cap follows the GPU, every 2 s: one CPU step down while the GPU is 80%
+# busy or more and the thermal governor holds it down, one step up while it is under
+# 60% busy or the SoC is 5 C under the first trip. A CPU taken too low starves
+# the GPU, whose load then falls and stops the steps, so how far it goes is
+# found on the device and in the room it runs in, down to 1200 MHz at most;
+# the limit the CPU had (2208 MHz under overclock) is put back at the end.
+
+cpu=/sys/devices/system/cpu/cpufreq/policy0
+pidfile=/run/gpu-cpucap.pid
+
+# the running one, if any, ends and puts the CPU's limit back before this returns
+stop() {
+  local p
+  p=$(cat $pidfile 2>/dev/null)
+  if [ -n "$p" ] && [ "$(cat /proc/$p/comm 2>/dev/null)" = gpu-cpucap ]; then
+    kill "$p" 2>/dev/null
+    for i in $(seq 1 30); do
+      [ -d /proc/$p ] || break
+      sleep 0.1
+    done
+  fi
+  rm -f $pidfile
+}
+
+case "$1" in
+  stop) stop; exit 0 ;;
+  start) stop; setsid "$0" run < /dev/null > /dev/null 2>&1 & exit 0 ;;
+  run) echo $$ > $pidfile ;;
+  *) echo "usage: gpu-cpucap start|stop"; exit 1 ;;
+esac
+
+gpu=$(ls -d /sys/class/devfreq/*.gpu 2>/dev/null | head -1)
+zone=/sys/class/thermal/thermal_zone0
+[ -n "$gpu" ] && [ -w "$cpu/scaling_max_freq" ] || exit 0
+
+floor=1200000
+orig=$(cat "$cpu/scaling_max_freq")
+# the CPU's steps from the floor up to the limit it has now, which under
+# overclock is a boost frequency outside the ordinary list
+steps=$( (tr ' ' '\n' < "$cpu/scaling_available_frequencies"; echo "$orig") | \
+  awk -v lo=$floor -v hi=$orig 'NF && $1 >= lo && $1 <= hi' | sort -n -u -r)
+# Whether the thermal governor holds the GPU down: its devfreq cooling device
+# is in a state above 0. Not max_freq against cur_freq: under throttling the
+# devfreq max_freq is the governor's limit, so one read at a hot start would
+# take the held frequency for the GPU's top.
+gpu_cool=""
+for c in /sys/class/thermal/cooling_device*; do
+  case "$(cat "$c/type" 2>/dev/null)" in thermal-devfreq*) gpu_cool=$c; break ;; esac
+done
+[ -n "$gpu_cool" ] || exit 0
+# the first trip point is where the governor starts taking frequency away
+trip=$(cat "$zone/trip_point_0_temp" 2>/dev/null || echo 75000)
+
+trap 'echo "$orig" > "$cpu/scaling_max_freq"; exit 0' TERM INT HUP
+
+cap=$orig
+while true; do
+  # waited on, so a stop is acted on at once and not after the sleep
+  sleep 2 & wait $!
+  load=$(cut -d@ -f1 "$gpu/load" 2>/dev/null); load=${load:-0}
+  gfreq=$(cat "$gpu/cur_freq")
+  held=$(cat "$gpu_cool/cur_state" 2>/dev/null); held=${held:-0}
+  temp=$(cat "$zone/temp")
+  next=""
+  if [ "$load" -ge 80 ] && [ "$held" -gt 0 ]; then
+    next=$(echo "$steps" | awk -v c=$cap '$1 < c' | head -1)
+  elif [ "$load" -lt 60 ] || [ "$temp" -lt $((trip - 5000)) ]; then
+    next=$(echo "$steps" | awk -v c=$cap '$1 > c' | tail -1)
+  fi
+  if [ -n "$next" ] && [ "$next" != "$cap" ]; then
+    cap=$next
+    echo "$cap" > "$cpu/scaling_max_freq"
+  fi
+  # /run/gpu-cpucap.log, when it exists: one line per check, for measuring
+  [ -f /run/gpu-cpucap.log ] && echo "$(date +%s) gpu=$((gfreq / 1000000))MHz/$load% held=$held temp=$((temp / 1000)) cap=$((cap / 1000))" >> /run/gpu-cpucap.log
+done

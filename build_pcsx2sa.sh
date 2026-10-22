@@ -207,9 +207,6 @@ sudo cp "pcsx2/configs/PCSX2.ini.${UNIT}" Arkbuild/opt/pcsx2/templates/PCSX2.ini
 
 sudo cp pcsx2/scripts/standalone-pcsx2sa Arkbuild/usr/local/bin/standalone-pcsx2sa
 sudo chmod 755 Arkbuild/usr/local/bin/standalone-pcsx2sa
-# Started by it for the game: the CPU's limit follows the GPU's load (the script says why)
-sudo cp pcsx2/scripts/gpu-cpucap Arkbuild/usr/local/bin/gpu-cpucap
-sudo chmod 755 Arkbuild/usr/local/bin/gpu-cpucap
 
 call_chroot "chown -R ark:ark /opt/pcsx2"
 sudo chmod 755 Arkbuild/opt/pcsx2/bin/armsx2-sdl

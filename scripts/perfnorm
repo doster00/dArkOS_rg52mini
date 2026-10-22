@@ -64,6 +64,10 @@ else
   clear > /dev/tty1
 fi
 
+# gpu-cpucap first: it puts back the CPU's limit, which under overclock is a
+# boost frequency that perfoc off takes away
+[ -x /usr/local/bin/gpu-cpucap ] && /usr/local/bin/gpu-cpucap stop
+
 # out of the "overclock" mode, if the game ran in it (RG52 Mini)
 [ -x /usr/local/bin/perfoc ] && /usr/local/bin/perfoc off
 

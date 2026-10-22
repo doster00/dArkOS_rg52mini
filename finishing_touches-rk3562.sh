@@ -546,6 +546,8 @@ sudo chmod -R 777 Arkbuild/opt/system/
 
 # Copy performance scripts
 sudo cp scripts/perf* Arkbuild/usr/local/bin/
+# started by perfmax, stopped by perfnorm (the script says why)
+sudo install -m 755 scripts/gpu-cpucap Arkbuild/usr/local/bin/gpu-cpucap
 
 # Ports: PortMaster ports as ark, scripts written for root-only systems as
 # root (see the script)

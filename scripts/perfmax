@@ -150,6 +150,18 @@ else
   fi
 fi
 
+# While the game runs, the CPU gives the GPU its share of the SoC's heat when the
+# GPU is what holds the frame rate (gpu-cpucap): for performance and overclock,
+# the choices that ask for speed, started after their limits are set. Any other
+# choice stops one a game before may have left running.
+if [ -x /usr/local/bin/gpu-cpucap ]; then
+  if [[ "$1" == "performance" || "$1" == "overclock" ]]; then
+    /usr/local/bin/gpu-cpucap start
+  else
+    /usr/local/bin/gpu-cpucap stop
+  fi
+fi
+
 if [ -f "/usr/local/bin/quickmode.sh" ]; then
    sudo rm -f /dev/shm/governor_settings.state
    sudo touch /dev/shm/governor_settings.state

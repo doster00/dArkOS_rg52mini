@@ -200,17 +200,48 @@ reboot), on the charger at 99%, the SoC at 67-81 C: Jak and Daxter's intro (fram
   (`power_allocator`, its trip at 75 C) holds it at 300-900 MHz, mostly 400-700,
   and the CPU stays near 2 GHz.
 
-**Kept: `gpu-cpucap`** (`pcsx2/scripts`, started by the launcher for the game).
-The CPU and the GPU share one thermal budget. With the CPU capped at 1608 MHz,
-God of War's GPU stayed at 900 MHz and the SoC at 74 C: 28.36 fps against 25.33
-(+12%); the same cap cost Jak's intro 11% (31.06 against 34.89), where the GPU is
-30% busy at 900 MHz. So the cap follows the GPU: every 2 s the CPU's limit goes a
-step down (to 1608 MHz at the least) while the GPU is 80% busy or more and below
-its top frequency, and a step up while it is under 60% busy or the SoC is 5 C
-below the trip; the limit is put back when the game ends. Two rounds each: God of
-War 28.02 and 28.19 against 27.03 and 24.96, Jak 34.69 and 34.60 against 34.02 and
-34.67 (its limit stayed at 2016 MHz). On battery the SoC runs cooler and the GPU
-is held back less, so it does less.
+**Kept: `gpu-cpucap`** (`scripts/`, started by perfmax for every game under the
+performance and overclock governors, stopped by perfnorm). The CPU and the GPU
+share one thermal budget. With the CPU capped at 1608 MHz, God of War's GPU
+stayed at 900 MHz and the SoC at 74 C: 28.36 fps against 25.33 (+12%); the same
+cap cost Jak's intro 11% (31.06 against 34.89), where the GPU is 30% busy at 900
+MHz. So the cap follows the GPU: every 2 s the CPU's limit goes a step down while
+the GPU is 80% busy or more and the thermal governor holds it (its devfreq cooling
+device in a state above 0), and a step up while the GPU is under 60% busy or the
+SoC is 5 C under the first trip. A CPU taken too low starves the GPU, whose load
+then falls and stops the steps, so how far it goes is found on the device and in
+the room, down to 1200 MHz at the most; the limit (2208 MHz under overclock) is
+put back when the game ends, before perfoc takes boost away.
+- Charging, its first version (a 1608 MHz floor, the PS2 launcher only), two
+  rounds: God of War 28.02 and 28.19 against 27.03 and 24.96; Jak 34.69 and 34.60
+  against 34.02 and 34.67, its limit untouched.
+- On a full battery (no charging current, no throttling but in God of War's
+  heaviest moments), two rounds each:
+
+| Scene | performance | overclock | performance + cap | overclock + cap |
+|---|---|---|---|---|
+| God of War, frames 600-2000 | 28.91, 27.58 | 29.51, 29.28 | 28.68, 28.23 | 29.27, 28.92 |
+| Jak's intro, frames 300-1850 | 34.38, 34.99 | 35.80, 35.66 | 34.23, 34.63 | 35.19, 35.98 |
+| Doom 3 (the port), arrival scene | 11.38, 11.43 | 12.28, 12.26 | 11.43, 11.40 | 12.26, 12.23 |
+
+  The cap took God of War's CPU to 1800-1608 MHz under performance and left the
+  others alone: no change either way when cool. Overclock gives 3-4% in the PS2
+  games and 8% in Doom 3, which waits on the GPU (1000 MHz there); under its trips
+  (83/93 C) the GPU was not held, and the cap stayed at 2208.
+- Doom 3 is measured on its first level (`+map game/mars_city1`), whose arrival
+  scene runs on the game's clock: fps over 90 s from 5 s after the level's load.
+  Its timedemo cannot be used: dhewm3 stops `demo1` with "Bad render demo token".
+- The devfreq `max_freq` is the governor's limit while it throttles, so the cap
+  asks the cooling device instead: one read of `max_freq` at a hot start would
+  take the held frequency for the GPU's top.
+
+**Kept: the masked GS memory clears prefetch a kilobyte ahead**
+(`pcsx2-0003`). In God of War the function fell from 3.9% to 2.8% of the
+samples; clearing a 640x448 frame out of the caches on the device: 468 us
+against 617 (-24%), 2 and 4 KB ahead the same, `PRFM PSTL1STRM` -11%, storing
+the three low bytes of each 24-bit pixel without loading (ST3 lane stores)
++37%. The memory written is the same; the frame rates do not show it (God of
+War waits on the GPU), but nothing gets slower.
 
 **Tried, not kept** (the change against the same build without it):
 
@@ -221,7 +252,6 @@ is held back less, so it does less.
 | the same, asleep until the EE is half the lag ahead | +0.7% | about -5% |
 | GS multi-threading (`GSBackThreadMode = 1`) | -1.3% | -1% |
 | transparent huge pages (a 5.10.226-thp kernel, `always`, shmem too) | +1.3% | -1.4% |
-| a prefetch 1 KB ahead in the masked clears of GS memory | -2.6% | 0 |
 
 - The IOP thread watches the EE's watermark for 500 us before it sleeps, and the
   EE publishes every few: 64% of a core, taken from GS, MTVU and Mali's thread,
@@ -229,16 +259,18 @@ is held back less, so it does less.
   disc through the IOP, the EE also waits on it.
 - Huge pages were in use (250 MB anonymous, GS memory's 4 MB of shmem): TLB
   misses are not what costs. The image's kernel config is unchanged.
-- The prefetch cut `ClearGSLocalMemory` from 3.9% to 2.8% of the samples (its
-  loads still wait on DRAM); `spu2Mix` is flat, all 48 voices every sample.
+- `spu2Mix` is flat: all 48 voices every sample.
 - DDR runs at its top, 928 MHz, during games already (perfmax).
 - ARMSX2's **AutoTune** (on by default, off for these measurements) has the IOP
   thread and GS multi-threading among its levers, and keeps one only where it
   measured a gain.
 
 Left:
-* **`gpu-cpucap` for the other GPU-heavy emulators** (Dolphin, PPSSPP, Azahar),
-  each measured first.
+* **`gpu-cpucap` was measured on the RG52 Mini alone**, and in PS2 games and
+  Doom 3. Dolphin's ND Demo waits on the CPU (the GPU 45% busy at 900 MHz), so
+  the cap does nothing there.
+* **`pcsx2-0003` changed `ClearGSLocalMemory`**, so the profile no longer fits
+  it and clang builds it without; retraining would put that back.
 * **`spu2Mix` runs every voice every sample**, stopped ones too (their addresses
   still move and can raise IRQs). A faster path for stopped voices has to keep
   that timing exact.
