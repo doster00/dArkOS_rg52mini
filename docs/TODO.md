@@ -215,6 +215,12 @@ is put back when the game ends, before perfoc takes boost away. The top comes
 from `cpuinfo_max_freq`: `scaling_max_freq` reads the thermal governor's limit
 as well (policy->max on 5.10), so a game started on a hot device would have
 taken the held frequency for the top and kept it after the game.
+- GammaOS ported it (Android, same kernel) and measured Minecraft on a hot
+  console (78-83 C), four ABBA pairs of 3-minute windows: under its "max" mode
+  32.6 fps against 29.8 (+9%, every pair), the GPU at 835 MHz on average
+  against 472; under schedutil 33.8 against 33.6, no difference (that scene
+  waits on its main CPU thread). It runs there by default in Normal, Max and
+  Overclock, and replaced the fixed 1416 MHz "3D Games" mode.
 - Charging, its first version (a 1608 MHz floor, the PS2 launcher only), two
   rounds: God of War 28.02 and 28.19 against 27.03 and 24.96; Jak 34.69 and 34.60
   against 34.02 and 34.67, its limit untouched.
