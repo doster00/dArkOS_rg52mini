@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # Write rootfs to disk
+# the chroot's git wrapper (utils.sh) is the build's, not the image's
+sudo rm -rf Arkbuild/root/.darkos-git
 sync Arkbuild
 if [ "${ROOT_FILESYSTEM_FORMAT}" == "xfs" ]; then
   mkdir Arkbuild-final

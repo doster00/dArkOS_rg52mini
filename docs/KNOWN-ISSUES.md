@@ -791,6 +791,13 @@ either, found "" equal to "", and the image came out without mupen64plus.
 `utils.sh` now drops, as a build starts, every entry whose key is empty or
 "null" or starts with one of them, and that package is built again.
 
+A build that stops at every network blip would rarely finish, so git in the
+chroots (`call_chroot`, `call_chroot32`, `chroot_run`) tries a clone, fetch,
+pull, ls-remote or submodule update again after 15, 30 and 60 s, as git on the
+host does; what a failed clone left behind goes first. It is a wrapper in
+`/root/.darkos-git`, first in the chroot's PATH, which `write_rootfs*.sh`
+remove before the root filesystem is written.
+
 ## The Bluetooth driver freed every failed packet twice — fixed
 
 `bt_sdio_recv()` in `drivers/net/wireless/aic8800/aic8800_fdrv/btsdio.c` called

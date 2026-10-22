@@ -111,15 +111,57 @@ function git() {
   return $rc
 }
 
+# git in the chroots, the same: the core builds clone their sources there, and
+# a clone that fails stops the image build (verify_action). A wrapper first in
+# PATH, since an exported function does not get through eatmydata, a /bin/sh
+# script. write_rootfs*.sh take it out of the image.
+CHROOT_GIT_DIR=/root/.darkos-git
+function install_chroot_git() {  # the chroot's directory
+  sudo mkdir -p "$1${CHROOT_GIT_DIR}"
+  sudo tee "$1${CHROOT_GIT_DIR}/git" >/dev/null <<'EOF'
+#!/bin/bash
+# The dArkOS build's git (utils.sh): network commands tried again after 15, 30
+# and 60 s, and what a failed clone left in this directory removed first.
+case "$1" in
+  clone|fetch|pull|ls-remote) ;;
+  submodule) [ "$2" == update ] || exec /usr/bin/git "$@" ;;
+  *) exec /usr/bin/git "$@" ;;
+esac
+before=$(ls -A)
+for wait in 0 15 30 60; do
+  if [ $wait != 0 ]; then
+    echo "git $*: failed, trying again in $wait s" >&2
+    sleep $wait
+  fi
+  /usr/bin/git "$@" && exit 0
+  rc=$?
+  if [ "$1" == clone ]; then
+    comm -13 <(printf '%s\n' "$before") <(ls -A) | while read -r f; do rm -rf -- "$f"; done
+  fi
+done
+exit $rc
+EOF
+  sudo chmod 755 "$1${CHROOT_GIT_DIR}/git"
+}
+
+function chroot_run() {  # the chroot's directory, the command
+  local dir=$1
+  shift
+  if [[ "$CHROOT_GIT_IN" != *" $dir "* ]]; then
+    install_chroot_git "$dir" && CHROOT_GIT_IN="$CHROOT_GIT_IN $dir "
+  fi
+  sudo chroot "$dir" bash -c "source /root/.bashrc && export PATH=${CHROOT_GIT_DIR}:\$PATH && $@"
+}
+
 function call_chroot() {
-  sudo chroot Arkbuild bash -c "source /root/.bashrc && $@"
+  chroot_run Arkbuild "$@"
 }
 
 function call_chroot32() {
   if [ ! -d Arkbuild32 ]; then
     setup_arkbuild32
   fi
-  sudo chroot Arkbuild32 bash -c "source /root/.bashrc && $@"
+  chroot_run Arkbuild32 "$@"
 }
 
 function setup_ark_user() {

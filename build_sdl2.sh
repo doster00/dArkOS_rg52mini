@@ -50,7 +50,7 @@ fi
 if [ "$UNIT" == "rg52mini" ]; then
   echo "Injecting RGA screen rotation patches for portrait panel..."
   # Ensure core_builds is cloned first so we can add patches
-  sudo chroot ${CHROOT_DIR}/ bash -c "source /root/.bashrc && cd /home/ark &&
+  chroot_run ${CHROOT_DIR} "cd /home/ark &&
     if [ ! -d ${CHIPSET}_core_builds ]; then git clone https://github.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds.git ${CHIPSET}_core_builds; fi
     "
   sudo cp sdl2-patch-0004-odroidgoa-kmsdrm.patch ${CHROOT_DIR}/home/ark/${CHIPSET}_core_builds/patches/sdl2-patch-0005-kmsdrm-rotation.patch
@@ -62,7 +62,7 @@ fi
 
 # Build and install SDL2
 if [ "$ARCH" == "arm-linux-gnueabihf" ]; then
-  sudo chroot ${CHROOT_DIR}/ bash -c "source /root/.bashrc && cd /home/ark &&
+  chroot_run ${CHROOT_DIR} "cd /home/ark &&
     export CFLAGS=\"-Wno-error=int-conversion\" &&
     if [ ! -d ${CHIPSET}_core_builds ]; then git clone https://github.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds.git ${CHIPSET}_core_builds; fi &&
     cd ${CHIPSET}_core_builds &&
@@ -72,7 +72,7 @@ if [ "$ARCH" == "arm-linux-gnueabihf" ]; then
     make install
     "
 else
-  sudo chroot ${CHROOT_DIR}/ bash -c "source /root/.bashrc && cd /home/ark &&
+  chroot_run ${CHROOT_DIR} "cd /home/ark &&
     if [ ! -d ${CHIPSET}_core_builds ]; then git clone https://github.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds.git ${CHIPSET}_core_builds; fi &&
     cd ${CHIPSET}_core_builds &&
     chmod 777 builds-alt.sh &&
