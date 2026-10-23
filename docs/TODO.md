@@ -278,6 +278,37 @@ the three low bytes of each 24-bit pixel without loading (ST3 lane stores)
 +37%. The memory written is the same; the frame rates do not show it (God of
 War waits on the GPU), but nothing gets slower.
 
+**Kept: ARMSX2 chooses how a draw reads its own target** (2026-10-23). The
+template had `DisableFramebufferFetch = true` and `OverrideTextureBarriers = 0`
+since June, set for the bmdhacks PCSX2 fork ("artifacts on Mali g29p1"). On
+ARMSX2 they force its slowest road on Mali, `self-read road = copy`: every draw
+that reads the target (Mali blends in the shader, so many do) copies it and
+breaks the render pass. The driver has rasterization-order attachment access,
+and ARMSX2 left to itself (both at their defaults, false and -1) reads the
+destination in the tile: `self-read road = in-pass, driver-ordered, in-tile fetch`.
+God of War from the savestate, GPU held at 600 MHz and CPU at 1608 MHz (under the
+thermal limit), 10 s of Mali job trace, two rounds:
+
+| Road | GPU per frame | fragment jobs (passes) per frame | fps |
+|---|---|---|---|
+| copy (the old template) | 30.8, 30.5 ms | 74.6, 73.7 | 25.2, 25.1 |
+| in-tile fetch (defaults) | 26.3, 22.5 ms | 53.9, 54.1 | 26.5, 26.7 |
+| barriers, no fetch (`DisableFramebufferFetch = true`, -1) | 28.9, 28.1 ms | 56.0, 56.1 | 25.5, 25.4 |
+
+At the usual clocks, hot (76-80 C, the GPU held by the thermal governor), the
+fps barely move: Jak's intro 34.60 and 34.72 against 34.11 and 34.43, God of War
+27.46 and 26.88 against 27.50 and 26.08. The GPU does 15-27% less work a frame,
+which shows as speed only where it is the limit, and as heat everywhere. No
+artifacts on either game's screens (taken at different moments, not compared
+pixel by pixel). `OverrideTextureBarriers = 0` alone keeps the copy road
+whatever fetch is set to: the in-tile read comes only with barriers
+(`GSSelfReadRoadPolicy.h`). Only the RG52 Mini's template is changed. An ini
+already made from the old one on /roms is put on the defaults by the launcher
+(`standalone-pcsx2sa`) once, on the first PS2 game after the update: it leaves
+`.selfread-defaults` beside the ini, so a value set by hand later stays. A flag
+rather than the ini's date against the update's: an OTA unpacks its files with
+the build's times, and the clock on exFAT is local time.
+
 **Tried, not kept** (the change against the same build without it):
 
 | Change | Jak's intro | God of War |
