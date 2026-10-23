@@ -152,7 +152,16 @@ nes-box folder (KNOWN-ISSUES). Left:
   --all-functions --counts`) is what is lost. GammaOS's profile lost 44%.
 * **More games.** Only Super Mario 3D Land was played. Check a heavier one
   (Monster Hunter, Zelda) and what speed it reaches.
-* **azahar-nano's switches:** only their defaults were measured.
+* **azahar-nano's switches:** only their defaults were measured. Since
+  006-008 (2026-10-23) the core is set up as GammaOS's frontend sets it
+  (KNOWN-ISSUES, "GammaOS's settings").
+* **Presenting on a thread of its own.** With both eyes drawn Super Mario 3D
+  Land runs at 42 here with the GPU 64% busy, at 50-58 on GammaOS with the
+  same GPU work: the core waits about 15 ms a frame inside RetroArch's
+  present (acquire of the next swapchain image), and the emulation does not
+  go on meanwhile. GammaOS's azahar-nano presents on its own thread and shows
+  the newest frame. Right eye off (the default) it is 60 either way; a game
+  heavier on the GPU would show it again.
 * **A newer azahar-nano** means a new `azahar-patch-000`: the diff of their
   tree against the 2126.1.2 tag with its submodules, made as its header says,
   then 002-005 checked on top.
@@ -443,7 +452,7 @@ emulators wait on memory and JIT code, and the compiler does not reach either.
 PGO stays the one untried option for them. It needs a training run in real
 gameplay with the owner, and the flat profile leaves it little to work on.
 Azahar (3DS) got it: a profile trained here took azahar-nano from 24.7 fps to
-the game's full 30 (above). So did PS2, with ARMSX2 in place of the old fork:
+30 (above; the GPU's limit then, half speed, until GammaOS's settings). So did PS2, with ARMSX2 in place of the old fork:
 the profile and ThinLTO gave it 8.6% on the intro (above).
 
 ## Battery in sleep (2026-10-19)

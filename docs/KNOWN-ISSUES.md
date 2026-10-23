@@ -993,7 +993,7 @@ nothing as well, since the ROM was not where perfmax expected it.
 `ondemand` reads an emulator that keeps one core about half busy as light
 load. Super Mario 3D Land in Azahar, from one savestate:
 
-| Governors | fps (game's own rate is 30) |
+| Governors | fps (60 is full speed; these are from before azahar-patch-006) |
 |---|---|
 | left as they were (the bug) | 24.0 |
 | `performance` | 26.7 |
@@ -1264,8 +1264,9 @@ it. Encrypted dumps do not run.
   lists beside the emulation thread, and no GPU wait on a repeated frame
   (`azahar-patch-000`, from GammaOSNextDistribution-14 8d68e5ecaab). The 1.3
   test build shipped plain 2126.2. In Super Mario 3D Land with the CPU capped
-  at 1008 MHz that ran at 24 fps, this core at the game's full 30; at 2 GHz
-  its emulation thread is 29% busy against 54%.
+  at 1008 MHz that ran at 24 fps, this core at 30 (half the game's speed: 30
+  was then the GPU's limit, see "GammaOS's settings" below); at 2 GHz its
+  emulation thread is 29% busy against 54%.
 - **Its switches** (about 90; Android properties
   `persist.gammaos.azahar_nano.<name>` on GammaOS) are environment variables
   here, named the same with dots as underscores:
@@ -1283,12 +1284,49 @@ it. Encrypted dumps do not run.
   Land on this device with an instrumented build of the same recipe, merged
   with GammaOS's own profile for azahar-nano (six games). Theirs alone did
   nothing here: in 1-1 with the CPU capped at 816 MHz the core ran at 24.7 fps
-  without a profile, 24.8 with theirs and the full 30 with the merged one.
+  without a profile, 24.8 with theirs and 30, the GPU's limit then, with the
+  merged one.
   Theirs comes from an Android build (libc++, the NDK's clang): 44% of its
   counts are on functions whose code differs in ours, and clang drops them.
-- **Frame rate.** The frames counted are the ones the game draws: Super Mario
-  3D Land draws 30 a second in 1-1 and 60 at the checkpoint of 1-2. GammaOS's
-  azahar-nano app counts the 3DS's 60 refreshes and shows 60 for both.
+- **Frame rate.** The core hands RetroArch a frame on every emulated refresh
+  of the 3DS, so the flips counted are emulated refreshes and 60 is full
+  speed, as GammaOS's azahar-nano app counts them. The 30 a second in 1-1
+  measured until 2026-10-22 was half speed (the game's sound ran at half speed
+  too); this bullet used to take it for the game's own rate.
+- **Speed: GammaOS's settings (2026-10-23).** Super Mario 3D Land ran at half
+  speed here and at full speed in azahar-nano on GammaOS, on the same device.
+  Both were measured from one save state with a Mali job trace and the core's
+  own GPU timer (GammaOS's swap tracer, Android-only in the sources). The GPU
+  took 23.8 ms a frame here (vertex and tiler 19.5, fragment 19.9 with both
+  eyes; clears alone 6.6), against GammaOS's 15.2 with both eyes and 7.9
+  without the right one. Clocks are the same in both (GPU 900 MHz, DDR
+  928 MHz), and so is the work once the core is set up as there:
+  - `azahar-patch-006`: accurate multiplication off by default (GammaOS's
+    config default); asynchronous shader builds and "Disable Right Eye
+    Render" as core options, both on, as GammaOS's frontend seeds them.
+  - `azahar-patch-007`: no geometry shaders on Arm's driver (Android's build
+    has none: "extremely expensive on tilers"), and what GammaOS's frontend
+    turns on at every launch: vertex depth, render pass and folded clears,
+    the hardware scissor, the JIT warm-up.
+  - `azahar-patch-008`: the large-screen layout drawn at 1280x640, the
+    panel's size, instead of 1920x960 (the core's present pass 2.45 ms, now
+    1.21).
+
+  | Super Mario 3D Land 1-1, standing | fps | GPU per frame |
+  |---|---|---|
+  | before | 32.4 | 23.8 ms |
+  | 006 + 007, both eyes | 41.8 | 15.7 ms |
+  | 006 + 007 (right eye off) | 60.0 | 9.9 ms |
+  | 006-008 | 60.0 | 8.7 ms |
+  | GammaOS (right eye off / on) | 59.4 / 50-58 | 7.9 / 15.2 ms |
+
+  The rotate layer's pass costs about 0.3 ms a frame. With both eyes the GPU
+  is 64% busy here and the game still runs at 42: the core waits about 15 ms
+  a frame for RetroArch's present, where GammaOS presents on a thread of its
+  own (TODO).
+- **Core options saved before 006** keep accurate multiplication on: RetroArch
+  writes every option of a core into `retroarch-core-options.cfg` with its
+  value at the time. Images before it had no 3DS core in a release.
 - **RetroArch's FPS counter costs about 20%** on the vulkan driver (29.7 fps
   without it, 24.3 with it, same savestate, 2126.2). Measure without it.
 - **RGA scaling** (`video_ctx_scaling`) changes nothing on the vulkan driver
