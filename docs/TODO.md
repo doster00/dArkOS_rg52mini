@@ -162,6 +162,16 @@ nes-box folder (KNOWN-ISSUES). Left:
   go on meanwhile. GammaOS's azahar-nano presents on its own thread and shows
   the newest frame. Right eye off (the default) it is 60 either way; a game
   heavier on the GPU would show it again.
+* **The libretro core's Vulkan device has few extensions.** RetroArch lets the
+  core create the device (`CreateVulkanDevice` in `libretro_vk.cpp`), and it
+  enables only swapchain, image format list, external host memory, tooling
+  info and custom border colour. The renderer then finds no function pointers
+  for extended dynamic state or timeline semaphores and goes without
+  ("disabling" in the log), so each shader pair needs a pipeline per fixed
+  state, where GammaOS on Mali makes cull, depth, stencil and blend dynamic:
+  more pipelines to build and cache. It also logs "Enabling extension:
+  VK_EXT_index_type_uint8" and uses 8-bit indices on a device that never
+  enabled it; Arm's driver takes them.
 * **A newer azahar-nano** means a new `azahar-patch-000`: the diff of their
   tree against the 2126.1.2 tag with its submodules, made as its header says,
   then 002-005 checked on top.
