@@ -635,7 +635,10 @@ and rk628 probe order before concluding anything about the hardware.
   Hence `darkos-poweroff`: ES's `shutdown` event, on "yes", starts it in a
   unit of its own; it waits up to a minute for ES to end, then asks for the
   power-off every second until it happens (attempts in the journal, tag
-  `darkos-poweroff`). Not yet tried on the device. What stops ES on revision A
+  `darkos-poweroff`). On the test device: ES killed with SIGSEGV after the
+  event, systemd started it again 0.3 s later (the menu would be back), and
+  the device was off 3 s after the crash; "shut down" from the menu as
+  before, off 5.4 s after "yes". What stops ES on revision A
   is still unknown: the journal of that boot and `~/.emulationstation/
   es_log.txt*` right after a failed try would say.
   Before the user's answers, on the test device (revision B, 1.3), not
