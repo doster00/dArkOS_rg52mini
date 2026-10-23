@@ -503,6 +503,37 @@ Azahar (3DS) got it: a profile trained here took azahar-nano from 24.7 fps to
 30 (above; the GPU's limit then, half speed, until GammaOS's settings). So did PS2, with ARMSX2 in place of the old fork:
 the profile and ThinLTO gave it 8.6% on the intro (above).
 
+## PSP and Dreamcast: nothing to fix (2026-10-23)
+
+Azahar and ARMSX2 had GPU settings for Mali that only their Android builds, or
+an old template, left out here. PPSSPP 1.20.4 and flycast 2.6 have none:
+- **PPSSPP:** its Mali workarounds go by the GPU's vendor (a tiler, two
+  driver bugs), so they apply on Linux as on Android. The one Android-only
+  rendering change, dropping destination alpha, is for unbuffered rendering
+  (`SkipBufferEffects`), which is off.
+- **flycast:** on Android it adds loading its own driver for Adreno, nothing
+  for Mali, and the present mode is FIFO on ARM there as here.
+- **`ppsspp.ini.rg52mini`** still has keys 1.20.4 no longer reads:
+  `ForceMaxEmulatedFPS = 30`, `ShowFPSCounter`, `RenderingMode`,
+  `DisableSlowFramebufEffects`. They do nothing; `InflightFrames = 2` (its
+  default is 3) is read.
+
+Measured as ES starts them, cool (58-67 C, no throttling, GPU 900 MHz, CPU
+2016), 8 s windows of Mali job and flip trace, the screen grabbed after each:
+
+| Game | Emulator | Scene | fps | GPU busy | GPU per frame | Busiest thread |
+|---|---|---|---|---|---|---|
+| Crazy Taxi | flycast, Vulkan, 640x480 | attract run in the city | 59.6-59.8 | 47-62% | 7.9-10.3 ms | 78-81% (render 39-44%) |
+| Ape Escape Racing (demo) | PPSSPP, Vulkan, 2x | a race | 60.0 | 29% | 4.8 ms | 28% |
+| Hot Shots Golf 2 (demo) | PPSSPP, Vulkan, 2x | on the course | 60.1 | 30-32% | 5.0-5.3 ms | 25-27% |
+| Street Fighter Alpha 3 Max | PPSSPP, Vulkan, 2x | a menu (2D) | 60 | 22% | 3.6 ms | 9% |
+
+All at full speed with room, so `InflightFrames` was not compared. flycast's
+SH4 thread is the closer limit: in a heavier Dreamcast game the CPU runs out
+before the GPU. The card's games are light ones; nothing like God of War:
+Chains of Olympus or Shenmue was measured. A game that runs slow here is
+compared with GammaOS on the same card, as Azahar was.
+
 ## Battery in sleep (2026-10-19)
 
 Sleep is deep now, the black screensaver ends in sleep on battery, two hours
