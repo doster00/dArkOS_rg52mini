@@ -332,6 +332,8 @@ sudo chmod 777 Arkbuild/usr/lib/systemd/system-sleep/sleep
 sudo sed -i "/SuspendState\=/c\SuspendState\=mem" Arkbuild/etc/systemd/sleep.conf
 # From ES's screensaver on battery to sleep (Emulationstation/scripts.rk3562).
 sudo install -m 755 scripts/rk3562/screensaver-autosleep.sh Arkbuild/usr/local/bin/screensaver-autosleep
+# From ES's shutdown event to the power-off (Emulationstation/scripts.rk3562).
+sudo install -m 755 scripts/rk3562/darkos-poweroff.sh Arkbuild/usr/local/bin/darkos-poweroff
 
 # Set DRM on boot
 sudo chroot Arkbuild/ bash -c "(crontab -l 2>/dev/null; echo \"@reboot /usr/local/bin/hdmi-test.sh &\") | crontab -"

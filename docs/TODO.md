@@ -621,11 +621,26 @@ and rk628 probe order before concluding anything about the hardware.
 * **`OF: graph: no port node found`** in the husb311 connector. Role switching
   works anyway. `backup/dtb/live.dtb` from the vendor's EmuELEC has the
   complete port/endpoint graph if this is ever worth tightening.
-* **"Does not turn off the first time"** (a user's report, 2026-10-23, 1.3):
-  the screen goes dark with the lights still on until B is pressed, then the
-  menu comes back, several times before it is off. Not reproduced on the test
-  device, on battery or on the charger, with the stick LEDs on; how the user
-  turns it off is asked. The power key alone is sleep (ogage runs `pause.sh`), R3 + power is
+* **"Does not turn off the first time"** (a user's report, 2026-10-23): the
+  screen goes dark with the lights still on until B is pressed, then the menu
+  comes back, several times before it is off. Asked, the user says: 1.2,
+  revision A, "shut down" in ES's menu, on battery, a card with dArkOS alone;
+  B a few seconds after the screen went dark, and the menu at once, without
+  the boot logo. So no reset, and no power-off begun either: once systemd has
+  started one, nothing brings ES back. ES asks for it (`sudo shutdown -h now`,
+  and `/tmp/es-shutdown` for its launcher) only after its whole exit (saving
+  its data, the window closed); a crash on the way has no shutdown, and
+  `Restart=on-failure` starts ES again. ES's launcher and service, and ES's
+  code for this, are as in 1.2.
+  Hence `darkos-poweroff`: ES's `shutdown` event, on "yes", starts it in a
+  unit of its own; it waits up to a minute for ES to end, then asks for the
+  power-off every second until it happens (attempts in the journal, tag
+  `darkos-poweroff`). Not yet tried on the device. What stops ES on revision A
+  is still unknown: the journal of that boot and `~/.emulationstation/
+  es_log.txt*` right after a failed try would say.
+  Before the user's answers, on the test device (revision B, 1.3), not
+  reproduced on battery or on the charger, with the stick LEDs on. The power
+  key alone is sleep (ogage runs `pause.sh`), R3 + power is
   `finish.sh`, and a real sleep has the screen and the stick LEDs dark (the
   LEDs 1.3 s after the screen). Checked, all as designed: a press in ES (dark
   in 0.3 s, asleep about 2.8 s later, after the kernel's sync); a press during
