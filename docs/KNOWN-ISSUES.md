@@ -798,6 +798,11 @@ host does; what a failed clone left behind goes first. It is a wrapper in
 `/root/.darkos-git`, first in the chroot's PATH, which `write_rootfs*.sh`
 remove before the root filesystem is written.
 
+Checked on 2026-10-23: a full build with both changes (88a32cb, 8 h 15 min)
+stopped nowhere, gave up only on the four packages every build gives up on
+(libfuse2, libpcap0.8, liblc3-0, libreadline7), and its image has
+mupen64plus and no `/root/.darkos-git`.
+
 ## The Bluetooth driver freed every failed packet twice — fixed
 
 `bt_sdio_recv()` in `drivers/net/wireless/aic8800/aic8800_fdrv/btsdio.c` called
