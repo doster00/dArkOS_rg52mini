@@ -172,6 +172,13 @@ nes-box folder (KNOWN-ISSUES). Left:
   more pipelines to build and cache. It also logs "Enabling extension:
   VK_EXT_index_type_uint8" and uses 8-bit indices on a device that never
   enabled it; Arm's driver takes them.
+* **The JIT warm-up does nothing yet.** `azahar-patch-007` sets
+  `gammaos_jit_warmup` as GammaOS's frontend does, but only that frontend
+  calls `GammaJitWarm` (at boot) and `GammaJitSave` (every 30 s and at exit);
+  core.cpp calls the warm-up only after its own state load, which the libretro
+  core does not use. No list is written (`jit/` under the user directory).
+  Calls in `retro_load_game`, `retro_unserialize` and `retro_unload_game`
+  would give the faster first seconds after a boot or a state load.
 * **A newer azahar-nano** means a new `azahar-patch-000`: the diff of their
   tree against the 2126.1.2 tag with its submodules, made as its header says,
   then 002-005 checked on top.
