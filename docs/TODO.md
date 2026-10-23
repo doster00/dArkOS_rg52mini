@@ -624,24 +624,26 @@ and rk628 probe order before concluding anything about the hardware.
 * **"Does not turn off the first time"** (a user's report, 2026-10-23, 1.3):
   the screen goes dark with the lights still on until B is pressed, then the
   menu comes back, several times before it is off. Not reproduced on the test
-  device, on battery, with the stick LEDs on; how the user turns it off is
-  asked. The power key alone is sleep (ogage runs `pause.sh`), R3 + power is
+  device, on battery or on the charger, with the stick LEDs on; how the user
+  turns it off is asked. The power key alone is sleep (ogage runs `pause.sh`), R3 + power is
   `finish.sh`, and a real sleep has the screen and the stick LEDs dark (the
   LEDs 1.3 s after the screen). Checked, all as designed: a press in ES (dark
   in 0.3 s, asleep about 2.8 s later, after the kernel's sync); a press during
   the black screensaver (ES ends it itself); the screensaver's autosleep on
-  battery, woken by a press (screen and menu at once). Two things seen on the
-  way:
+  battery, woken by a press (screen and menu at once); a press on the charger,
+  nothing waking it for 45 s, then a press (screen at once). Two things seen
+  on the way:
   - A second press in the 2-3 s between the hook's end of `pre` ("asleep")
     and the kernel's freeze (its filesystem sync) is lost: `pause.sh` takes
     it for the press that woke the system, and the device sleeps until the
     next one. A press during `pre` sets the RTC alarm a second on, which
     can fire inside that same sync and be lost as well.
-  - The power LEDs (gpio 96/97) are exported by the hook on the first sleep
-    after boot, and the export resets them to 0 before their state is saved,
-    so they stay off after that wake.
-  Not yet tried: on the charger (a wake with husb311 among its causes leaves
-  the screen dark by design and sleeps again), and during a game.
+  - Fixed: the power LEDs (gpio 96/97) stayed off after the first sleep after
+    boot. The hook exported them and wrote "out" as the direction, which
+    drives a pin low, before it saved their state. It reads them first now and
+    writes "low" (output, off) after; on the device, the red LED (U-Boot's
+    "charging") is lit again after the wake.
+  Not yet tried: during a game.
 
 ## Decisions nobody has made yet
 

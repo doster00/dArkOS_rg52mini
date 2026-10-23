@@ -68,17 +68,19 @@ case $1 in
     # Turn off power LEDs during sleep
     # GPIO3_A0 (green) = bank 3 * 32 + pin 0 = 96
     # GPIO3_A1 (red)   = bank 3 * 32 + pin 1 = 97
-    # U-Boot sets green=charged, red=charging; save state to restore on wake
+    # U-Boot sets green=charged, red=charging; save state to restore on wake.
+    # The pins are exported on the first sleep after boot, and an export leaves
+    # them as U-Boot set them, so their state is read before anything is
+    # written: "out" as the direction drives a pin low, and it used to come
+    # first, which saved a 0 and left the LEDs off after every wake. "low"
+    # makes the pin an output and turns the LED off in one write.
     for gpio in 96 97; do
-      if [ ! -d /sys/class/gpio/gpio${gpio} ]; then
-        echo ${gpio} > /sys/class/gpio/export 2>/dev/null
-        echo out > /sys/class/gpio/gpio${gpio}/direction 2>/dev/null
-      fi
+      [ -d /sys/class/gpio/gpio${gpio} ] || echo ${gpio} > /sys/class/gpio/export 2>/dev/null
     done
     cat /sys/class/gpio/gpio96/value > /var/local/led_green.state 2>/dev/null
     cat /sys/class/gpio/gpio97/value > /var/local/led_red.state 2>/dev/null
-    echo 0 > /sys/class/gpio/gpio96/value 2>/dev/null
-    echo 0 > /sys/class/gpio/gpio97/value 2>/dev/null
+    echo low > /sys/class/gpio/gpio96/direction 2>/dev/null
+    echo low > /sys/class/gpio/gpio97/direction 2>/dev/null
 
     # Power down the stick-RGB LED MCU during sleep (no-op unless configured)
     [ -f /home/ark/.config/led.cfg ] && /usr/local/bin/ledctl suspend 2>/dev/null
