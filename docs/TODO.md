@@ -677,6 +677,34 @@ the image).
   * PPSSPP: wait for 1.21.
   * The libretro flycast is 4c293f3, from 2022.
 
+## Keys: L3 closes by itself, Home toggled Bluetooth (2026-10-24, for the build after 20261024000117)
+
+The case names two buttons the code does not:
+* Home is BTN_MODE, SDL's button 10, and RetroArch's hotkey enable.
+* Back is BTN_TRIGGER_HAPPY1, SDL's button 17. Nothing else uses it.
+
+The problems found:
+* **L3 closes by itself.** L3 is the switch under the left stick. In two key
+  logs taken while the owner played, it closed by itself when the stick was
+  pushed hard: once for 0.7 s, once for 3 s.
+  * Azahar swapped its screens on L3. Patch 011 moves that to Back (above).
+  * DraStic opened its menu on L3. `drastic/hotkey`, an LD_PRELOAD library
+    that the launchers load when it is there, puts the menu on Home+X, the
+    combination that opens RetroArch's menu. It wraps SDL_PollEvent:
+    * Home+X goes to DraStic as L3, still the menu's key in `drastic.cfg`.
+    * A real L3 is dropped.
+    * While Home is held, no button reaches the game.
+    * Home alone still swaps the screens.
+    Checked on the device with Diddy Kong Racing DS:
+    * L3: nothing.
+    * Home alone: the screens swapped.
+    * The owner's Home+X: the menu.
+* **Home toggled Bluetooth.** ogage's rg503 branch runs `bttoggle.sh` at
+  every BTN_MODE press, so each Home+X for RetroArch's menu turned Bluetooth
+  on or off. About 15 toggles are in the journal of half an hour of play.
+  `ogage/patches/0001` removes it. Bluetooth is still switched in Options >
+  Bluetooth.
+
 ## Battery in sleep (2026-10-19)
 
 Sleep is deep now, the black screensaver ends in sleep on battery, two hours

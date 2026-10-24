@@ -17,7 +17,12 @@ echo "VAR=drastic" > /home/ark/.config/KILLIT
 sudo systemctl restart killer_daemon.service
 
 cd /opt/drastic
-./drastic "$1"
+# RG52 Mini: the menu on Home+X instead of L3 (drastic/hotkey)
+if [[ -f /opt/drastic/drastic-hotkey.so ]]; then
+  LD_PRELOAD=/opt/drastic/drastic-hotkey.so ./drastic "$1"
+else
+  ./drastic "$1"
+fi
 
 sudo systemctl stop killer_daemon.service
 

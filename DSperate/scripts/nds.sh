@@ -43,7 +43,12 @@ elif [[ "$1" == "drastic" ]]; then
   sudo systemctl restart killer_daemon.service
 
   cd /opt/drastic
-  ./drastic "$2"
+  # RG52 Mini: the menu on Home+X instead of L3 (drastic/hotkey)
+  if [[ -f /opt/drastic/drastic-hotkey.so ]]; then
+    LD_PRELOAD=/opt/drastic/drastic-hotkey.so ./drastic "$2"
+  else
+    ./drastic "$2"
+  fi
 
   sudo systemctl stop killer_daemon.service
 
