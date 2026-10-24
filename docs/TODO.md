@@ -632,7 +632,10 @@ the image).
   too. The blue bottom-screen frames 009 fixes did not show in our slot 9
   even without it (0 of 160 screen grabs). Neither showed a gain here; the
   codec is for texture loads, which these scenes do not have, and both were
-  taken as fixes and for other games.
+  taken as fixes and for other games. 011, from a user's report: the core
+  swapped the screens on L3, the switch under the RG52 Mini's left stick, which
+  a hard push of the stick closes; the swap is gone, and the prominent screen
+  is chosen in the core options only.
 * **ARMSX2: `pcsx2-0004`**, the frame limiter of deurefdfgdf's BKFT fork
   (4bdbd0a23e, the limiter only): it sleeps to 200 us before its deadline
   instead of spinning up to 2 ms twice a frame. The Sopranos' disc in the
