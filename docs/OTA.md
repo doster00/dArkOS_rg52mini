@@ -179,6 +179,16 @@ may change, so the client checks free space and assumes no sizes.
   Phandle numbers are ignored in the comparison; the pinctrl groups
   `play_joystick` points to are not compared, so a change of key pins needs
   the same manual check.
+- **p3 is small.** On the test card it is 97 MiB.
+  - `Image` and `uInitrd` take 44 MB and differ in every build, so every
+    package carries them.
+  - The client wants their whole size plus 1 MiB free (`boot_bytes`), although
+    it writes one file at a time and the old copy goes when the new one is
+    renamed over it.
+  - With 52 MiB free that passes now. A kernel and initrd about 7 MB bigger
+    would fail it on dual-boot cards, as a second kernel left on p3 did on
+    2026-10-24 (8 MiB free).
+  - The check could ask for the growth plus the largest file instead.
 - **Do not touch:**
   - the partition table and the bootable flag (only p3 has `legacy_boot`; two bootable partitions broke the loader);
   - GammaOS's partitions;

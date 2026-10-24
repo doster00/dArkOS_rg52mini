@@ -534,6 +534,103 @@ before the GPU. The card's games are light ones; nothing like God of War:
 Chains of Olympus or Shenmue was measured. A game that runs slow here is
 compared with GammaOS on the same card, as Azahar was.
 
+## Forks of the emulators read for speed (2026-10-24)
+
+The emulators' forks and copies were read for speed changes: Chinese mirrors,
+handheld vendors' trees, Dolphin's MMJ/MMJR/MMJR2(-VBI) and Ishiiruka, the
+ROCKNIX/Batocera/Knulli package trees, and ARMSX2's 190 forks. Most of them
+change only the UI.
+
+### Settings, measured: none changed
+
+Measured on 1.3 (20261024000117, by OTA from 20261020063016), as ES starts the
+games, volume 0, cooled below 62 C before each run. Each figure is two runs
+after a warm-up, fps between fixed frames.
+
+* **ARMSX2 spin wait.** `WAIT_SPIN_MICROSECONDS` (`common/HostSys.cpp`,
+  default 50 us) was tried at 2 and 10 us. A shorter spin does not help and
+  costs Jak 2-3%.
+
+  | Scene | 50 us | 2 us | 10 us |
+  |---|---|---|---|
+  | God of War savestate, frames 600-2000 | 29.69 | 29.69 | 29.52 |
+  | Jak's intro, frames 300-1850 | 34.93 | 33.81 | 34.18 |
+* **N64, standalone GLideN64.** The template's `[Video-GLideN64]` has
+  `configVersion = 26`, the plugin's own is 29. On its first run GLideN64
+  deletes the section and writes its defaults. Of the template's values, only
+  two differ from those defaults and are not set by `n64.sh` with `--set`:
+  `EnableLegacyBlending = 1` and `BackgroundsMode = 0`. Both are slower here.
+
+  | Config (AeroGauge, frames 600-1800) | fps |
+  |---|---|
+  | GLideN64's defaults, as after the reset | 59.36, 59.36 (the game's cap) |
+  | The template as version 29 (`MaxAnisotropy` renamed `anisotropy`, `EnableNoise` dropped) | 57.38, 57.56 |
+  | The same with `EnableHybridFilter = False` | 59.02, 58.78 |
+
+  The template stays as it is: the reset drops only the slower values. The
+  first run on a fresh image compiles shaders (54.8).
+* **Dolphin, ND Demo.** Frames 300-2400; base runs spread 2.7%. Nothing to
+  change.
+
+  | Setting | fps |
+  |---|---|
+  | As shipped | 45.76, 44.54 |
+  | `EnableGPUTextureDecoding = True` | 45.82, 45.36 |
+  | `ArbitraryMipmapDetection = False` | 44.97, 45.71 |
+  | `SyncOnSkipIdle = False` | 43.92, 44.70 |
+
+  The SoC reached 81-84 C by the end of each 75 s run.
+
+### Code, not tried yet
+
+* **Dolphin.** We ship e6583f8 (5.0-18516, February 2023), 7,308 commits
+  behind master. No fork carries speed work that upstream lacks.
+  * The real gain is upstream's ARM64 JIT work since then. Moving to it is
+    2-4 days: forward-port patches 006/007/011 (DRM) and 012 (hotkeys), and
+    set `AccurateFmadds = False`.
+  * Smaller backports onto ours: PR #12319 (applies cleanly), the `dcbz_l`
+    line of #13929, and the dispatcher series from #11737.
+  * Measure with `PerfMapDir=/tmp` and perf.
+* **ARMSX2.**
+  * A sleeping frame limiter: deurefdfgdf 4bdbd0a23e, about 30 lines. It
+    saves heat only.
+  * IOP recompiler fast paths: koundinyalanka1 61deb199d6 and 9c28867a00,
+    1-2 days.
+  * A rebase onto ARMSX2's master, 29 commits, among them a CPU sprite path
+    (85ce3417f1). The profile must be trained again after it.
+  * Cached readback memory on Mali: one line, but perf first.
+  * Worth watching: bmdhacks/malisx2, Mesa's Vulkan on kbase, at parity with
+    libmali.
+* **Azahar.**
+  * GammaOS's azahar-nano has four commits past ours: 43f1f504258 (frame
+    pacing), cfd0c22df98 and afb19857d2c (right-eye and async fixes), and
+    cheats.
+  * Upstream's NEON texture codec: 9ee6bc70f, PR #2564.
+  * dekopon c5e09fe36 (`IsReadOnlyMemory`); tico dcfb1027c, 658038a14 and
+    6cd2fb7b0.
+  * Each change needs the profile trained again.
+* **N64 in RetroArch.**
+  * mupen64plus_next ships with no core options set. Worth trying:
+    `ThreadedRenderer`, `EnableCopyDepthToRDRAM = Off`,
+    `HybridFilter = False`, 320x240.
+  * Its GLideN64 builds without NEON; the makefile change is about 5 lines.
+* **Saturn, Yaba Sanshiro.** The sound thread's wait in `scsp.c`, Linux
+  branch, does `time(&tm)` into a `timespec`. It then passes
+  `ctime(&tm)`, a string, as the `pthread_cond_timedwait` deadline. Read as a
+  `timespec`, that text gives a `tv_nsec` far past 10^9. The call fails with
+  EINVAL at once, so the thread polls in a loop rather than sleeping until the
+  next block of samples, which likely keeps one core busy.
+  * The Android branch builds the deadline with `clock_gettime`, but on a
+    carry it leaves `tv_nsec` at 10^9 or more.
+  * Fix: `clock_gettime(CLOCK_REALTIME)`, add the sleep, normalise.
+  * Not tried: the test card has no Saturn game.
+  * The same review also reported a dynarec register clobber (x4) and a
+    wrong decode of a backward `bra`; neither was checked.
+* **Left alone.**
+  * DuckStation: its licence forbids shipping a patched build.
+  * PPSSPP: wait for 1.21.
+  * The libretro flycast is 4c293f3, from 2022.
+
 ## Battery in sleep (2026-10-19)
 
 Sleep is deep now, the black screensaver ends in sleep on battery, two hours
