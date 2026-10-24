@@ -96,7 +96,22 @@ lacks Vulkan, which it has. The `n2.cmake` toolchain file stays: it is the
 aarch64 one, and `pi4.cmake` would build for armv7.
 
 It compiles, first try, with no errors on the step: a 3.9 MB stripped aarch64
-binary. Whether it runs on the device is untested.
+binary. It did not run, tried first on 2026-10-24 with Resident Evil: a
+SIGSEGV about 10 s in, with and without the BIOS. The SH-2 dynarec's arm64
+templates kept a register number in w4 across calls to the memory handlers,
+which may change it, and GCC 12's handlers do (patch 13, the same as
+devMiyax's 57af8f86 upstream, which this fork predates, plus three templates
+upstream missed). The sound thread also polled a core flat out, its timed wait
+given `ctime()`'s string as a deadline (patch 12). With both the game runs at
+59.9 fps and the process takes 105% of a core instead of 190%.
+
+The libretro core (RetroArch, `yabasanshiro`) is a different build and ran
+the game without either: 57.8 fps, about 150% of a core.
+
+Building it again needs the image build's GCC 12 (`build_deps.sh`): libchdr,
+which CMake clones unpinned from devmiyax/libchdr (unchanged since 2020),
+builds its FLAC with `-std=c99 -D_POSIX_C_SOURCE=199309L`, and GCC 14 makes
+the implicit `strdup`/`fseeko` there errors.
 
 ## Kodi builds, and costs two days doing it
 
@@ -756,10 +771,11 @@ Two consequences worth knowing:
   After the Cortex-A53 fix, everything restored from the 2026-09-15 cache was
   still tuned for the A55. Delete the relevant `.tar.gz` and `.commit` pair to
   force a rebuild.
-* `build_yabasanshirosa.sh` is worse: it derives its key by curling the
-  **upstream** christianhaitian script for its `TAG=`, not our fork's. Editing
-  the tag here leaves the key unchanged and a stale tarball is restored over
-  the new build.
+* `build_yabasanshirosa.sh` was worse: it derived its key by curling the
+  **upstream** christianhaitian script for its `TAG=`, not our fork's, so
+  editing the tag here left the key unchanged and a stale tarball was restored
+  over the new build. It reads our recipe's `TAG=` now, and since 2026-10-24
+  adds a hash of the recipe and its patches, so a new patch rebuilds it.
 
 A failed build used to be cached the same way — see below.
 

@@ -581,51 +581,88 @@ after a warm-up, fps between fixed frames.
 
   The SoC reached 81-84 C by the end of each 75 s run.
 
-### Code, not tried yet
+### Code from them, taken (2026-10-24, for the build after 20261024000117)
+
+Each measured on the device against a build made the same way without it (the
+A/B builds are not the image's: Dolphin and ARMSX2 cross-built with clang,
+without LTO or the profile; Yaba Sanshiro in a trixie chroot with GCC 12, as
+the image).
+
+* **Saturn, Yaba Sanshiro: it crashed.** Resident Evil died with SIGSEGV about
+  10 s in, BIOS or not. Patch 13: the dynarec kept values in w4-w6 across
+  memory calls (devMiyax fixed most of it upstream in 57af8f86; AND_B, XOR_B
+  and one register of LDC_SR_INC only here). Patch 12: the sound thread's
+  timed wait got `ctime()`'s string as its deadline, failed with EINVAL and
+  polled. Resident Evil, 90 s:
+
+  | | fps | process | sound thread | 4 cores busy | end |
+  |---|---|---|---|---|---|
+  | 13 | 59.8, 59.9 | 186-195% | 98% | 49-51% | 78 C |
+  | 12 + 13 | 59.9, 59.9 | 105% | 17% | 28% | 73-75 C |
+
+  The review's other report, a wrong decode of a backward `bra`, was not
+  checked.
+* **Dolphin: patch 013**, PR #12319 (conditional branches stay in near code)
+  and the `dcbz_l` line of #13929. ND Demo, frames 300-2400, three runs:
+  45.33, 45.28, 44.81 without; 47.30, 47.36, 47.20 with #12319 (+4.8%);
+  46.84, 47.12, 47.36 with both. The image's own build (GCC, LTO) did 45.33,
+  45.61, 45.86. Dolphin builds under qemu in the image, about 3 hours.
+* **N64 in RetroArch: `mupen64plus-ThreadedRenderer = "True"`** in the image's
+  core options, and for updated devices `ota/hooks/1.3-mupen64plus-threaded.sh`
+  adds it unless the user has set it. mupen64plus_next had no options set:
+
+  | | AeroGauge 600-1800 | Zelda's title 600-2400 | 1200-3000 |
+  |---|---|---|---|
+  | defaults | 53.86, 54.06 | 53.05, 53.10 | 51.80, 51.80 |
+  | ThreadedRenderer | 56.92 | 56.11, 56.11 | 57.42, 57.45 |
+  | EnableCopyDepthToRDRAM Off | 55.05 | | |
+  | HybridFilter False | 53.82 | | |
+  | 320x240 | 56.52 | | |
+  | all four | 56.97 | | |
+
+  Only the thread was kept: copying depth off breaks what reads it (Zelda's
+  sun), 320x240 is a smaller picture. RetroArch exits on SIGTERM in 0.6 s with
+  it. The standalone GLideN64 still does 59.36 in AeroGauge.
+* **Azahar: patches 009 and 010.** 009 is GammaOS's three azahar-nano commits
+  of 2026-10-20 (frame pacing after a long frame; the right-eye skip no longer
+  drops the bottom screen's draws in Super Mario 3D Land). 010 is upstream's
+  SIMD texture codec (9ee6bc70f, PR #2564). Super Mario 3D Land from its
+  savestates, with the same profile: slot 0, 60 s, 58.47 and 58.62 without,
+  58.42 and 58.68 with 009; slot 9, 40 s, about 59.3 either way, with 010
+  too. The blue bottom-screen frames 009 fixes did not show in our slot 9
+  even without it (0 of 160 screen grabs). Neither showed a gain here; the
+  codec is for texture loads, which these scenes do not have, and both were
+  taken as fixes and for other games.
+* **ARMSX2: `pcsx2-0004`**, the frame limiter of deurefdfgdf's BKFT fork
+  (4bdbd0a23e, the limiter only): it sleeps to 200 us before its deadline
+  instead of spinning up to 2 ms twice a frame. The Sopranos' disc in the
+  BIOS's browser at full speed, four runs each: the EE thread 46% of a core
+  before, 38-39% after; the process 80-81% against 73-74%; 50.48 fps both.
+  It does nothing in games that run slower than full speed.
+
+### Code from them, not taken
 
 * **Dolphin.** We ship e6583f8 (5.0-18516, February 2023), 7,308 commits
   behind master. No fork carries speed work that upstream lacks.
   * The real gain is upstream's ARM64 JIT work since then. Moving to it is
     2-4 days: forward-port patches 006/007/011 (DRM) and 012 (hotkeys), and
     set `AccurateFmadds = False`.
-  * Smaller backports onto ours: PR #12319 (applies cleanly), the `dcbz_l`
-    line of #13929, and the dispatcher series from #11737.
+  * Next backports to try: the dispatcher series from #11737.
   * Measure with `PerfMapDir=/tmp` and perf.
 * **ARMSX2.**
-  * A sleeping frame limiter: deurefdfgdf 4bdbd0a23e, about 30 lines. It
-    saves heat only.
-  * IOP recompiler fast paths: koundinyalanka1 61deb199d6 and 9c28867a00,
-    1-2 days.
+  * IOP recompiler fast paths: koundinyalanka1 61deb199d6 and 9c28867a00. They
+    do not apply to our tree (2,600 lines, a port of 1-2 days), and the IOP is
+    a small part of the CPU thread: the JIT of EE and IOP together is 19% of
+    all samples in Jak.
   * A rebase onto ARMSX2's master, 29 commits, among them a CPU sprite path
     (85ce3417f1). The profile must be trained again after it.
   * Cached readback memory on Mali: one line, but perf first.
   * Worth watching: bmdhacks/malisx2, Mesa's Vulkan on kbase, at parity with
     libmali.
-* **Azahar.**
-  * GammaOS's azahar-nano has four commits past ours: 43f1f504258 (frame
-    pacing), cfd0c22df98 and afb19857d2c (right-eye and async fixes), and
-    cheats.
-  * Upstream's NEON texture codec: 9ee6bc70f, PR #2564.
-  * dekopon c5e09fe36 (`IsReadOnlyMemory`); tico dcfb1027c, 658038a14 and
-    6cd2fb7b0.
-  * Each change needs the profile trained again.
-* **N64 in RetroArch.**
-  * mupen64plus_next ships with no core options set. Worth trying:
-    `ThreadedRenderer`, `EnableCopyDepthToRDRAM = Off`,
-    `HybridFilter = False`, 320x240.
-  * Its GLideN64 builds without NEON; the makefile change is about 5 lines.
-* **Saturn, Yaba Sanshiro.** The sound thread's wait in `scsp.c`, Linux
-  branch, does `time(&tm)` into a `timespec`. It then passes
-  `ctime(&tm)`, a string, as the `pthread_cond_timedwait` deadline. Read as a
-  `timespec`, that text gives a `tv_nsec` far past 10^9. The call fails with
-  EINVAL at once, so the thread polls in a loop rather than sleeping until the
-  next block of samples, which likely keeps one core busy.
-  * The Android branch builds the deadline with `clock_gettime`, but on a
-    carry it leaves `tv_nsec` at 10^9 or more.
-  * Fix: `clock_gettime(CLOCK_REALTIME)`, add the sleep, normalise.
-  * Not tried: the test card has no Saturn game.
-  * The same review also reported a dynarec register clobber (x4) and a
-    wrong decode of a backward `bra`; neither was checked.
+* **Azahar:** dekopon c5e09fe36 (`IsReadOnlyMemory`); tico dcfb1027c,
+  658038a14 and 6cd2fb7b0.
+* **N64 in RetroArch:** its GLideN64 builds without NEON; the makefile change
+  is about 5 lines.
 * **Left alone.**
   * DuckStation: its licence forbids shipping a patched build.
   * PPSSPP: wait for 1.21.

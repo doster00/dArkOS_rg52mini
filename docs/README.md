@@ -67,9 +67,11 @@ Bluetooth and USB host are the two things the upstream port cannot do. Both
 come from the device tree and driver changes described in
 [HARDWARE.md](HARDWARE.md).
 
-Built but never launched: Yabasanshiro and freej2me-plus. They had been
-silently missing from earlier images and now exist — whether they run is
-another question.
+Built but never launched: freej2me-plus. It had been silently missing from
+earlier images and now exists — whether it runs is another question.
+Yabasanshiro was in the same state until 2026-10-24, when the one game tried
+crashed within seconds, in a dynarec template for an instruction as common as
+MOV.B; patches 12 and 13 of its recipe make it run (KNOWN-ISSUES.md).
 
 Not verified: whether the speaker click on playback start and stop is gone.
 The GPIO behaves correctly in silence, which is necessary and not sufficient;

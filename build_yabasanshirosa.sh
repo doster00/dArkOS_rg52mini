@@ -5,8 +5,9 @@
 # The cache key used to be read from christianhaitian's copy of this recipe
 # over the network. That is the upstream of our fork, so editing the TAG
 # left the key unchanged and a stale tarball was restored over the new
-# work - while a network hiccup silently forced a rebuild. Read our own.
-YABA_CACHE_KEY="$(grep -oP '(?<=TAG=").*?(?=")' ${CHIPSET}_core_builds/scripts/yabasanshirosa.sh)"
+# work - while a network hiccup silently forced a rebuild. Read our own, and
+# with it the recipe and its patches, so that a new or changed patch rebuilds.
+YABA_CACHE_KEY="$(grep -oP '(?<=TAG=").*?(?=")' ${CHIPSET}_core_builds/scripts/yabasanshirosa.sh)-$(cat ${CHIPSET}_core_builds/scripts/yabasanshirosa.sh ${CHIPSET}_core_builds/patches/yabasanshirosa-patch* | sha1sum | cut -c1-12)"
 if [ -f "Arkbuild_package_cache/${CHIPSET}/yabasanshirosa.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/yabasanshirosa.commit)" == "${YABA_CACHE_KEY}" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/yabasanshirosa.tar.gz
 else
