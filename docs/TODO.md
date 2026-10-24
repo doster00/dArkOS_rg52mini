@@ -705,6 +705,41 @@ The problems found:
   `ogage/patches/0001` removes it. Bluetooth is still switched in Options >
   Bluetooth.
 
+## Azahar: save states in RetroArch (2026-10-24, for the build after 20261024000117)
+
+The owner found saves and loads slow. Measured with Super Mario 3D Land: its
+state is 292 MB serialized and 23 MB compressed. A test launched RetroArch with
+network commands and timestamped logs (SAVE_STATE and LOAD_STATE twice).
+
+|   | Before | After (patch 012) |
+|---|---|---|
+| One serialize and compress | 9 s | 1.4 s |
+| A save | about 27 s (3 of them) | 1.4 s (1) |
+| Deserializing a load | 3.5 s | 1.9 s |
+| A load (2 states, then the load) | about 30 s | about 5 s |
+| Free memory after 2 saves and 2 loads | 47 MB, 843 MB in swap | 234 MB, no swap |
+
+Where the time went:
+* RetroArch 1.22.2 asks the core for the state's size two or three times per
+  save. Before a load it asks again only to see that the size is not 0
+  (`command_event_main_state`), and then saves its undo buffer. The core made
+  a whole new state for each question.
+* Patch 012 makes one state per frame, and it streams RetroArch's buffer path
+  through zstd: level 1 on four threads while serializing, decompressed while
+  deserializing. GammaOS had done this only for its file path. The patch's
+  header has the details.
+
+Measured, not changed:
+* zstd level 3 takes 3.5 s for a 10% smaller file.
+* RetroArch's own rzip of the state file runs on its task thread after the
+  save: no pause, and 3% smaller files.
+
+Still open:
+* Two of a load's 5 s are RetroArch's: the size check and the undo buffer,
+  1.4 s each.
+* A RetroArch patch could skip the size check for loads. The undo buffer is
+  a feature (Undo Load State).
+
 ## Battery in sleep (2026-10-19)
 
 Sleep is deep now, the black screensaver ends in sleep on battery, two hours
