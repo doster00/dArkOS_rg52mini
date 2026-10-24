@@ -740,6 +740,45 @@ Two of a load's 5 s were RetroArch's: the size check and the undo buffer,
   which should make a load about 3.5 s. Measure it on the build that has it.
 * The undo buffer stays: it is a feature (Undo Load State).
 
+## Azahar: Castlevania: Lords of Shadow – Mirror of Fate (2026-10-25, for the build after 20261024000117)
+
+The owner found it slow. Measured on its intro, a cutscene in the game's
+engine: frames 60 to 660 after a RetroArch save state, each run from the same
+state, with a uprobe on `retro_run` counting emulated frames. The console was
+on the charger, so the CPU ran at 1.3 to 2.0 GHz.
+
+| | fps | GPU busy |
+|---|---|---|
+| Before | 9.2 | 95% |
+| GammaOS's `stereo_skip` | 11.1 | 43% |
+| and `async_gpu_flush_lag=24` | 14.4 | 57% |
+| and no copies out of the right eye (patch 013) | 20.1 | 75% |
+
+Where the time went:
+* The game draws the two eyes object by object, each draw into the other
+  eye's target. On Mali every switch ends a render pass: about 330 a frame.
+  `stereo_skip` (a GammaOS switch, off by default) learns the right eye's
+  target and leaves its draws out.
+* The game flushes the CPU cache before each of its command lists, about 15 a
+  frame. The core drained the GPU worker at each flush, so the emulation
+  thread waited half the time. `async_gpu_flush_lag=24` leaves up to 24 jobs
+  queued instead. With no wait at all it ran the same; a lag of 8 gave 11.7.
+* Each eye's image is copied into one texture for post-processing. The right
+  eye's copy went to the CPU, which first downloaded the left eye's copy from
+  the GPU and had it uploaded again, three times a frame. Patch 013 leaves such
+  copies out while `stereo_skip` holds a right eye target.
+
+Patch 013 sets both switches for this title (000400000009E500, the owner's
+copy) in `retro_load_game`, unless the environment already sets them.
+Grabs at frames 700, 1300, 1900 and 2500 match the build without any of this.
+
+Open:
+* Only the intro was measured; the game itself was not played.
+* The game's other releases have other title IDs. Add them when known.
+* `stereo_skip` may help other games that draw the eyes interleaved (GammaOS
+  wrote it for Metroid: Samus Returns). It is off by default there. No other
+  game was tried.
+
 ## Battery in sleep (2026-10-19)
 
 Sleep is deep now, the black screensaver ends in sleep on battery, two hours
