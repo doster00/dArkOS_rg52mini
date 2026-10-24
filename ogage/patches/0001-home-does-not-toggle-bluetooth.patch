@@ -1,0 +1,31 @@
+From: dArkOS RG52 Mini port
+Subject: Home does not toggle Bluetooth
+
+The RG52 Mini builds ogage from the RG503 branch, which runs bttoggle.sh at
+every press of BTN_MODE. On the RG52 Mini that button is Home, the one
+RetroArch takes as its hotkey enable, so opening RetroArch's menu with
+Home+X, or any other hotkey, turned Bluetooth on or off as well.
+Bluetooth is still switched in Options > Bluetooth (Bluetooth.sh).
+
+diff --git a/src/main.rs b/src/main.rs
+index 62764a9..2477762 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -19,7 +19,6 @@ static QVOL_DN:     EventCode = EventCode::EV_KEY(EV_KEY::BTN_DPAD_LEFT);
+ static VOL_UP:      EventCode = EventCode::EV_KEY(EV_KEY::KEY_VOLUMEUP);
+ static VOL_DN:      EventCode = EventCode::EV_KEY(EV_KEY::KEY_VOLUMEDOWN);
+ static MUTE:        EventCode = EventCode::EV_KEY(EV_KEY::KEY_PLAYPAUSE);
+-static BT_TRG:      EventCode = EventCode::EV_KEY(EV_KEY::BTN_MODE);
+ 
+ fn process_event(_dev: &Device, ev: &InputEvent, hotkey: bool) {
+     /*println!("Event: time {}.{} type {} code {} value {} hotkey {}",
+@@ -74,9 +73,6 @@ fn process_event(_dev: &Device, ev: &InputEvent, hotkey: bool) {
+     else if ev.event_code == MUTE && ev.value > 0 {
+         Command::new("mute_toggle.sh").output().expect("Failed to execute amixer");
+     }
+-    else if ev.event_code == BT_TRG && ev.value > 0 {
+-         Command::new("sudo").arg("bttoggle.sh").output().expect("Failed to execute bttoggle.sh");
+-    }
+ }
+ 
+ fn process_event2(_dev: &Device, ev: &InputEvent, selectkey: bool) {

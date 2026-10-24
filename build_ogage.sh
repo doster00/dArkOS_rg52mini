@@ -23,12 +23,30 @@ elif [ "$UNIT" == "rk2023" ] || [ "$UNIT" == "rgb30" ] || [ "$UNIT" == "rgb20pro
   branch="rk2023"
 fi
 
-if [ -f "Arkbuild_package_cache/${CHIPSET}/ogage_${branch}.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/ogage_${branch}.commit)" == "$(curl -s https://api.github.com/repos/christianhaitian/ogage/commits/${branch} | jq -r '.sha')" ]; then
+# Our patches to the branch (ogage/patches): on the RG52 Mini, BTN_MODE is
+# Home, RetroArch's hotkey button, and the rg503 branch toggles Bluetooth on
+# it. The cache holds the branch's commit with the patches' hash after it.
+ogage_patches=""
+if [[ "$UNIT" == "rg52mini" ]]; then
+  ogage_patches=$(ls ogage/patches/*.patch)
+fi
+ogage_suffix=""
+if [ -n "$ogage_patches" ]; then
+  ogage_suffix="-$(cat $ogage_patches | sha1sum | cut -c1-12)"
+fi
+
+if [ -f "Arkbuild_package_cache/${CHIPSET}/ogage_${branch}.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/ogage_${branch}.commit)" == "$(curl -s https://api.github.com/repos/christianhaitian/ogage/commits/${branch} | jq -r '.sha')${ogage_suffix}" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/ogage_${branch}.tar.gz
 else
+	sudo rm -rf Arkbuild/tmp/ogage-patches
+	sudo mkdir -p Arkbuild/tmp/ogage-patches
+	if [ -n "$ogage_patches" ]; then
+	  sudo cp $ogage_patches Arkbuild/tmp/ogage-patches/
+	fi
 	call_chroot "cd /home/ark &&
 	  git clone https://github.com/christianhaitian/ogage.git -b ${branch} &&
 	  cd ogage &&
+	  for p in /tmp/ogage-patches/*.patch; do [ -f \"\$p\" ] || continue; git apply \"\$p\" || exit 1; done &&
 	  export CARGO_NET_GIT_FETCH_WITH_CLI=true &&
 	  cargo build --release &&
 	  strip target/release/ogage &&
@@ -43,8 +61,8 @@ else
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/ogage_${branch}.commit
 	fi
 	sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/ogage_${branch}.tar.gz Arkbuild/usr/local/bin/ogage
-	sudo git --git-dir=Arkbuild/home/ark/ogage/.git --work-tree=Arkbuild/home/ark/ogage rev-parse HEAD > Arkbuild_package_cache/${CHIPSET}/ogage_${branch}.commit
-	sudo rm -rf Arkbuild/home/ark/ogage
+	echo "$(sudo git --git-dir=Arkbuild/home/ark/ogage/.git --work-tree=Arkbuild/home/ark/ogage rev-parse HEAD)${ogage_suffix}" > Arkbuild_package_cache/${CHIPSET}/ogage_${branch}.commit
+	sudo rm -rf Arkbuild/home/ark/ogage Arkbuild/tmp/ogage-patches
 fi
 
 sudo cp scripts/ogage.service Arkbuild/etc/systemd/system/ogage.service
