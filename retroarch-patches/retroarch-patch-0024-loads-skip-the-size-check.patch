@@ -1,0 +1,52 @@
+From: dArkOS RG52 Mini port
+Subject: Loading a state does not ask the core for its size first
+
+command_event_main_state (Load State in the menu, its hotkey, the LOAD_STATE
+network command) and command_load_state_slot called core_serialize_size()
+before a load, only to see that the answer was not 0. For a core that
+answers it by making the state, that is a whole save before every load.
+Azahar on an RG52 Mini (Super Mario 3D Land, 292 MB serialized) spent 1.4 s
+on it, a third of the load; before its patch 012, 9 s.
+
+Saves still ask, as they need the size. A core that cannot load a state says
+so from retro_unserialize, and the load fails with RetroArch's usual message.
+
+--- a/command.c
++++ b/command.c
+@@ -748,14 +748,9 @@
+    bool ret                     = false;
+    _len  = strlcpy(reply, "LOAD_STATE_SLOT ", sizeof(reply));
+    _len += snprintf(reply + _len, sizeof(reply) - _len, "%d", slot);
++   /* dArkOS: no core_serialize_size() before a load (see command_event_main_state) */
+    if (savestates_enabled)
+-   {
+-      size_t info_size;
+       runloop_get_savestate_path(state_path, sizeof(state_path), slot);
+-
+-      info_size          = core_serialize_size();
+-      savestates_enabled = (info_size > 0);
+-   }
+    if (savestates_enabled)
+    {
+       if ((ret = content_load_state(state_path, false, false)))
+@@ -2210,12 +2205,17 @@
+ 
+    if (savestates_enabled)
+    {
+-      size_t info_size;
+       runloop_get_current_savestate_path(state_path,
+             sizeof(state_path));
+ 
+-      info_size          = core_serialize_size();
+-      savestates_enabled = (info_size > 0);
++      /* dArkOS: only saves ask the core for the state's size first. For a
++       * load the answer was thrown away, and a core whose size is that of
++       * a fresh state (Azahar: 292 MB serialized and compressed, 1.4 s on
++       * an RG52 Mini) made one for nothing; a core that cannot load says so
++       * from retro_unserialize. */
++      if (     cmd != CMD_EVENT_LOAD_STATE
++            && cmd != CMD_EVENT_LOAD_STATE_FROM_RAM)
++         savestates_enabled = (core_serialize_size() > 0);
+    }
+ 
+   /* TODO: Load state should act in one of three ways:

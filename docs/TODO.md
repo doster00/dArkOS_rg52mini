@@ -734,11 +734,11 @@ Measured, not changed:
 * RetroArch's own rzip of the state file runs on its task thread after the
   save: no pause, and 3% smaller files.
 
-Still open:
-* Two of a load's 5 s are RetroArch's: the size check and the undo buffer,
-  1.4 s each.
-* A RetroArch patch could skip the size check for loads. The undo buffer is
-  a feature (Undo Load State).
+Two of a load's 5 s were RetroArch's: the size check and the undo buffer,
+1.4 s each.
+* `retroarch-patches/retroarch-patch-0024` skips the size check for loads,
+  which should make a load about 3.5 s. Measure it on the build that has it.
+* The undo buffer stays: it is a feature (Undo Load State).
 
 ## Battery in sleep (2026-10-19)
 
