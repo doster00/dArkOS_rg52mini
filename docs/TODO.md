@@ -634,12 +634,14 @@ the image).
   codec is for texture loads, which these scenes do not have, and both were
   taken as fixes and for other games. 011, from a user's report: the core
   swapped the screens on L3, the switch under the RG52 Mini's left stick, which
-  a hard push of the stick closes. They swap on Select+R1 now, and the game
-  does not see the pair: Select is held back while down (up to 500 ms) and
-  reaches the game on release when R1 did not come. Checked on the device
-  with Super Mario 3D Land: pairs 50 and 300 ms apart and R1 first swap without
-  pausing; a lone Select pauses. 20261024's next build has the first version
-  of 011 (Select+R1, Select not held back); the one after has this.
+  a hard push of the stick closes (a key log while playing caught L3 down for
+  0.7 and 3 s). They swap on the Back key now (KEY_FN in the device tree,
+  BTN_TRIGGER_HAPPY1 from the pad), which nothing else uses; the RetroPad has
+  no button for it, so the core reads its state from the pad's event device
+  (EVIOCGKEY). Checked on the device with Super Mario 3D Land: Back swaps and
+  swaps back, L3 does nothing, Select still pauses. The build started on
+  2026-10-24 at 13:50 has an earlier version of 011 (Select+R1, Select seen
+  by the game); the next one has this.
 * **ARMSX2: `pcsx2-0004`**, the frame limiter of deurefdfgdf's BKFT fork
   (4bdbd0a23e, the limiter only): it sleeps to 200 us before its deadline
   instead of spinning up to 2 ms twice a frame. The Sopranos' disc in the
