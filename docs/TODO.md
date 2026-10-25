@@ -210,6 +210,16 @@ first, with the times of the 2026-10-19 build:
   Kodi's 71 addons spent most of a 43-hour build there (KNOWN-ISSUES); it is
   cached, so this matters only when it has to be built again.
 
+## PS2: sound in heavy games like Azahar's realtime audio (to do, noted 2026-10-25)
+
+The owner's idea, after Azahar's realtime audio made a 21 fps 3DS game sound
+much better (KNOWN-ISSUES.md, Azahar): in a PS2 game running below full
+speed the sound breaks up the same way. Look at how ARMSX2 paces its SPU2
+output: the emulated time the SPU2 runs on against the time it is played in
+(PCSX2 has time stretching for the opposite case, a host that cannot keep
+up with the audio), and whether its output can follow the frame time.
+`LightweightMode` (below) is the only SPU2 setting measured so far.
+
 ## PS2: the GPU gets the heat; what else was tried (2026-10-22)
 
 Measured as in the next section (fps between fixed frames, builds in turn, after a
@@ -812,7 +822,8 @@ Taken:
   RetroArch's cheat menu instead of their frontend's (KNOWN-ISSUES.md,
   Azahar).
 * **0e442662ca4**, realtime audio only: patch 016 makes it a core option,
-  off until the owner has listened to it under RetroArch (open).
+  on by default: the owner listened to Castlevania's intro both ways under
+  RetroArch, and with it the sound is much better.
 
 Not taken:
 * **0e442662ca4**, "performance defaults on" (frontend). Of the five values

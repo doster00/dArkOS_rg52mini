@@ -1379,7 +1379,8 @@ it. Encrypted dumps do not run.
 - **Realtime Audio** (Audio, patch 016; Azahar's `enable_realtime_audio`):
   when a game runs below full speed, its sound plays at real time instead of
   slowing down with it, so it does not break up, but it can run ahead of the
-  picture. Off by default; GammaOS has it on.
+  picture. On by default, as in GammaOS: in Castlevania's intro (21 fps) the
+  owner found the sound much better with it.
 - **Cheats (2026-10-25, patch 017).** Quick Menu → Cheats lists the game's
   cheats; switch them and Apply Changes. They come from a folder shared with
   GammaOS, `ROMs/cheats/3ds/azahar` (`/roms/cheats/3ds/azahar`), laid out as
