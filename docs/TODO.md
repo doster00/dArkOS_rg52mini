@@ -793,6 +793,43 @@ Open:
   wrote it for Metroid: Samus Returns). It is off by default there. No other
   game was tried with either switch.
 
+## Azahar: GammaOS's azahar-nano after 8d68e5ecaab, read (2026-10-25)
+
+GammaOSNextDistribution-14 `develop` up to f0b2a23405e: 12 commits touch
+azahar-nano, the core (`gammaos/emulators/azahar-nano`) or its Android
+frontend (`frameworks/base/cmds/azahar-nano`). 43f1f504258, cfd0c22df98 and
+afb19857d2c are patch 009 already.
+
+Taken:
+* **e842af2339c**, patch 015: a draw into an offscreen target (a texture the
+  game composes once, Pokemon Sun's skins) is never left out while its
+  pipeline compiles; the hybrid path left it out with a cold cache, as it
+  did for the bottom screen before 009. Applies as is. On the console:
+  Castlevania 21.1 / 20.6 fps, Super Mario 3D Land 59.9, as before.
+
+Not taken:
+* **0e442662ca4**, "performance defaults on" (frontend). Of the five values
+  it seeds, hardware shaders and the disk shader cache are on here already
+  (core options); audio stretching stays off because RetroArch paces the
+  audio. Skip duplicate frames would skip the present when the game has not
+  drawn a new frame, but here that skips the frame handed to RetroArch too,
+  and the core would have to hand it a dupe (`video_cb(NULL)`); the gain is
+  the core's present pass, about 1.2 ms, in 30 fps games only. Realtime
+  audio scales the DSP's tick by the frame time, so a slow game's sound
+  plays at real time; whether it sounds better under RetroArch needs a
+  listen (open). The CPU clock ladder fixes their menu; ours is in order.
+* **c88869e5bf1**: malisx2 (bmdhacks/malisx2, a Mesa-based Vulkan driver
+  over kbase, written for ARMSX2) bundled and the default on the Mali-G52.
+  It accepts job-manager kbase from UK 11.22; the console's is 11.47 (DDK
+  g25p0), and it has a Linux build (ROCKNIX, VK_KHR_display). Not measured
+  anywhere on the RG52: a project of its own (open).
+* **dbb613ef825**, cheats: a frontend menu over a cheat database. Here
+  `retro_cheat_set` does nothing, so RetroArch's cheats do not reach the
+  core either (open, if wanted).
+* Frontend and Android only: the DRM presenter's pacing (9a28c805178,
+  f66a67211f5), a start screen (aeb2ab4a6fe), colour matrices (076b8fcef48),
+  panels and sleep (e2c4505db64, f0e49ef952a), menu labels, data folders.
+
 ## Battery in sleep (2026-10-19)
 
 Sleep is deep now, the black screensaver ends in sleep on battery, two hours
