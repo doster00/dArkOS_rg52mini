@@ -2,7 +2,7 @@
 
 All of these are visible in the build log. `make rg52mini` ends with an audit
 that names them, so start there rather than reading 80 000 lines. Build
-20261018052939 (release 1.2):
+20261025224049 (release 1.3), the same as 1.2's:
 
     ==================== COMPONENT AUDIT ====================
       ---
@@ -180,6 +180,14 @@ The build still treats a failed fetch as a warning rather than a fatal error,
 which is our change and independent of this: a dead mirror should not take down
 a run that is nine hours in. Upstream reached the same conclusion separately in
 `ffcfced`.
+
+One library still does not arrive: the 32-bit `libjpeg.so.8`. The script
+makes each armhf URL from the arm64 one by replacing `_arm64` with `_armhf`,
+and `debian-ports/.../pool-arm64/` holds arm64 packages only, so that URL
+answers 404 (`[WARNING] could not fetch libjpeg.so.8 (armhf)` in the 1.3 build
+and in every earlier full build log kept here). The image has the 64-bit one
+only; a 32-bit port that needs `libjpeg.so.8` will not find it. No such port is
+known so far.
 
 ## PortMaster ports failed with "Argument list too long" — fixed
 
@@ -617,7 +625,7 @@ taken over from GammaOS Next, where it proved stable.
 - other boards: GammaOS measured bin L3, and a chip that does not take
   2208/1000 shows it only in this mode.
 
-## A desktop-fullscreen window got a scaled surface — in 1.0 to 1.2, fixed after 1.2
+## A desktop-fullscreen window got a scaled surface — in 1.0 to 1.2, fixed in 1.3
 
 Seen on 2026-10-19 with a GTA San Andreas port (the gtasa Android wrapper, R36S
 lineage): only the lower left of the picture, about a quarter, magnified to the
@@ -1279,7 +1287,7 @@ link put back there, linapple failed as above. The 1.1 → 1.2 package carries
 the link; cards that ldconfig fixed already have it and skip it. In 1.2 the
 Apple II system starts linapple (its own Master.dsk, 2026-10-18).
 
-## Sleep emptied the battery in a day, the black screensaver in ten hours — fixed after 1.2
+## Sleep emptied the battery in a day, the black screensaver in ten hours — fixed in 1.3
 
 A report on 1.0: the battery ran flat "in sleep". Measured on revision B on
 2026-10-19, on battery, with the RK817's coulomb counter (Q_PRESS, registers
@@ -1651,7 +1659,7 @@ Where to start is in TODO.
   copied over by hand) started without `control.txt` and `mod_dArkOS.txt`: no
   PortMaster controls, no E2BIG guard, no `LIBGL_GLES`, so Don't Starve's
   world was black again on the dual-boot card on 2026-10-19 although gl4es-fix
-  was in the image. The image only ships the installer, in Tools. After 1.2,
+  was in the image. The image only ships the installer, in Tools. Since 1.3,
   `runport.sh` runs it before the first PortMaster port (with
   `~/no_es_restart`, or it restarts EmulationStation under the port), then
   `portmaster-e2big.sh`, then the port: seen on the device, the installer's
@@ -1661,7 +1669,7 @@ Where to start is in TODO.
 * **`rk3562-poweroff.service` failed at every shutdown**: "Failed to execute
   /usr/local/bin/rk3562-poweroff.sh: No such file or directory". Upstream's
   script has CRLF line ends, so `#!/bin/bash\r` is no interpreter. It is not
-  installed any more (after 1.2): the kernel powers the PMIC off itself, after
+  installed any more (since 1.3): the kernel powers the PMIC off itself, after
   systemd-shutdown's last sync, and the script's i2cset would have cut the
   power before that sync.
 * **N64 in RetroArch: the threaded renderer (1.3).** `mupen64plus_next` had no

@@ -38,7 +38,7 @@ any manual steps:
 
     mamaich/dArkOS_rg52mini
       kernel_rk3562      -> mamaich/kernel_rk3562        hardware patches
-      rk3562_core_builds -> mamaich/rk3566_core_builds   Cortex-A53 build flags
+      rk3562_core_builds -> mamaich/rk3566_core_builds   Cortex-A53 build flags, emulator patches
       bootloader         -> bmdhacks/aislpc-bootloader-tool
 
 Clone with `--recursive`. All three are https; an earlier `git@github.com:`
@@ -46,7 +46,7 @@ in `.gitmodules` meant submodules only resolved for people with an SSH key.
 
 ## State of the port
 
-The current release is 1.2 (build 10182026, 2026-10-18); from 1.1 on, a card
+The current release is 1.3 (build 10252026, 2026-10-26); from 1.1 on, a card
 updates over the air (OTA.md). 2026-09-16 was the first release of this fork.
 What was checked on hardware in those first weeks:
 

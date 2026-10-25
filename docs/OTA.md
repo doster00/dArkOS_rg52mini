@@ -19,7 +19,7 @@ next one.
 | | |
 |---|---|
 | `ota/make-ota.py` | builds a package from two release images (runs in the build host, as root) |
-| `ota/rg52mini.json` | the feed the devices read: every package published so far (now 1.1 → 1.2), one entry each; `make-ota.py --feed` adds an entry and replaces one with the same two builds |
+| `ota/rg52mini.json` | the feed the devices read: every package published so far (with 1.3: 1.1 → 1.2, 1.2 → 1.3 and 1.1 → 1.3), one entry each; `make-ota.py --feed` adds an entry and replaces one with the same two builds |
 | `ota/hooks/<version>[-name].sh` | scripts a release needs run after its files are in place |
 | `ota/hooks/all-<name>.sh` | scripts every package runs, after the release's own, in name order (`all-fix-root-dir.sh`, `all-gpu-links.sh`, `all-keep-quickmode.sh`, `all-ldconfig.sh`, `all-merge-dpkg.sh`) |
 | `scripts/rk3562/darkos-ota` | the client, `/usr/local/sbin/darkos-ota` on the device |
