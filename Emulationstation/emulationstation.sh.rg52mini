@@ -139,6 +139,17 @@ else
     esdir="$(dirname $0)"
     while true; do
         rm -f /tmp/es-restart /tmp/es-sysrestart /tmp/es-shutdown
+        # The "black" screensaver of an ES that is gone (stopped, crashed, restarted by an
+        # update) left the backlight off, and the ES starting now knows nothing of it: the
+        # screen gets the brightness from before that screensaver back, from the mark
+        # Emulationstation/scripts.rk3562/sleep/screensaver.sh wrote.
+        read -r ss sb spid 2> /dev/null < /run/darkos-screensaver
+        if [ "$ss" = on ] && ! kill -0 "$spid" 2> /dev/null; then
+            echo "off $(date +%s%3N)" | sudo tee /run/darkos-screensaver > /dev/null
+            sudo rm -f /run/darkos-autosleep
+            [ "$(cat /sys/class/backlight/backlight/brightness)" = 0 ] && \
+                echo "${sb:-60}" | sudo tee /sys/class/backlight/backlight/brightness > /dev/null
+        fi
         # ES uses the system Mali (g29p1), same as every emulator — no per-app blob or
         # LD_LIBRARY_PATH/RPATH override needed (g29p1's GLES 1.0 loading screen works).
         "$esdir/emulationstation" "$@"

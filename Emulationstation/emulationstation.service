@@ -13,6 +13,11 @@ Environment="SDL_VIDEO_EGL_DRIVER=libEGL.so"
 # this the limit is 0 and every nice -19 fails, leaving emulators at nice 0.
 LimitNICE=-20
 Restart=on-failure
+# Stopping ES (the power key's poweroff, a shutdown, an update) sends SIGTERM to
+# the game it started too. RetroArch saves and quits on it in a second or two,
+# but with mupen64plus_next it hung until systemd's default 90 s ran out, so a
+# poweroff during an N64 game took a minute and a half.
+TimeoutStopSec=10
 
 [Install]
 WantedBy=multi-user.target

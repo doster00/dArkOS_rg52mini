@@ -11,6 +11,8 @@
 
 if [[ "$(tr -d '\0' < /proc/device-tree/compatible)" == *"rk3326"* ]]; then
   gpu="ff400000"
+elif [[ "$(tr -d '\0' < /proc/device-tree/compatible)" == *"rk3562"* ]]; then
+  gpu="ff320000"
 else
   gpu="fde60000"
 fi

@@ -42,10 +42,15 @@ case $1 in
     [ -n "$b" ] && [ "$b" != 0 ] && echo $b | sudo tee /var/local/cur_bright.state
     echo 0 | sudo tee /sys/class/backlight/backlight/brightness
 
-    # Check if EmulationStation is using too much CPU (stuck)
-    test=$(top -b -n 1 -d 0.2 -p $(pidof emulationstation) | tail -1 | awk '{print $9}')
-    if (( ${test%.*} > 100 )); then
-      systemctl stop emulationstation
+    # Check if EmulationStation is using too much CPU (stuck); with ES not
+    # running (a test, a port that stopped it) there is nothing to check
+    es=$(pidof -s emulationstation)
+    if [ -n "$es" ]; then
+      test=$(top -b -n 1 -d 0.2 -p $es | tail -1 | awk '{print $9}')
+      test=${test%.*}
+      if (( ${test:-0} > 100 )); then
+        systemctl stop emulationstation
+      fi
     fi
 
     # Ensure Resume Path is enabled so RK817 codec restores audio on wake
