@@ -4,7 +4,8 @@ From 1.1 on, dArkOS for the RG52 Mini updates itself over the network
 (Options → Update), without rewriting the card. 1.0 and earlier have the
 upstream updater, so moving from them to 1.1 means writing the card once.
 The first package over the air, 1.1 → 1.2, was published with 1.2 on
-2026-10-18.
+2026-10-18. 1.3 comes with two, 1.2 → 1.3 and 1.1 → 1.3, so a 1.1 card does
+not need 1.2 first.
 
 The upstream `Update.sh` is not used on this device. It fetches
 christianhaitian/darkos-updates, whose packages are built for RK3326 and
@@ -18,9 +19,9 @@ next one.
 | | |
 |---|---|
 | `ota/make-ota.py` | builds a package from two release images (runs in the build host, as root) |
-| `ota/rg52mini.json` | the feed the devices read; `{"response": []}` between releases |
+| `ota/rg52mini.json` | the feed the devices read: every package published so far (now 1.1 → 1.2), one entry each; `make-ota.py --feed` adds an entry and replaces one with the same two builds |
 | `ota/hooks/<version>[-name].sh` | scripts a release needs run after its files are in place |
-| `ota/hooks/all-<name>.sh` | scripts every package runs, after the release's own (`all-fix-root-dir.sh`, `all-gpu-links.sh`, `all-keep-quickmode.sh`, `all-ldconfig.sh`, `all-merge-dpkg.sh`) |
+| `ota/hooks/all-<name>.sh` | scripts every package runs, after the release's own, in name order (`all-fix-root-dir.sh`, `all-gpu-links.sh`, `all-keep-quickmode.sh`, `all-ldconfig.sh`, `all-merge-dpkg.sh`) |
 | `scripts/rk3562/darkos-ota` | the client, `/usr/local/sbin/darkos-ota` on the device |
 | `dArkOS_Tools/rk3562/Update.sh` | Options → Update: the menu over the client |
 | `scripts/rk3562/darkos-ota-boot.service` | marks an update as booted |
@@ -137,10 +138,14 @@ Options → Advanced → Enable Quick Mode copies `pause.sh.qm` and `finish.sh.q
 over `/usr/local/bin/pause.sh` and `finish.sh`, and replaces its own menu entry
 with Disable Quick Mode. None of that is where step 4 keeps the user's
 changes, so an update that brings new versions of these scripts would leave
-Quick Mode half on. `hooks/all-keep-quickmode.sh`, in every package and run
-first, does it again with the update's versions when `quickmode.sh` is there,
-and lists what it changed for a rollback. What Quick Mode changes in `/etc`
-and `/home` is kept by step 4 anyway.
+Quick Mode half on. `hooks/all-keep-quickmode.sh`, in every package, does it
+again with the update's versions when `quickmode.sh` is there,
+and lists what it changed for a rollback. It is not the first hook: the
+package lists the hooks sorted by name (`make-ota.py`), the release's own
+(`1.3-*.sh`) before the `all-*.sh` ones, and the client runs them in that
+order, so it comes after the release's hooks, `all-fix-root-dir.sh` and
+`all-gpu-links.sh`. No hook before it touches `pause.sh` or `finish.sh`. What
+Quick Mode changes in `/etc` and `/home` is kept by step 4 anyway.
 
 State and log are in `/var/lib/darkos-ota/` (`state.json`, `ota.log`).
 
@@ -203,6 +208,9 @@ may change, so the client checks free space and assumes no sizes.
    --url-base https://github.com/mamaich/dArkOS_rg52mini/releases/download/v<new>
    --feed ota/rg52mini.json`.
    This prints the package and its sha256 and adds the entry to the feed.
+   Create `<dir>` first: the script fails at the very end, after the three
+   minutes of comparing, when it does not exist (TODO.md, "Found while
+   testing 1.2").
    Packages from older releases straight to the new one can be made the same
    way; the client picks the newest entry for its build.
 3. Upload the package as an asset of the release, next to the image volumes.

@@ -79,7 +79,8 @@ on the device:
      The 3D field of the Joker 2 demo behaves the same way: 48 fps under
      ondemand, 59-60 under performance. Nothing in the image changes this
      (decided 2026-10-07); KNOWN-ISSUES tells users to pick the performance
-     governor for NDS in ES.
+     governor for NDS in ES. (Superseded in 1.3: perfmax puts `performance`
+     first when no governor was chosen, KNOWN-ISSUES.)
    * **Vulkan, in the image since 2026-10-07.** The first 10062026 build had
      DSperate without Vulkan ("gpu3d: unavailable (built without Vulkan)"):
      the presenter and GPU 3D raster need `vulkan/vulkan.h` at build time and
@@ -120,6 +121,8 @@ on the device:
   comparing, when DIR does not exist. Create it first, or let the script.
 * **`retroarch32` with `parallel_n64` ignored SIGTERM** in the test harness:
   systemd killed it after 90 s. The exit hotkey was not tried; worth a look.
+  (Since then the same with mupen64plus_next, 2026-10-25, see "libmali
+  g29p1-5"; ES's unit now stops after 10 s.)
 
 ## Nintendo 3DS: Azahar is in (2026-10-20)
 
@@ -181,7 +184,8 @@ nes-box folder (KNOWN-ISSUES). Left:
   would give the faster first seconds after a boot or a state load.
 * **A newer azahar-nano** means a new `azahar-patch-000`: the diff of their
   tree against the 2126.1.2 tag with its submodules, made as its header says,
-  then 002-005 checked on top.
+  then 002-005 checked on top. (Since 2026-10-25 that is 001-018; 009 and 015
+  are azahar-nano commits a newer 000 would already have.)
 * **At 600 MHz**, a CPU cap used only for measuring, every build (2126.2 too)
   stops drawing about a minute into Super Mario 3D Land. Not seen at 816 MHz
   and up.
@@ -209,6 +213,19 @@ first, with the times of the 2026-10-19 build:
 * **cmake and ninja themselves**: Azahar's configure took 5 minutes under qemu.
   Kodi's 71 addons spent most of a 43-hour build there (KNOWN-ISSUES); it is
   cached, so this matters only when it has to be built again.
+
+## Dolphin on malisx2: why it does not start (to do for the release after 1.3, noted 2026-10-25)
+
+Dolphin (dolphin-emu-nogui) did not start on malisx2 when it was measured
+against libmali ("malisx2 measured against libmali" below), so 1.3 leaves
+Gamecube out of the systems that offer MALISX2 (vk-driver-select/vulkan.conf's
+es_systems line, and the list in ota/hooks/1.3-vulkan-es-systems.sh). The owner
+asks to look: it may be easy. To do: start it with DARKOS_VULKAN=malisx2 and
+read its log and malisx2's (MESA_DEBUG, DARKOS_VULKAN_DEBUG=1). Suspects from
+the vulkaninfo comparison: malisx2 has no geometry shaders, logicOp, wide lines
+or shaderInt64, 16 vertex bindings against 32, and Vulkan 1.1; Dolphin can do
+without most of these, so a refusal at device creation or a missing format is
+more likely than a missing feature. If it runs, put Gamecube back on both lists.
 
 ## PS2: sound in heavy games like Azahar's realtime audio (to do, noted 2026-10-25)
 
@@ -632,7 +649,8 @@ the image).
 
   Only the thread was kept: copying depth off breaks what reads it (Zelda's
   sun), 320x240 is a smaller picture. RetroArch exits on SIGTERM in 0.6 s with
-  it. The standalone GLideN64 still does 59.36 in AeroGauge.
+  it (a SIGTERM to RetroArch alone; a stop of its whole unit did not end it,
+  see "libmali g29p1-5"). The standalone GLideN64 still does 59.36 in AeroGauge.
 * **Azahar: patches 009 and 010.** 009 is GammaOS's three azahar-nano commits
   of 2026-10-20 (frame pacing after a long frame; the right-eye skip no longer
   drops the bottom screen's draws in Super Mario 3D Land). 010 is upstream's
@@ -677,7 +695,8 @@ the image).
     (85ce3417f1). The profile must be trained again after it.
   * Cached readback memory on Mali: one line, but perf first.
   * Worth watching: bmdhacks/malisx2, Mesa's Vulkan on kbase, at parity with
-    libmali.
+    libmali. (Since 2026-10-25 in the image as a choice beside libmali, see
+    "malisx2 measured against libmali".)
 * **Azahar:** dekopon c5e09fe36 (`IsReadOnlyMemory`); tico dcfb1027c,
   658038a14 and 6cd2fb7b0.
 * **N64 in RetroArch:** its GLideN64 builds without NEON; the makefile change
@@ -839,7 +858,9 @@ Not taken:
   over kbase, written for ARMSX2) bundled and the default on the Mali-G52.
   It accepts job-manager kbase from UK 11.22; the console's is 11.47 (DDK
   g25p0), and it has a Linux build (ROCKNIX, VK_KHR_display). Not measured
-  anywhere on the RG52: a project of its own (open). GammaOS measured their
+  anywhere on the RG52: a project of its own (open). (Since then measured
+  here and built by the image as a choice, libmali staying the default: next
+  section.) GammaOS measured their
   build on the RG52 under Android: Castlevania 16.7-17.0 fps against
   17.4-20.0 on libmali, Super Mario 3D Land the same at 60 (+9% uncapped),
   200 MB more memory, and lmkd killed the emulator once.
@@ -888,10 +909,11 @@ Done since:
   dArkOS root mounted as the chroot: 33 minutes from nothing, cached by commit,
   recipe, patches and profile after that.
 * Its compiler on the CPU, see "malisx2's compiler: LTO and a profile" below.
+* Where Castlevania's time goes on it, see below. The vertex side is the work:
+  IDVS and descriptors/uniforms written by the CPU, in malisx2 (upstream's to
+  do).
 
 Open:
-* Where Castlevania's time goes on it: measured, see below. The vertex side is
-  the work: IDVS and descriptors/uniforms written by the CPU, in malisx2.
 * GammaOS measured it under Android: no gain, 200 MB more memory, lmkd killed
   the emulator once. Here RetroArch's peak was 1067 MB against 1132 on libmali.
 
@@ -934,7 +956,8 @@ record time instead of copy jobs on the GPU.
 Seen on the way: the system-sleep hook logs errors on every sleep (`top -p`
 with no pid; a GPU devfreq path of the RK3566, `fde60000.gpu`, where the
 RK3562's is `ff320000.gpu`). Harmless so far; to fix with the next look at
-sleep.
+sleep. Fixed since (19e5bee): `sleep.rk3562` skips the ES CPU check when ES is
+not running, and `sleep_governors.sh` uses `ff320000.gpu` on the RK3562.
 
 ### malisx2's compiler: LTO and a profile (2026-10-25)
 
@@ -994,6 +1017,15 @@ picture frozen meanwhile; RetroArch's own quit (the hotkey twice,
 `quit_press_twice`) ends it in 1.4 s. Matters if anything stops RetroArch by
 signal (a shutdown with a game running): check what ES and the power-off path
 send.
+
+Since then (19e5bee): ES's own stop does the same, since systemd sends SIGTERM
+to the whole cgroup of `emulationstation.service`, the game included, so a
+power-off during an N64 game took a minute and a half. `TimeoutStopSec=10` in
+the unit cuts it to 10 s; that is a limit, not a fix. Both observations stand:
+the stop of the test unit sent SIGTERM to the whole cgroup (the bash launcher,
+n64.sh and RetroArch), and RetroArch did not end; the 0.6 s under "Code from
+them, taken" was a SIGTERM to RetroArch alone. Why one ends it and the other
+does not is the open question. Cause not found.
 
 ## Battery in sleep (2026-10-19)
 
@@ -1080,8 +1112,9 @@ and rk628 probe order before concluding anything about the hardware.
   an input node appears, but no cursor is visible. EmulationStation may simply
   not use one — that would be expected, not a fault.
 * **`OF: graph: no port node found`** in the husb311 connector. Role switching
-  works anyway. `backup/dtb/live.dtb` from the vendor's EmuELEC has the
-  complete port/endpoint graph if this is ever worth tightening.
+  works anyway. `live.dtb` from the vendor's EmuELEC (the owner's backup,
+  `backup/dtb/live.dtb`, not in this repository) has the complete
+  port/endpoint graph if this is ever worth tightening.
 * **"Does not turn off the first time"** (a user's report, 2026-10-23): the
   screen goes dark with the lights still on until B is pressed, then the menu
   comes back, several times before it is off. Asked, the user says: 1.2,
@@ -1191,7 +1224,7 @@ this.
 
 ## Worth sending upstream
 
-Five build-system defects were fixed in this fork. Three of them have nothing
+Six build-system defects were fixed in this fork. Four of them have nothing
 to do with this hardware and would help anyone building dArkOS, so they belong
 in a pull request to bmdhacks rather than only here:
 
@@ -1239,7 +1272,9 @@ a port's folder to switch (KNOWN-ISSUES.md). Built on 2026-10-25 in the build
 chroot (4.5 minutes with the cortex-a53 qemu). Not yet run on the console:
 Don't Starve with its gl4es folder renamed, the original `postprocess*.ksh`
 back and bloom and distortion on (its script turns them off because those
-shaders broke).
+shaders broke). Since then run on the console (KNOWN-ISSUES.md, gl4es): with
+the folder renamed the port takes `/usr/lib/gl4es`, all 8 postprocess shaders
+compile and a loaded save looks right.
 
 On the side: libmali's GLSL compiler is closed. malisx2's is ours (Mesa's NIR
 and Bifrost back end), but only for Vulkan programs on it; per-program shader
@@ -1289,3 +1324,9 @@ and so never matches this board.
 So the whole build pays the per-package emulation cost twice, in `build_deps.sh`
 and again in `cleanup_filesystem.sh`. Batching both would return roughly two
 and a half hours per build.
+
+Since then the 64-bit `build_deps.sh` comes from a copy when nothing it is made
+of has changed (BUILDING.md, "The chroot from the cache"), so such a build pays
+the cost in `cleanup_filesystem.sh` (2 h 6 min in the 2026-10-19 build) and in
+the 32-bit chroot's `build_deps.sh 32` only ("Build: what still runs under
+qemu", above). Batching those two is still open.

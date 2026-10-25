@@ -115,9 +115,18 @@ Ubuntu ships `/usr/lib/systemd/system/systemd-binfmt.service.d/wsl.conf` with
 Do not fix this with `systemctl restart systemd-binfmt`. Its `ExecStop`
 unregisters everything including `WSLInterop`, which is how Windows binaries
 are launched from Linux, and the start half is still skipped. Register the two
-handlers directly instead, from a unit of your own:
+handlers directly instead: qemu-aarch64 for the build chroot, qemu-arm for the
+32-bit one. `tools/qemu-host/register-qemu-binfmt.sh` does that; run it as
+root at boot, from a unit of your own. It registers qemu-aarch64 with
+`/usr/local/bin/qemu-aarch64-darkos` when that exists (next section), else
+Ubuntu's `/usr/bin/qemu-aarch64-static`, and qemu-arm with
+`/usr/bin/qemu-arm-static`, both with flags `OCF`. A handler already
+registered is left as it is, so to change the interpreter remove the entry
+first (`echo -1 > /proc/sys/fs/binfmt_misc/qemu-aarch64`). With Ubuntu's
+interpreters it writes:
 
     :qemu-aarch64:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\xb7\x00:\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-aarch64-static:OCF
+    :qemu-arm:M::\x7fELF\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x28\x00:\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-arm-static:OCF
 
 Flag `F` matters: it opens the interpreter at registration time, so it stays
 reachable from inside the chroot.
@@ -161,10 +170,13 @@ are in between. A newer QEMU and a profile do not help: the time is in the
 code TCG generates, which neither touches.
 
 So the build host runs the last row: `tools/qemu-host/build.sh` builds it with
-cortex-a53 as the default CPU and installs `/usr/local/bin/qemu-aarch64-darkos`,
-and `/usr/local/sbin/register-qemu-binfmt.sh` registers that for aarch64 when it
-is there (Ubuntu's otherwise). A default in the binary, not `QEMU_CPU` in the
-environment: the build runs `sudo chroot`, and sudo drops the environment.
+cortex-a53 as the default CPU and installs `/usr/local/bin/qemu-aarch64-darkos`.
+It then installs `tools/qemu-host/register-qemu-binfmt.sh` (above) as
+`/usr/local/sbin/register-qemu-binfmt.sh`, removes the old aarch64 entry and
+runs it, so aarch64 binaries go to the new interpreter at once; without
+`qemu-aarch64-darkos` the script falls back to Ubuntu's. A default in the
+binary, not `QEMU_CPU` in the environment: the build runs `sudo chroot`, and
+sudo drops the environment.
 Programs in the chroot that pick features at run time see the A53's (fp, asimd,
 aes, pmull, sha1, sha2, crc32), as on the device; "max" offered them SVE.
 
@@ -241,7 +253,8 @@ open — or set `instanceIdleTimeout=-1` under `[general]` in `.wslconfig`.
 the build as root, while the clones under `Arkbuild/home/ark/` belong to uid
 1000. git then refuses them (`fatal: detected dubious ownership`), `git rev-parse
 HEAD` prints nothing, every cache key built from it is wrong, and each emulator
-is compiled from source under qemu — PCSX2 alone takes hours. The build does
+is compiled from source under qemu — Dolphin alone takes about three hours
+(TODO.md, 2026-10-24). The build does
 not stop or warn; the only trace is that line in the log. Allow the build tree
 for root before starting:
 

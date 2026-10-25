@@ -67,6 +67,15 @@ Bluetooth and USB host are the two things the upstream port cannot do. Both
 come from the device tree and driver changes described in
 [HARDWARE.md](HARDWARE.md).
 
+New in 1.3, each with its section in [KNOWN-ISSUES.md](KNOWN-ISSUES.md):
+
+| | |
+|---|---|
+| Nintendo 3DS | Azahar in RetroArch, with GammaOS's azahar-nano changes and a profile (PGO); Super Mario 3D Land at 60 fps |
+| PS2 | ARMSX2 in place of bmdhacks' PCSX2 fork, with a profile and ThinLTO; Jak and Daxter draws right |
+| Vulkan | Arm's driver or malisx2, chosen per program (`/etc/darkos/vulkan.conf`) or per system in ES; libmali is the default |
+| Sleep | deep sleep instead of s2idle (~42 mA against ~185), power-off after two hours asleep on battery |
+
 Built but never launched: freej2me-plus. It had been silently missing from
 earlier images and now exists — whether it runs is another question.
 Yabasanshiro was in the same state until 2026-10-24, when the one game tried

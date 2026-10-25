@@ -11,7 +11,7 @@ history, so they were applied as patches rather than merged.
     db0453bd6  ASoC: rk817: program the ADC sample rate register
 
 The rest came later; this page, KNOWN-ISSUES and PERFORMANCE say what each
-one fixed. As of release 1.2 (pinned at `8311d0e31`):
+one fixed. As of release 1.3 (pinned at `8311d0e31`, unchanged since 1.2):
 
     626c2a040  zram: build in writeback support
     7af0e0275  Draw a boot logo from the kernel, because U-Boot cannot
@@ -67,9 +67,10 @@ There is one open loose end: the kernel logs
     OF: graph: no port node found in /i2c@ffa10000/husb311@4e/connector
 
 so the port/endpoint graph between connector and controller is not fully
-described, even though role switching works anyway. `backup/dtb/live.dtb`
-(dumped from the vendor's EmuELEC) has the complete binding and is the
-reference if this ever needs tightening.
+described, even though role switching works anyway. `live.dtb` (dumped from
+the vendor's EmuELEC; not in this repository, but in the owner's backup of the
+device, `backup/dtb/live.dtb`) has the complete binding and is the reference
+if this ever needs tightening.
 
 ## Bluetooth — the driver branch nobody compiled
 
@@ -197,9 +198,11 @@ Land's Vulkan pipelines again instead of taking them from its cache. Vulkan
 comes from the same file: it exports
 `vk_icdGetInstanceProcAddr`, and `finishing_touches` installs
 `BSP/vulkan/rk_vk.json` (`api_version 1.3.276`), a vendor
-`libvulkan.so.1.3.274` loader and `vulkaninfo`. The manifest names
-`libvulkan_darkos.so`, which hands each process libmali or malisx2
-(KNOWN-ISSUES, "Vulkan: Arm's driver or malisx2"). `cleanup_filesystem.sh`
+`libvulkan.so.1.3.274` loader and `vulkaninfo`. The manifest in `BSP/` names
+`libmali.so`; `finishing_touches` rewrites it to name `libvulkan_darkos.so`
+when that was built (else it stays on libmali), and that library hands each
+process libmali or malisx2 (KNOWN-ISSUES, "Vulkan: Arm's driver or
+malisx2"). `cleanup_filesystem.sh`
 deletes the Mesa ICDs so only the Mali one is left.
 
 **There is no hardware desktop OpenGL, and there cannot be.** ARM's blob does

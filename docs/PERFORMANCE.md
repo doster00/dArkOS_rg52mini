@@ -197,6 +197,60 @@ not comparable. Why `flycast32_rumble` (a May 2024 build from retroarch-cores)
 shows a grey screen on this game was not looked into; it logs
 "FlashRom: ReadAMDID1 unexpected write" where `flycast_xtreme` does not.
 
+### A profile (PGO) for the heaviest emulators (1.3)
+
+Compiler flags alone gained nothing on these emulators ("Not worth doing",
+below); a profile did. Each is built with clang 19 and a profile trained on
+this device, the compiler being xtool's amd64 clang in the chroot
+(BUILDING.md):
+
+| | build | measured | without | with |
+|---|---|---|---|---|
+| ARMSX2 (PS2) | profile, ThinLTO of the core | Jak and Daxter's PAL intro, frames 300-1850, fps | 31.4 | 34.1 (+8.6%) |
+| Azahar (3DS) | our profile merged with GammaOS's | Super Mario 3D Land 1-1, CPU capped at 816 MHz, fps | 24.7 | 30, then the GPU's limit |
+| malisx2 (Vulkan driver) | full LTO, profile | Castlevania's 368 pipelines compiled | 8.1 s | 7.4 s |
+
+A profile names a file-local function by the path of its source, so it is
+made from a tree at the chroot's path (`/home/ark/...`), or clang drops those
+functions. GammaOS's profile alone did nothing for Azahar here (24.8 fps): it
+comes from an Android build, and 44% of its counts are on functions whose code
+differs in ours. TODO.md has the series.
+
+### perfmax: performance unless told otherwise (1.3)
+
+ES passes perfmax an empty governor unless one was picked for the system or
+the game, and up to 1.2 games then ran on `ondemand`, `simple_ondemand` and
+`dmc_ondemand`. perfmax now puts `performance` first. Super Mario 3D Land in
+Azahar, one savestate, before `azahar-patch-006`: 24.0 fps before, 26.7 with
+performance, 29.9 with overclock (KNOWN-ISSUES).
+
+### gpu-cpucap: the CPU gives way when the GPU is held (1.3)
+
+The CPU and the GPU share one thermal budget. Under the performance and
+overclock governors perfmax starts `gpu-cpucap` and perfnorm stops it. Every
+2 s the CPU's limit goes a step down while the GPU is 80% busy or more and the
+thermal governor holds it, and a step up while the GPU is under 60% busy or the
+SoC is 5 C under the first trip; 1200 MHz at the lowest. God of War's demo on a
+hot device, on the charger, its first version (a 1608 MHz floor): 28.0 and
+28.2 fps against 27.0 and 25.0 without. On a cool device it changes nothing
+(TODO.md, "PS2: the GPU gets the heat").
+
+### ARMSX2 reads its own target in the tile (1.3)
+
+The PS2 template had `DisableFramebufferFetch = true` and
+`OverrideTextureBarriers = 0`, set in June for the old PCSX2 fork. On ARMSX2
+they force a copy of the target for every draw that reads it, which breaks the
+render pass; at its defaults it reads the destination in the tile. God of War
+from a savestate, the GPU held at 600 MHz and the CPU at 1608 MHz: 26.6 fps
+against 25.2, with 15-27% less GPU work a frame. At the usual clocks on a hot
+device the frame rate barely moves. The launcher puts an ini made from the old
+template on the defaults once (TODO.md, 2026-10-23).
+
+### N64 in RetroArch: the threaded renderer (1.3)
+
+`mupen64plus_next` with `mupen64plus-ThreadedRenderer = "True"`: AeroGauge
+(frames 600-1800) at 57 fps against 54 (KNOWN-ISSUES, smaller things).
+
 ## Two emulators were built with no optimisation at all
 
 Worth more than everything else on this page put together, and it was found by
@@ -248,10 +302,15 @@ A component whose second number is near zero is being built for debugging.
   paper, and the same "only runs its own software" argument applies, but these
   guards sit on syscall paths rather than in emulator inner loops, and nothing
   here has been measured. Do the measurement before the change.
-* **Newer GCC / LLVM, `-O3`, PGO.** Everything is built with the Debian
-  toolchain in the chroot. Rebuilding one emulator against a newer compiler and
-  timing it on the device is a real experiment with a real answer; swapping the
-  toolchain for the whole image on the assumption that newer is faster is not.
+* **Compiler flags alone.** clang instead of gcc, `-mcpu=cortex-a53`, LTO
+  without a profile, `-mno-outline-atomics`, `-fomit-frame-pointer`: measured
+  on the PS2 emulators and Dolphin (TODO.md, "Heavy emulators" and "PS2:
+  ARMSX2 with a profile and ThinLTO"), none gained more than about 2%, where
+  runs of one build spread by 1-2%. On the in-order A53 these emulators wait
+  on memory and on JIT code, which the compiler does not reach. A profile is
+  another matter and is shipped (above). Everything is still built with the
+  Debian toolchain in the chroot; swapping the toolchain for the whole image
+  on the assumption that newer is faster is not an experiment.
 
 ## If you want to measure
 
@@ -259,7 +318,7 @@ Start on the device, not in the build. The whole budget question is settled by
 a few files:
 
     /sys/class/thermal/thermal_zone0/temp
-    /sys/class/devfreq/fde60000.gpu/cur_freq
+    /sys/class/devfreq/ff320000.gpu/cur_freq
     /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq
     /proc/swaps
     /sys/block/zram0/mm_stat

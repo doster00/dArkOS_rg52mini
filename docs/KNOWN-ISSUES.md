@@ -257,10 +257,11 @@ OPP table starts at 300; the NPU list is untouched. `drivers/rknpu/` also parks
 at 200 MHz — fine with this BL31, but needs the same check if a future table
 drops the NPU's lowest step.
 
-## DSperate (NDS) is slow unless the governor is performance — fixed after 1.3's test build
+## DSperate (NDS) is slow unless the governor is performance — fixed in 1.3
 
-`perfmax` now sets `performance` when no governor was chosen (next section), so
-the workaround below is what every game gets by default.
+`perfmax` now sets `performance` when no governor was chosen ("Games ran on the
+ondemand governors", below), so the workaround below is what every game gets
+by default.
 
 DSperate, the second NDS emulator since v10062026, keeps about one CPU core
 busy. Under the default `ondemand` governor that reads as light load, and the
@@ -270,9 +271,10 @@ Quest Monsters Joker 2 demo at 48. Under `performance` (CPU 2016 MHz, GPU
 900 MHz) both run at 59-60 fps with clean sound. Measured on the device on
 2026-10-07; the figures are in TODO.
 
-**Workaround:** in EmulationStation set the CPU governor of the NDS system,
-or of the game, to `performance` when using DSperate. DraStic, the default NDS
-emulator, is lighter and does not need it. The image is left as it is.
+**Workaround, up to 1.2:** in EmulationStation set the CPU governor of the NDS
+system, or of the game, to `performance` when using DSperate. DraStic, the
+default NDS emulator, is lighter and does not need it. The image was left as
+it was then (2026-10-07); 1.3 needs no workaround.
 
 The image's DSperate is built with Vulkan and draws 3D on the GPU
 (`gpu3d = true` in its default config); that does not replace the governor
@@ -400,8 +402,9 @@ Vulkan, so the layer is built for aarch64 only.
   (build_deps.sh); g24p0, the newest armhf build in Rockchip's libmali mirror
   (JeffyCN/mirrors); and g2p0 in `BSP/mali32`. So the armhf Vulkan loader has no
   driver.
-- **The manifest.** `rk_vk.json` names the aarch64 libmali by absolute path,
-  which fits.
+- **The manifest.** `rk_vk.json` names an aarch64 library by absolute path,
+  which fits: `libvulkan_darkos.so`, which loads the aarch64 libmali or
+  malisx2 (next section).
 - **Mesa.** panvk drives this GPU only on the panfrost kernel driver, not on
   Rockchip's Mali kbase.
 - **RetroArch.** `retroarch32` is built without a Vulkan driver: with
@@ -415,7 +418,7 @@ which SDL turns. But it starts the game with `$ESUDO env ...`. On dArkOS
 `$ESUDO` is `sudo`, which drops exported variables, so the game ran on Vulkan
 anyway. It now presents right through the layer.
 
-## Vulkan: Arm's driver or malisx2, chosen per system (after 1.3's test build)
+## Vulkan: Arm's driver or malisx2, chosen per system (1.3)
 
 Two Vulkan drivers can run the Mali-G52: Arm's own, in libmali, and malisx2
 (github.com/bmdhacks/malisx2), Mesa's shader compilers and Vulkan runtime over
@@ -425,6 +428,9 @@ pipelines about six times faster (a game's first run stutters less), but draws
 Castlevania: Lords of Shadow – Mirror of Fate a quarter slower and God of War 5%
 slower, implements Vulkan 1.1 with 24 device extensions against libmali's 1.3
 with 135, and Dolphin does not start on it. So libmali stays the default.
+
+The choice below replaces the old "Vulkan Driver Toggle" tool, which is no
+longer in the image.
 
 **One driver per process.** Both drivers cannot be listed to the Vulkan loader:
 libmali takes DRM master on the panel's card once it has enumerated its GPU,
@@ -445,10 +451,12 @@ an emulator's adapter list would not work, so:
   governor. ES launches the system's games with `DARKOS_VULKAN` set to the
   choice; AUTO leaves it unset, so vulkan.conf decides. The choice is offered
   for the systems the file's `es_systems` line names, comma-separated and
-  editable on the device: now 3ds, n3ds, ps2, ppsspp, pspminis, Gamecube, psx,
+  editable on the device: now 3ds, n3ds, ps2, ppsspp, pspminis, psx,
   dreamcast, naomi, Sega Atomiswave, ports, the systems whose emulators draw
-  with Vulkan. A system ES shows under an alias is named by the alias (n3ds is
-  the 3DS folder of a GammaOS card, es-aliases.py). The update keeps a user's
+  with Vulkan. Gamecube is left out, although Dolphin draws with Vulkan:
+  Dolphin does not start on malisx2. A system ES shows under an alias is
+  named by the alias (n3ds is the 3DS folder of a GammaOS card,
+  es-aliases.py). The update keeps a user's
   vulkan.conf and adds the line if it has none
   (`ota/hooks/1.3-vulkan-es-systems.sh`). Like the other rows of that menu, a
   change is saved when the menu is left with B; START closes all menus without
@@ -1075,7 +1083,7 @@ The OTA client and `hooks/all-ldconfig.sh` now run `ldconfig -X`, and
 `hooks/all-gpu-links.sh` puts the links back after the 1.1 client's plain
 ldconfig. Diversions reach existing cards with the package database.
 
-## Games ran on the ondemand governors unless one was chosen — fixed after 1.3's test build
+## Games ran on the ondemand governors unless one was chosen — fixed in 1.3
 
 ES starts nearly every system as `sudo perfmax %GOVERNOR% %ROM%`, and
 `%GOVERNOR%` is empty unless a governor was picked for the system or the game.
@@ -1169,7 +1177,7 @@ through fbneo; with a game only in `/roms/tg16`, TurboGrafx-16 was an ordinary
 system with the game in it; systems whose alias folders are empty looked as
 before. The "GROUPED SYSTEMS" option of ES can still split a group.
 
-## Systems were sorted by short names, not by the consoles' — fixed after 1.3's test build
+## Systems were sorted by short names, not by the consoles' — fixed in 1.3
 
 With `SortSystems` = `alpha` (our `es_settings.cfg`) ES sorts the systems by
 `<fullname>`, and upstream's `es_systems.cfg` has short internal names in many
@@ -1185,7 +1193,7 @@ ES also shows the full name in its menus (systems to show, emulator settings,
 scraper). Nothing else in the image reads it; ES keys its settings, gamelists
 and collections on `<name>`, which did not change.
 
-## PS2: the pause menu closed the game — fixed after 1.3's test build
+## PS2: the pause menu closed the game — fixed in 1.3
 
 Select+X (PCSX2's `OpenPauseMenu`) showed the pause menu for half a second,
 then PCSX2 closed as if the game had ended: the log shows "Pausing...", the
@@ -1197,14 +1205,15 @@ took the paused game for finished. `pcsx2/patches/pcsx2-0001` ends the frontend
 only when the VM is gone; a paused one gets the input polling FullscreenUI's
 idle state has, so its menu works (Resume, Close Game and the rest).
 `build_pcsx2sa.sh` applies `pcsx2/patches/*.patch` and keys its cache on them.
-ARMSX2, which replaced the fork after 1.3 (below), has the same frontend and
+ARMSX2, which replaced the fork in 1.3 (below), has the same frontend and
 the same branch; the patch is made against its `armsx2-sdl`, and there the
 pause menu stays up and Resume goes back to the game (checked on the device on
 2026-10-21).
 
-## PS2: Jak and Daxter hung and drew with glitches — ARMSX2 replaces the fork after 1.3
+## PS2: Jak and Daxter hung and drew with glitches — ARMSX2 replaces the fork in 1.3
 
-Up to 1.3 the image built bmdhacks' PCSX2 fork. On the RG52 Mini Jak and
+Up to 1.2, and in 1.3's first test builds, the image built bmdhacks' PCSX2
+fork. On the RG52 Mini Jak and
 Daxter (PAL) hung in the game and drew with glitches. ARMSX2
 (github.com/ARMSX2/ARMSX2) is the fork the work went on in: the same arm64
 recompilers and SDL frontend, a newer GS with workarounds for Mali drivers.
@@ -1216,7 +1225,7 @@ ThinLTO"); its binary is `/opt/pcsx2/bin/armsx2-sdl`.
 
 Its data stays where it was: `standalone-pcsx2sa` links
 `~/.config/ARMSX2` (ARMSX2's dir under `XDG_CONFIG_HOME`) to the same
-`/roms/ps2/pcsx2` that `~/.config/PCSX2` was, so the PCSX2.ini of 1.3 carries
+`/roms/ps2/pcsx2` that `~/.config/PCSX2` was, so the PCSX2.ini of 1.2 carries
 over, and with it the memory cards in `/roms/ps2/memcards`. Whether the old
 fork's savestates load was not checked (the test card had none). ARMSX2
 ignores the old fork's SPU2 keys in that ini (`Interpolation`, `SynchMode`,
@@ -1235,7 +1244,7 @@ core alike. Without the extension all 72 convert pipelines build.
 for the fp16 extension next to it. LSFG is off by default and nothing in
 the image turns it on.
 
-## PS2: the system list showed its name as plain text — fixed after 1.3's test build
+## PS2: the system list showed its name as plain text — fixed in 1.3
 
 nes-box, the default theme, has no ps2 folder, so ES wrote "PlayStation 2" in
 its plain font where the other systems have a logo and a picture. Ours goes in
@@ -1344,14 +1353,19 @@ A report on 1.0: the battery ran flat "in sleep". Measured on revision B on
   same 64 % before and after. The same path since the first kernel, so in 1.0
   too. The menu item does not go through `finish.sh`, whose
   `.SWAPPOWERANDSUSPEND` branch ("Switch power button tap to off") suspends
-  instead.
+  instead. In 1.3 ES's `shutdown` event, on "yes", also starts
+  `darkos-poweroff` in a unit of its own: it waits up to a minute for ES to
+  end, then asks for the power-off every second until it happens, so ES dying
+  on its way out no longer brings the menu back (TODO.md, "Open questions on
+  the device").
 
-## Nintendo 3DS: Azahar in RetroArch (after 1.3's test build)
+## Nintendo 3DS: Azahar in RetroArch (1.3)
 
 The 3DS system runs `azahar_libretro` in RetroArch: Azahar 2126.1.2 (the
-libretro build of Citra's successor) with GammaOS's azahar-nano changes on top.
-Its folder is `/roms/3ds`; on a dual-boot card GammaOS's `n3ds` is an alias of
-it. Encrypted dumps do not run.
+libretro build of Citra's successor) with GammaOS's azahar-nano changes on top,
+then our patches `azahar-patch-001` to `-018` (`rk3562_core_builds/patches/`;
+009 and 015 are later azahar-nano commits). Its folder is `/roms/3ds`; on a
+dual-boot card GammaOS's `n3ds` is an alias of it. Encrypted dumps do not run.
 
 - **azahar-nano** is TheGammaSqueeze's fork for GammaOS: about 130 commits of
   speed work for Mali GPUs and in-order cores, such as fastmem and dispatch
@@ -1375,6 +1389,13 @@ it. Encrypted dumps do not run.
   this core, where Azahar builds its pipelines on worker threads.
 - **Layout** defaults to "Large Screen, Small Screen" (patch on the core's
   default), which fills the 16:9 screen better than the screens stacked.
+- **The Back key swaps the screens** (`azahar-patch-011`). The core swapped
+  them on L3, the switch under the left stick, and a hard push of the stick
+  closes it by itself: two key logs taken while playing caught L3 down for
+  0.7 s and for 3 s. Back (BTN_TRIGGER_HAPPY1) is used by nothing else. The
+  RetroPad has no button for it, so the core reads it from the pad's event
+  device. Checked on the device with Super Mario 3D Land: Back swaps and swaps
+  back, L3 does nothing, Select still pauses (TODO.md, 2026-10-24).
 - **Speed: PGO.** Built with clang and a profile from playing Super Mario 3D
   Land on this device with an instrumented build of the same recipe, merged
   with GammaOS's own profile for azahar-nano (six games). Theirs alone did
@@ -1391,7 +1412,8 @@ it. Encrypted dumps do not run.
 - **Speed: GammaOS's settings (2026-10-23).** Super Mario 3D Land ran at half
   speed here and at full speed in azahar-nano on GammaOS, on the same device.
   Both were measured from one save state with a Mali job trace and the core's
-  own GPU timer (GammaOS's swap tracer, Android-only in the sources). The GPU
+  own GPU timer (GammaOS's swap tracer, Android-only in the sources; since
+  `azahar-patch-018` it runs only on request, below). The GPU
   took 23.8 ms a frame here (vertex and tiler 19.5, fragment 19.9 with both
   eyes; clears alone 6.6), against GammaOS's 15.2 with both eyes and 7.9
   without the right one. Clocks are the same in both (GPU 900 MHz, DDR
@@ -1477,6 +1499,18 @@ it. Encrypted dumps do not run.
   with Super Mario 3D Land (Europe): 12 cheats listed, one switched on and
   off through RetroArch, the mark in the shared list each time. Castlevania:
   Lords of Shadow – Mirror of Fate has none in the database.
+- **Offscreen draws are never left out** (`azahar-patch-015`, GammaOS's
+  e842af2339c). A draw into a texture the game composes once (Pokemon Sun's
+  skins) was left out while its pipeline compiled, with a cold cache, as the
+  bottom screen's draws were before patch 009. On the console with it:
+  Castlevania 21.1 / 20.6 fps, Super Mario 3D Land 59.9, as before.
+- **GammaOS's GPU timer only on request** (`azahar-patch-018`). azahar-nano
+  put GPU timestamps around every render pass, clear, copy and present in
+  every game, while only a profiling session reads them. It now starts only
+  with `persist_gammaos_azahar_nano_gputime=1` in the environment.
+  Castlevania's intro: 50.1 ms of GPU a frame before, 48.7 after on libmali;
+  64.0 and 63.1 on malisx2 (TODO.md, "Where Castlevania's GPU time goes on
+  malisx2").
 - **RetroArch's FPS counter costs about 20%** on the vulkan driver (29.7 fps
   without it, 24.3 with it, same savestate, 2126.2). Measure without it.
 - **RGA scaling** (`video_ctx_scaling`) changes nothing on the vulkan driver
@@ -1492,6 +1526,27 @@ it. Encrypted dumps do not run.
   image's copies, and by an OTA hook into an installed one). Its logo is
   Nintendo's own 3DS logo in nes-box's white and red; the picture is Samus from
   Nintendo's press render for Metroid: Samus Returns.
+
+## Keys: L3 closes by itself, Home toggled Bluetooth — fixed in 1.3
+
+The case names two buttons the code does not: Home is BTN_MODE (SDL's button
+10, RetroArch's hotkey enable), Back is BTN_TRIGGER_HAPPY1 (SDL's button 17),
+which nothing used. L3 is the switch under the left stick, and a hard push of
+the stick closes it by itself: two key logs taken while the owner played
+caught it down for 0.7 s and for 3 s (2026-10-24).
+
+- **Azahar** swapped its screens on L3. It swaps them on Back now (above).
+- **DraStic** opened its menu on L3. `drastic/hotkey`, an LD_PRELOAD library
+  the launchers load when it is there, puts the menu on Home+X, the
+  combination that opens RetroArch's menu. Home+X reaches DraStic as L3,
+  still the menu's key in `drastic.cfg`; a real L3 is dropped; while Home is
+  held no button reaches the game; Home alone still swaps the screens.
+  Checked on the device with Diddy Kong Racing DS.
+- **Home toggled Bluetooth.** ogage's rg503 branch runs `bttoggle.sh` at every
+  BTN_MODE press, so each Home+X for RetroArch's menu turned Bluetooth on or
+  off: about 15 toggles in the journal of half an hour of play.
+  `ogage/patches/0001` removes it. Bluetooth is switched in Options >
+  Bluetooth.
 
 ## HDMI output does nothing
 
@@ -1609,6 +1664,26 @@ Where to start is in TODO.
   installed any more (after 1.2): the kernel powers the PMIC off itself, after
   systemd-shutdown's last sync, and the script's i2cset would have cut the
   power before that sync.
+* **N64 in RetroArch: the threaded renderer (1.3).** `mupen64plus_next` had no
+  core options set. With `mupen64plus-ThreadedRenderer = "True"` in the
+  image's core options AeroGauge (frames 600-1800) runs at about 57 fps
+  instead of 54, Zelda's title (frames 1200-3000) at 57 instead of 52
+  (TODO.md, 2026-10-24). An updated card gets the option from
+  `ota/hooks/1.3-mupen64plus-threaded.sh` unless the user set it. N64 still
+  starts `parallel_n64` in retroarch32 by default; mupen64plus_next is a
+  choice in ES.
+* **RetroArch with mupen64plus_next can outlive a SIGTERM.** On 2026-10-25
+  `systemctl stop` of a transient unit running it (SIGTERM to the whole
+  cgroup: the bash launcher, n64.sh and RetroArch) left RetroArch running,
+  the picture frozen, until the 90 s stop timeout's SIGKILL, on libmali
+  g29p1-4 and -5 alike. A SIGTERM to RetroArch alone ended it in 0.6 s
+  (2026-10-24), and its own quit (the hotkey twice, `quit_press_twice`) in
+  1.4 s. Why the two differ was not found; the whole cgroup against one
+  process is the open question. retroarch32 with `parallel_n64` did the same
+  once in a test harness (2026-10-18). Stopping ES (the power key's power-off,
+  a shutdown, an update) sends SIGTERM to its whole cgroup, game included, so
+  a power-off during an N64 game took a minute and a half. `TimeoutStopSec=10`
+  in `emulationstation.service` (1.3) cuts that to 10 s.
 * **`liblc3-0`, `libreadline7` "could not install"** — these are deliberate.
   `bluetooth_needed_packages.txt` lists the names from several Debian releases
   side by side, and the ones that do not exist in trixie are simply skipped.
