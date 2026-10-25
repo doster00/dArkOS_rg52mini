@@ -459,6 +459,13 @@ an emulator's adapter list would not work, so:
 
 Enumerating malisx2 costs nothing measurable (vulkaninfo 5-10 ms, 8 KB).
 
+The image builds malisx2 itself (`build_malisx2.sh`, from 1.3's build on):
+bmdhacks' commit eae9663 with Mesa at the commit it pins, our change of the
+device name to "Mali-G52 (malisx2)" (`malisx2/patches/`), -O3 for the
+Cortex-A53, full LTO and a profile (`malisx2/pgo/`), installed at
+`/usr/lib/aarch64-linux-gnu/malisx2/`. With LTO and the profile it compiles
+Castlevania's 368 pipelines in 7.4 s instead of 8.1, draws as fast as before.
+
 ## gl4es ports rendered black into their own textures: gl4es-fix (after 1.0)
 
 **The problem (1.0 and earlier).** In Don't Starve the HUD showed, but the

@@ -878,14 +878,20 @@ no geometry or tessellation shaders, logicOp, wide lines, shaderInt64; 16
 vertex attributes and bindings against 32; one queue against two.
 How it is chosen: KNOWN-ISSUES.md, "Vulkan: Arm's driver or malisx2".
 
+Done since:
+* The image builds it (`build_malisx2.sh`, 2026-10-25): xtool's clang for the C
+  and C++, the chroot's rustc under qemu for kraid (Valhall's Rust compiler,
+  which the build cannot leave out), bindgen 0.71 from Debian, meson 1.12.1
+  from its release tarball (trixie's 1.7.0 dies writing the build of Mesa's
+  structured-sources Rust crate: "'CustomTargetIndex' object has no attribute
+  'subdir'"), Mesa fetched at the commit malisx2's meson.build pins. Tried on a
+  dArkOS root mounted as the chroot: 33 minutes from nothing, cached by commit,
+  recipe, patches and profile after that.
+* Its compiler on the CPU, see "malisx2's compiler: LTO and a profile" below.
+
 Open:
-* malisx2 is not built by the image yet: a step that builds it in the chroot
-  (meson from git, rustc and libdrm-dev are there; libgbm-dev and bindgen are
-  not) or with xtool's clang, cached by its commit.
 * Where Castlevania's time goes on it: measured, see below. The vertex side is
   the work: IDVS and descriptors/uniforms written by the CPU, in malisx2.
-* Its compiler on the CPU (the boot preload) may gain from LTO and a profile,
-  as Azahar did.
 * GammaOS measured it under Android: no gain, 200 MB more memory, lmkd killed
   the emulator once. Here RetroArch's peak was 1067 MB against 1132 on libmali.
 
@@ -929,6 +935,36 @@ Seen on the way: the system-sleep hook logs errors on every sleep (`top -p`
 with no pid; a GPU devfreq path of the RK3566, `fde60000.gpu`, where the
 RK3562's is `ff320000.gpu`). Harmless so far; to fix with the next look at
 sleep.
+
+### malisx2's compiler: LTO and a profile (2026-10-25)
+
+What a game's first start waits for. A fixed workload: Castlevania's boot
+preload with Azahar's list of its pipelines kept and malisx2's own pipeline
+cache deleted before each boot, so every boot compiles the same 368
+("Preload: N pipelines compiled by the driver in X ms", `compbench.sh` in the
+session's scratchpad `msx/`). Three boots each, one session:
+
+| malisx2 build | Castlevania, 368 pipelines | Luigi's Mansion, 277 |
+|---|---|---|
+| -O3 -mcpu=cortex-a53 (as before) | 8.09-8.13 s | 3.13-3.17 s |
+| + full LTO | 7.80-7.89 s (-3%) | |
+| + LTO and the profile, host build | 7.40-7.41 s (-8.6%) | |
+| + LTO and the profile, `build_malisx2.sh` in a chroot | 7.39-7.45 s (-8.6%) | 2.92-2.97 s (-7%) |
+
+-mcpu=cortex-a53 was already there, and with it NEON (always on for aarch64).
+The profile: the instrumented driver compiling Super Mario 3D Land's 445
+pipelines from an empty cache and Luigi's Mansion's as it starts, then running
+(Castlevania, which measures it, left out). Mesa's sources reach the compiler
+by absolute paths, which name a profile's file-local functions, so it was made
+with the tree at /home/ark/malisx2, the chroot's path; the recipe's build
+matching the host's shows it is taken there. Castlevania's speed on malisx2
+does not move with it (16.7-16.9 / 15.5-15.8 fps either way; the GPU is the
+limit).
+
+perf over the preload: 79% in the driver, 11% libc (malloc/free and their
+internals), 7% kernel. In the driver no hot spot: Bifrost register allocation
+about 13%, NIR's algebraic passes about 11%, hash sets 6%, then many passes of
+1-3% each. A faster allocator could take a few % more; not tried.
 
 ## libmali g29p1-5 in place of g29p1-4 (2026-10-25, for the build after 20261025042625)
 

@@ -30,6 +30,7 @@ if ! call_chroot "eatmydata apt-get -y update && DEBIAN_FRONTEND=noninteractive 
   echo "WARNING: the Debian security updates were not installed; the image has the packages of the point release"
 fi
 call_chroot "apt remove -y autotools-dev \
+  bindgen \
   build-essential \
   ccache \
   clang \
@@ -43,6 +44,7 @@ call_chroot "apt remove -y autotools-dev \
   libboost-locale-dev \
   libboost-regex-dev \
   libboost-system-dev \
+  libclang-dev \
   libcurl4-openssl-dev \
   libdrm-dev \
   libeigen3-dev \

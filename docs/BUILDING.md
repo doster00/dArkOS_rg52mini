@@ -20,7 +20,8 @@ Azahar's core took 573 minutes there. `xtool.sh` keeps Debian's amd64 build of
 the chroot's clang in `Arkbuild_package_cache/xtool-trixie-amd64` (a minbase
 debootstrap with clang-19, lld-19, llvm-19 and libeatmydata1, about 1 GB) and
 mounts it into the chroot for the recipes that build with clang:
-`build_pcsx2sa.sh` (ARMSX2) and `build_a53_core azahar` in `build_retroarch.sh`.
+`build_pcsx2sa.sh` (ARMSX2), `build_malisx2.sh` (its C and C++; its Rust stays
+under qemu) and `build_a53_core azahar` in `build_retroarch.sh`.
 The host's CPU runs it as it is; cmake, ninja, the shell, GNU ld and strip
 still go through qemu. It compiles inside the chroot, against the chroot's
 headers, libraries and GCC installation, at the chroot's paths, so a PGO
