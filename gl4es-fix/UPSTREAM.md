@@ -47,11 +47,33 @@ one. With it the world renders, with lighting, colour grading and shadows.
   With full NPOT, nothing makes a mipmap filter on an attached texture
   non-mipmap.
 
-**Also seen, separately.** In the same game, several fragment shaders fail on
-libmali with "S0020: Array subscript too big". They declare
-`uniform sampler2D SAMPLER[SAMPLERCOUNT];` with
-`#define SAMPLERCOUNT (2 + BLUR_SAMPLER_COUNT + BLOOM_SAMPLER_COUNT)`, and the
-two counts are themselves macros. The array came out as 2 elements. Replacing
-`SAMPLERCOUNT` with the number fixes it, so the size of a uniform array given
-by nested macros seems to be evaluated wrongly somewhere in the shader
-conversion.
+**Also seen, separately: `preproc()` substitutes a define from an `#if` branch
+it cannot evaluate.** In the same game, the postprocess fragment shaders with
+blur or bloom fail on libmali with "S0020: Array subscript too big". They have
+
+```glsl
+#if defined( ENABLE_BLUR )
+	#define BLUR_SAMPLER_COUNT	1
+#else
+	#define BLUR_SAMPLER_COUNT	0
+#endif
+#define SAMPLERCOUNT (2 + BLUR_SAMPLER_COUNT + BLOOM_SAMPLER_COUNT)
+uniform sampler2D SAMPLER[SAMPLERCOUNT];
+#define BLUR_BUFFER      SAMPLER[2]
+```
+
+`preproc()` writes `#if defined(...)` through to the GLES compiler, but it
+records both `#define BLUR_SAMPLER_COUNT` lines and then substitutes the last
+one, 0, in the lines after. `#define SAMPLERCOUNT (...)` falls back to being
+written through after its first token, so the rest of it gets the substitution:
+the GLES compiler reads `#define SAMPLERCOUNT (2 + 0 + 0)` and the shader,
+which defines `ENABLE_BLUR`, indexes `SAMPLER[2]` of a 2-element array.
+Running `preproc.c` alone on the game's 104 shaders reproduces it in 8 of them
+(glslang: "array index out of range '2'").
+
+A fix in `preproc.c`: a `#define` met while `nowrite_ifs == -1` (an `#if` it
+cannot evaluate) is not recorded, and one recorded before is dropped, so the
+GLES compiler's preprocessor expands the name. With it only those 8 shaders
+change, and all of them compile. The patch:
+`gl4es-preproc-conditional-defines.patch` next to this file (against
+2037865).

@@ -1,0 +1,52 @@
+gl4es preproc: a #define under an #if it cannot evaluate is not substituted
+
+preproc() records "#define NAME <integer>" and replaces NAME by the number in
+every line after it, but "#if defined(...)" and other #if expressions it cannot
+evaluate are only written through to the GLES compiler. A define in such a
+block is recorded all the same, so of
+
+    #if defined( ENABLE_BLUR )
+        #define BLUR_SAMPLER_COUNT 1
+    #else
+        #define BLUR_SAMPLER_COUNT 0
+    #endif
+    #define SAMPLERCOUNT (2 + BLUR_SAMPLER_COUNT + BLOOM_SAMPLER_COUNT)
+
+the last alternative, 0, is substituted after it, whatever the #if says; a
+#define that falls back to being written through (its value is not a plain
+integer) gets the substitution from its first token on: the GLES compiler
+reads "#define SAMPLERCOUNT (2 + 0 + 0)", and a shader that defines
+ENABLE_BLUR indexes SAMPLER[2] of a 2-element array ("S0020: Array subscript
+too big" on libmali; glslang: "array index out of range"). Don't Starve's
+postprocess*.ksh, 8 of its 104 shaders.
+
+Now a define met under such an #if is not recorded, and one recorded before is
+dropped: the GLES compiler's preprocessor expands it. On Don't Starve's 104
+shaders only those 8 change, and all of them compile.
+
+diff --git a/src/gl/preproc.c b/src/gl/preproc.c
+index 5b8e8b0..fc406e9 100644
+--- a/src/gl/preproc.c
++++ b/src/gl/preproc.c
+@@ -686,8 +686,19 @@ char* preproc(const char* code, int keepcomments, int gl_es, extensions_t* exts,
+                     if(tok.type==TK_SPACE) {
+                         // nothing...
+                     } else if(tok.type==TK_NEWLINE) {
+-                        k = kh_put(define, defines, defname, &ret);
+-                        kh_value(defines, k) = defval;
++                        if(nowrite_ifs==-1) {
++                            // Under an #if this preprocessor cannot evaluate (defined(), an
++                            // expression) the define may be one of several alternatives,
++                            // e.g. "#if defined(A) / #define N 1 / #else / #define N 0":
++                            // substituting the last one seen everywhere after would be wrong.
++                            // Leave the name to the GLES compiler's own preprocessor.
++                            k = kh_get(define, defines, defname);
++                            if(k!=kh_end(defines))
++                                kh_del(define, defines, k);
++                        } else {
++                            k = kh_put(define, defines, defname, &ret);
++                            kh_value(defines, k) = defval;
++                        }
+                         {
+                             int l = p - oldp;
+                             memcpy(tok.str, oldp, l);
