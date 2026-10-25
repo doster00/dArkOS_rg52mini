@@ -628,6 +628,12 @@ fi
 # Vulkan ICD manifest + info utility
 sudo mkdir -p Arkbuild/usr/share/vulkan/icd.d
 sudo cp BSP/vulkan/rk_vk.json Arkbuild/usr/share/vulkan/icd.d/
+# libvulkan_darkos.so (build_vkselect.sh) stands in for libmali there: it loads libmali or malisx2
+# for each program, as /etc/darkos/vulkan.conf says
+if [ -f Arkbuild/usr/lib/aarch64-linux-gnu/libvulkan_darkos.so ]; then
+  sudo sed -i 's#"library_path" *: *"[^"]*"#"library_path" : "/usr/lib/aarch64-linux-gnu/libvulkan_darkos.so"#' \
+    Arkbuild/usr/share/vulkan/icd.d/rk_vk.json
+fi
 sudo cp BSP/vulkan/vulkaninfo Arkbuild/usr/bin/
 sudo chmod 755 Arkbuild/usr/bin/vulkaninfo
 

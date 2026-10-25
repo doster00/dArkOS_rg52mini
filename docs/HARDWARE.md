@@ -191,9 +191,11 @@ The hardware path is ARM's `libmali-bifrost-g52-g29p1.so`, 57 MB, installed as
 `libMali.so` with `libEGL`, `libGLESv2`, `libgbm` and friends symlinked onto it
 by `build_deps.sh`. Vulkan comes from the same file: it exports
 `vk_icdGetInstanceProcAddr`, and `finishing_touches` installs
-`BSP/vulkan/rk_vk.json` (`api_version 1.3.276`) pointing at it, a vendor
-`libvulkan.so.1.3.274` loader and `vulkaninfo`. `cleanup_filesystem.sh` deletes
-the Mesa ICDs so only the Mali one is left.
+`BSP/vulkan/rk_vk.json` (`api_version 1.3.276`), a vendor
+`libvulkan.so.1.3.274` loader and `vulkaninfo`. The manifest names
+`libvulkan_darkos.so`, which hands each process libmali or malisx2
+(KNOWN-ISSUES, "Vulkan: Arm's driver or malisx2"). `cleanup_filesystem.sh`
+deletes the Mesa ICDs so only the Mali one is left.
 
 **There is no hardware desktop OpenGL, and there cannot be.** ARM's blob does
 not implement it — no `glBegin`, no GLX. Mesa is installed and provides

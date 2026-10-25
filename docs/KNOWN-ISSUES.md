@@ -415,6 +415,50 @@ which SDL turns. But it starts the game with `$ESUDO env ...`. On dArkOS
 `$ESUDO` is `sudo`, which drops exported variables, so the game ran on Vulkan
 anyway. It now presents right through the layer.
 
+## Vulkan: Arm's driver or malisx2, chosen per system (after 1.3's test build)
+
+Two Vulkan drivers can run the Mali-G52: Arm's own, in libmali, and malisx2
+(github.com/bmdhacks/malisx2), Mesa's shader compilers and Vulkan runtime over
+Arm's kernel driver, written for the ARMSX2 PS2 emulator; GammaOS ships it for
+azahar-nano on the G52. Measured here (TODO.md, "malisx2"): it compiles
+pipelines about six times faster (a game's first run stutters less), but draws
+Castlevania: Lords of Shadow – Mirror of Fate a quarter slower and God of War 5%
+slower, implements Vulkan 1.1 with 24 device extensions against libmali's 1.3
+with 135, and Dolphin does not start on it. So libmali stays the default.
+
+**One driver per process.** Both drivers cannot be listed to the Vulkan loader:
+libmali takes DRM master on the panel's card once it has enumerated its GPU,
+and malisx2's VK_KHR_display swapchain then fails ("Failed to create
+KHR_display surface" in RetroArch), whichever is listed first. A second GPU in
+an emulator's adapter list would not work, so:
+
+- **libvulkan_darkos.so** (`vk-driver-select/`, `build_vkselect.sh`) is the only
+  driver the loader sees (`rk_vk.json` points at it). It loads libmali or
+  malisx2 and hands the loader that driver's three entry points. Which one: the
+  first that says of `DARKOS_VULKAN` in the program's environment (`mali`,
+  `malisx2`, or a driver library's path), a line `<program> = <driver>` in
+  `/etc/darkos/vulkan.conf` (the program by its executable), that file's
+  `default`, mali. A driver that does not load falls back to mali, with a line
+  on stderr; `DARKOS_VULKAN_DEBUG=1` reports every choice.
+- **ES, EMULATOR SETTINGS > a system > VULKAN DRIVER**: AUTO, MALI, MALISX2
+  (`es-0002-vulkan-driver-choice.patch`), kept as `<system>.vulkan` like the
+  governor. ES launches the system's games with `DARKOS_VULKAN` set to the
+  choice; AUTO leaves it unset, so vulkan.conf decides. The choice is offered
+  for the systems the file's `es_systems` line names, comma-separated and
+  editable on the device: now 3ds, n3ds, ps2, ppsspp, pspminis, Gamecube, psx,
+  dreamcast, naomi, Sega Atomiswave, ports, the systems whose emulators draw
+  with Vulkan. A system ES shows under an alias is named by the alias (n3ds is
+  the 3DS folder of a GammaOS card, es-aliases.py). The update keeps a user's
+  vulkan.conf and adds the line if it has none
+  (`ota/hooks/1.3-vulkan-es-systems.sh`). Like the other rows of that menu, a
+  change is saved when the menu is left with B; START closes all menus without
+  saving.
+- **PortMaster:** a port that runs its game with `$ESUDO` (sudo with a
+  `--preserve-env` list) would lose `DARKOS_VULKAN`; `portmaster-e2big.sh` adds
+  it to that list in `mod_dArkOS.txt` when it is set.
+
+Enumerating malisx2 costs nothing measurable (vulkaninfo 5-10 ms, 8 KB).
+
 ## gl4es ports rendered black into their own textures: gl4es-fix (after 1.0)
 
 **The problem (1.0 and earlier).** In Don't Starve the HUD showed, but the

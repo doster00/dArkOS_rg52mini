@@ -847,6 +847,48 @@ Not taken:
   f66a67211f5), a start screen (aeb2ab4a6fe), colour matrices (076b8fcef48),
   panels and sleep (e2c4505db64, f0e49ef952a), menu labels, data folders.
 
+## malisx2 measured against libmali (2026-10-25)
+
+malisx2 main eae9663 (0.2.3, Mali-G52 support merged from GammaOS's g52-azahar
+branch, nothing of theirs left out), built on the WSL host: clang-19 and lld
+against the azroot sysroot, rustup's stable rustc, bindgen 0.71.1, meson 1.12
+(`~/rg52/malisx2-work`, cross file `darkos-aarch64.ini`); one change of ours,
+the deviceName "Mali-G52 (malisx2)". It runs on the console's kbase (g25p0, JM
+UK 11.47, negotiated 11.36; 64-byte atoms after the kernel refuses stride 72;
+no JIT zone). Its Linux WSI presents through VK_KHR_display with libmali's GBM.
+
+| | libmali | malisx2 |
+|---|---|---|
+| Luigi's Mansion, ~390 pipelines compiled at boot (preload) | 24.3, 25.4 s | 3.8, 3.9 s |
+| the same, cold cache, flips in the first 120 s | 4904-4988 | 5380-5487 |
+| Castlevania's intro, fps (frames 60-360 / 360-660) | 21.2 / 20.3 | 14.2-16.9 / 15.7-16.0 |
+| Super Mario 3D Land, fps | 59.8 | 59.7-59.8 |
+| God of War demo (ARMSX2), fps | 42.2 | 40.0 (CPU 54% against 70%) |
+| ND Demo (Dolphin) | 44.5 | does not start |
+
+Pictures match (Super Mario 3D Land's first run on malisx2 showed Mario as a
+dark shape for the frames his pipeline was still compiling, as Azahar's hybrid
+path draws). Azahar takes its vertex-depth shaders on malisx2, which has
+shaderClipDistance, so its shader caches there are separate (`*_vd_hs.vkch`).
+vulkaninfo: Vulkan 1.1 against 1.3; 24 device extensions against 135 (none of
+dynamic rendering, synchronization2, timeline semaphores, extended dynamic
+state, buffer device address, 8/16-bit storage, float16, robustness2, custom
+border colours, transform feedback; it adds memory_budget and push_descriptor);
+no geometry or tessellation shaders, logicOp, wide lines, shaderInt64; 16
+vertex attributes and bindings against 32; one queue against two.
+How it is chosen: KNOWN-ISSUES.md, "Vulkan: Arm's driver or malisx2".
+
+Open:
+* malisx2 is not built by the image yet: a step that builds it in the chroot
+  (meson from git, rustc and libdrm-dev are there; libgbm-dev and bindgen are
+  not) or with xtool's clang, cached by its commit.
+* Where Castlevania's time goes on it: `MALISX2_MEASURE=timing` gives GPU
+  timestamps per render pass and draw.
+* Its compiler on the CPU (the boot preload) may gain from LTO and a profile,
+  as Azahar did.
+* GammaOS measured it under Android: no gain, 200 MB more memory, lmkd killed
+  the emulator once. Here RetroArch's peak was 1067 MB against 1132 on libmali.
+
 ## Battery in sleep (2026-10-19)
 
 Sleep is deep now, the black screensaver ends in sleep on battery, two hours

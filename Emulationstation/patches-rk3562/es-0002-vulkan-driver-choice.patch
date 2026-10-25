@@ -1,0 +1,129 @@
+dArkOS: EMULATOR SETTINGS offers a VULKAN DRIVER choice (AUTO, MALI, MALISX2) for the systems
+/etc/darkos/vulkan.conf names on its es_systems line (comma-separated; editable on the device).
+The choice is kept as "<system>.vulkan" like the governor, and a game of the system is launched
+with DARKOS_VULKAN set to it, which libvulkan_darkos.so (vk-driver-select/) reads; AUTO leaves
+DARKOS_VULKAN unset, so vulkan.conf's lines decide.
+
+diff --git a/es-app/src/DarkosVulkan.h b/es-app/src/DarkosVulkan.h
+new file mode 100644
+index 0000000..3cec646
+--- /dev/null
++++ b/es-app/src/DarkosVulkan.h
+@@ -0,0 +1,53 @@
++#pragma once
++#ifndef ES_APP_DARKOS_VULKAN_H
++#define ES_APP_DARKOS_VULKAN_H
++
++// dArkOS: the Vulkan driver a system's emulators get. libvulkan_darkos.so, the driver the Vulkan
++// loader sees, loads Arm's (mali) or malisx2: DARKOS_VULKAN in the program's environment if set,
++// else /etc/darkos/vulkan.conf. EMULATOR SETTINGS offers the choice for the systems that file names
++// on its "es_systems" line (editable on the device); AUTO leaves it to the file.
++
++#include <fstream>
++#include <sstream>
++#include <string>
++
++namespace DarkosVulkan
++{
++	inline std::string trim(const std::string& s)
++	{
++		const size_t a = s.find_first_not_of(" \t\r\n");
++		if (a == std::string::npos)
++			return "";
++		return s.substr(a, s.find_last_not_of(" \t\r\n") - a + 1);
++	}
++
++	// The value of "key = value" in vulkan.conf, "" if it has none.
++	inline std::string confValue(const std::string& key)
++	{
++		std::ifstream f("/etc/darkos/vulkan.conf");
++		std::string line, value;
++		while (std::getline(f, line))
++		{
++			const size_t hash = line.find('#');
++			if (hash != std::string::npos)
++				line.erase(hash);
++			const size_t eq = line.find('=');
++			if (eq != std::string::npos && trim(line.substr(0, eq)) == key)
++				value = trim(line.substr(eq + 1));
++		}
++		return value;
++	}
++
++	// es_systems is a comma-separated list: a system's name may hold spaces ("Sega Atomiswave").
++	inline bool offered(const std::string& system)
++	{
++		std::istringstream names(confValue("es_systems"));
++		std::string name;
++		while (std::getline(names, name, ','))
++			if (trim(name) == system)
++				return true;
++		return false;
++	}
++}
++
++#endif
+diff --git a/es-app/src/FileData.cpp b/es-app/src/FileData.cpp
+index a08d271..6a1e294 100644
+--- a/es-app/src/FileData.cpp
++++ b/es-app/src/FileData.cpp
+@@ -18,6 +18,8 @@
+ #include "views/UIModeController.h"
+ #include <assert.h>
+ #include "Gamelist.h"
++#include "DarkosVulkan.h"
++#include <stdlib.h>
+ #include <algorithm>
+ 
+ FileData::FileData(FileType type, const std::string& path, SystemData* system)
+@@ -343,7 +345,16 @@ void FileData::launchGame(Window* window)
+ 
+ 	LOG(LogInfo) << "	" << command;
+ 
++	// dArkOS: the system's Vulkan driver for libvulkan_darkos.so (DarkosVulkan.h); AUTO (unset)
++	// leaves it to /etc/darkos/vulkan.conf
++	const std::string vulkan = Settings::getInstance()->getString(getSystemName() + ".vulkan");
++	if (vulkan == "mali" || vulkan == "malisx2")
++		setenv("DARKOS_VULKAN", vulkan.c_str(), 1);
++	else
++		unsetenv("DARKOS_VULKAN");
++
+ 	int exitCode = runSystemCommand(command, getDisplayName(), hideWindow ? NULL : window);
++	unsetenv("DARKOS_VULKAN");
+ 	if (exitCode != 0)
+ 	{
+ 		LOG(LogWarning) << "...launch terminated with nonzero exit code " << exitCode << "!";
+diff --git a/es-app/src/guis/GuiMenu.cpp b/es-app/src/guis/GuiMenu.cpp
+index 25a78a5..5354f78 100644
+--- a/es-app/src/guis/GuiMenu.cpp
++++ b/es-app/src/guis/GuiMenu.cpp
+@@ -34,6 +34,7 @@
+ 
+ //#include <go2/display.h>
+ #include "SystemConf.h"
++#include "DarkosVulkan.h"
+ 
+ GuiMenu::GuiMenu(Window* window, bool animate) : GuiComponent(window), mMenu(window, _("MAIN MENU")), mVersion(window)
+ {
+@@ -1875,6 +1876,21 @@ void GuiMenu::openSystemEmulatorSettings(SystemData* system)
+ 		Settings::getInstance()->setString(system->getName() + ".governor", gov_choice->getSelected());
+ 	});
+ 
++	// dArkOS: the Vulkan driver of the system's emulators (DarkosVulkan.h), where vulkan.conf offers it
++	if (DarkosVulkan::offered(system->getName()))
++	{
++		auto vk_choice = std::make_shared<OptionListComponent<std::string>>(mWindow, _("VULKAN DRIVER"), false);
++		const std::string currentVk = Settings::getInstance()->getString(system->getName() + ".vulkan");
++		vk_choice->add(_("AUTO"), "", currentVk != "mali" && currentVk != "malisx2");
++		vk_choice->add("MALI", "mali", currentVk == "mali");
++		vk_choice->add("MALISX2", "malisx2", currentVk == "malisx2");
++		s->addWithLabel(_("VULKAN DRIVER"), vk_choice);
++		s->addSaveFunc([system, vk_choice]
++		{
++			Settings::getInstance()->setString(system->getName() + ".vulkan", vk_choice->getSelected());
++		});
++	}
++
+ 	mWindow->pushGui(s);
+ }
+ 

@@ -10,13 +10,15 @@
 # control.txt. SDL still gets the mappings, including the one mapper.py adds
 # for this joystick, through SDL_GAMECONTROLLERCONFIG_FILE.
 #
-# It also points gl4es at the render-target fix (LIBGL_GLES), see below.
+# It also points gl4es at the render-target fix (LIBGL_GLES), and lets the Vulkan driver chosen in
+# ES (DARKOS_VULKAN) through to a port run with $ESUDO, see below.
 #
 # PortMaster overwrites its files when it updates itself, so this runs at boot
 # and from portmaster-e2big.path whenever mod_dArkOS.txt changes.
 
 MARK="# dArkOS RG52 Mini: E2BIG guard"
 MARK_GL4ES="# dArkOS RG52 Mini: gl4es render-target fix"
+MARK_VULKAN="# dArkOS RG52 Mini: Vulkan driver through sudo"
 
 for dir in /opt/system/Tools/PortMaster /roms/ports/PortMaster /roms2/ports/PortMaster /roms/tools/PortMaster; do
   f="$dir/mod_dArkOS.txt"
@@ -35,6 +37,24 @@ if [ -z "$LIBGL_GLES" ] && [ -f /usr/lib/aarch64-linux-gnu/gl4es-fix/libGLESv2.s
 fi
 GL4ES
     logger -t portmaster-e2big "gl4es fix added to $f"
+  fi
+  if ! grep -qF "$MARK_VULKAN" "$f"; then
+    cat >> "$f" <<'VULKAN'
+
+# dArkOS RG52 Mini: Vulkan driver through sudo (added by /usr/local/bin/portmaster-e2big.sh)
+# ES's EMULATOR SETTINGS > VULKAN DRIVER for the ports reaches them as DARKOS_VULKAN, which
+# libvulkan_darkos.so reads; $ESUDO (sudo --preserve-env=<list>) would drop it for a port that
+# runs its game through sudo.
+if [ -n "$DARKOS_VULKAN" ] && [[ "$ESUDO" == sudo* ]] && [[ "$ESUDO" != *DARKOS_VULKAN* ]]; then
+    if [[ "$ESUDO" == *--preserve-env=* ]]; then
+        ESUDO="${ESUDO/--preserve-env=/--preserve-env=DARKOS_VULKAN,}"
+    else
+        ESUDO="$ESUDO --preserve-env=DARKOS_VULKAN"
+    fi
+    export ESUDO
+fi
+VULKAN
+    logger -t portmaster-e2big "Vulkan driver pass-through added to $f"
   fi
   grep -qF "$MARK" "$f" && continue
   cat >> "$f" <<'GUARD'
