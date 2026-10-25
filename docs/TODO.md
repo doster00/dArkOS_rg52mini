@@ -882,12 +882,53 @@ Open:
 * malisx2 is not built by the image yet: a step that builds it in the chroot
   (meson from git, rustc and libdrm-dev are there; libgbm-dev and bindgen are
   not) or with xtool's clang, cached by its commit.
-* Where Castlevania's time goes on it: `MALISX2_MEASURE=timing` gives GPU
-  timestamps per render pass and draw.
+* Where Castlevania's time goes on it: measured, see below. The vertex side is
+  the work: IDVS and descriptors/uniforms written by the CPU, in malisx2.
 * Its compiler on the CPU (the boot preload) may gain from LTO and a profile,
   as Azahar did.
 * GammaOS measured it under Android: no gain, 200 MB more memory, lmkd killed
   the emulator once. Here RetroArch's peak was 1067 MB against 1132 on libmali.
+
+### Where Castlevania's GPU time goes on malisx2 (2026-10-25)
+
+Both drivers through the same window: kbase's `mali_job_slots_event`
+tracepoint (the kernel has Gator support), every atom's start and end per
+job slot, frames 360-660 of the intro (bench.sh `GPUTRACE=1`, analysis
+`slots.py`/`overlap.py` in the session's scratchpad `msx/`). ms a frame:
+
+| | libmali | malisx2 |
+|---|---|---|
+| frame | 50.1 | 64.0 |
+| slot 1, vertex/tiler/compute, busy | 12.6 | 25.5 |
+| slot 0, fragment, busy | 33.5 | 37.1 |
+| both slots at once | 6.1 | 1.1 |
+| GPU idle | 10.0 | 2.5 |
+
+So malisx2 loses on the vertex side (twice the time), a little on fragments,
+and runs the next pass's vertex work beside the current pass's fragments
+far less. Its own `MALISX2_MEASURE=timing` (per pass; per draw only on CSF
+GPUs) agrees: 240x400 passes, about 20 a frame, 1.45 ms of fragment and
+1.34 ms of vertex/tiler each; the 3DS bottom screen and the output to the
+panel are under 1 ms a frame together. A capture of its job chains
+(`MALISX2_MEASURE=csf`, decoded with `jcdec.py`): per draw a Vertex job
+(330 vertices on average, all varyings written to memory: no IDVS on its
+Bifrost path), a Tiler job and 2.7 Compute jobs that copy descriptor tables
+and uniform words for the draw.
+
+1.05 write-value jobs a draw, each with a barrier, were timestamp queries
+from the core: GammaOS's GPU timer in azahar-nano (`vk_gammaos_gpu_timer.h`)
+ran in every game. Patch 018 starts it only on request: libmali 50.1 -> 48.7
+ms a frame (vertex-slot atoms 86 -> 40 a frame), malisx2 64.0 -> 63.1. Not
+the cause of malisx2's missing overlap, then.
+
+What would make malisx2 faster here is in its draw path, upstream's to do:
+IDVS on v7, and descriptor tables and uniform words written by the CPU at
+record time instead of copy jobs on the GPU.
+
+Seen on the way: the system-sleep hook logs errors on every sleep (`top -p`
+with no pid; a GPU devfreq path of the RK3566, `fde60000.gpu`, where the
+RK3562's is `ff320000.gpu`). Harmless so far; to fix with the next look at
+sleep.
 
 ## libmali g29p1-5 in place of g29p1-4 (2026-10-25, for the build after 20261025042625)
 
@@ -907,8 +948,9 @@ over the system blob, the same tests as for a release:
 
 ES, its menus and the Vulkan selector work on it. The owner took -5 for the
 image (expecting fixes in the shader compiler); `build_deps.sh` fetches it
-pinned by commit and sha256. Open: Castlevania's intro on -5 once its
-pipelines are compiled.
+pinned by commit and sha256. Castlevania's intro on -5: 21.1-21.2 / 20.3-20.4
+fps against 21.2 / 20.3 on -4; its first start compiled the 629 pipelines
+again in 58 s, the next loaded them in 2.4 s.
 
 Seen on the way, on both: RetroArch with mupen64plus_next does not end on
 SIGTERM. `systemctl stop` of the test unit waits its 90 s and kills it, the
