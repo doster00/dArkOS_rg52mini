@@ -778,7 +778,10 @@ Patch 014 makes the two switches core options, Interleaved Right Eye Skip and
 GPU Flush Lag (KNOWN-ISSUES.md, Azahar), at Auto by default: on for the titles
 in `title_switches` (`core_settings.cpp`), off for the rest. The core reads
 them at every display transfer and cache flush, so a change in the menu
-applies at once; turning the skip off forgets the learned target. The owner
+applies at once; turning the skip off forgets the learned target. Measured
+with the 014 core over image 20261025042625: Auto 21.4 / 20.9 fps (the log
+says "stereo_skip 1, async_gpu_flush_lag 24" for the title), both Disabled
+in the game's options file 9.2 / 9.3; frame 700 the same in both. The owner
 chose options over turning them on for every game: a misjudged target hides
 what the screen shows, and the flush lag touches every game.
 
