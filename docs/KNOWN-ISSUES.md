@@ -509,7 +509,30 @@ RetroArch, SDL and native ports keep linking libmali directly.
 under gl4es ("S0020: Array subscript too big"): `SAMPLER[SAMPLERCOUNT]`, with
 `SAMPLERCOUNT` a sum of nested macros, came out as 2. Writing the number into
 each `postprocess*.ksh` fixes them. That is a change to the game's data on the
-card, not to the image.
+card, not to the image. The cause, found on 2026-10-25, is gl4es's own shader
+preprocessor: it substitutes `#define`s from both branches of an `#if
+defined(...)` it does not evaluate (TODO.md, gl4es; the patch is in
+`gl4es-fix/`). Ports bring their own gl4es, so the image now has a fixed one:
+- `build_gl4es.sh` builds gl4es (pinned commit, the patch, built as
+  PortMaster's are: no X11, GLX stubs, its EGL wrapper, GBM) into
+  `/usr/lib/gl4es`;
+- gl4es ports source `libgl_${CFW_NAME}.txt`, else `libgl_default.txt`, and
+  PortMaster has no dArkOS one, so `portmaster-e2big.sh` writes
+  `libgl_dArkOS.txt`: the default file's lines, then `/usr/lib/gl4es` for a
+  port that has no `gl4es` or `gl4es.aarch64` folder of its own;
+- so a port's own (broken) gl4es still wins, and renaming its gl4es folder
+  (`gl4es.off`, so it can be put back) or deleting it is all a user has to do
+  to take the fixed one; the release notes say so. Without it, the loader would
+  find Debian's `libGL.so.1`, which needs X. Our Don't Starve script already
+  looks in `/usr/lib/gl4es` after its own folder.
+
+Checked on the console with Don't Starve, bloom and distortion switched on:
+with the port's gl4es the screen stays black: 6 of the 8 postprocess shaders,
+which the game compiles at start whatever the settings, fail with S0020, and the
+one it then draws the frame with is among them. With the folder renamed the
+port takes `/usr/lib/gl4es`, all 8 compile and a loaded save looks right. With
+bloom and distortion off, as the port runs by default, the frame goes through
+the plain shader, one of the two that compile on the port's gl4es.
 
 ## The "overclock" governor (after v10062026)
 

@@ -1117,6 +1117,30 @@ Before posting:
 Once gl4es is fixed upstream and ports carry the new build, `gl4es-fix/` and
 its line in `portmaster-e2big.sh` can go.
 
+The second one is found (2026-10-25, the owner asked for a fix for every gl4es
+port, not only Don't Starve's `postprocess*.ksh`): gl4es's `preproc()` records
+`#define N 1` and `#define N 0` from both branches of an `#if defined(...)` it
+only writes through, and substitutes the last one in the lines after
+(UPSTREAM.md has the details). `gl4es-fix/gl4es-preproc-conditional-defines.patch`
+fixes it; `preproc.c` run alone on the game's 104 shaders changes exactly the 8
+broken ones, and glslang compiles them. It cannot be fixed under gl4es: the text
+`gl4es-fix` gets is already `(2 + 0 + 0)`, with nothing left to tell which
+zeros were names, and `preproc` is not exported to interpose. Ports bring
+their own gl4es, so: upstream (post the report with the patch when the owner
+says), and the image's own fixed gl4es in `/usr/lib/gl4es` with
+`libgl_dArkOS.txt` taking it for a port without a gl4es folder; a user deletes
+a port's folder to switch (KNOWN-ISSUES.md). Built on 2026-10-25 in the build
+chroot (4.5 minutes with the cortex-a53 qemu). Not yet run on the console:
+Don't Starve with its gl4es folder renamed, the original `postprocess*.ksh`
+back and bloom and distortion on (its script turns them off because those
+shaders broke).
+
+On the side: libmali's GLSL compiler is closed. malisx2's is ours (Mesa's NIR
+and Bifrost back end), but only for Vulkan programs on it; per-program shader
+workarounds there would go the way Mesa's driconf does them. GL on malisx2
+through zink is out: zink needs far more of Vulkan than malisx2's 1.1 and 24
+extensions.
+
 ## The dependency stage costs two hours of emulation, not of work
 
 Measured while resuming the 2026-09-29 build, where every package was already

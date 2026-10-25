@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Build and install gl4es (OpenGL 2.1 over GLES2) at /usr/lib/gl4es, for PortMaster ports that
+# bring none of their own: libgl_dArkOS.txt (portmaster-e2big.sh) points them there when the port
+# has no gl4es folder, and a user can delete a port's gl4es to take this one. It carries our fix of
+# gl4es's shader preprocessor (gl4es-fix/gl4es-preproc-conditional-defines.patch: a #define under
+# an #if it cannot evaluate is no longer substituted; Don't Starve's blur and bloom shaders failed
+# with "Array subscript too big"). Built as PortMaster's are: no X11, GLX stubs, its EGL wrapper,
+# GBM for LIBGL_FB=4. See docs/KNOWN-ISSUES.md.
+GL4ES_COMMIT=2037865590d410bcd7b8d1f22b841472ed6d39ac
+sudo rm -rf Arkbuild/tmp/gl4es
+call_chroot "cd /tmp && git clone https://github.com/ptitSeb/gl4es.git gl4es && cd gl4es && git checkout -q ${GL4ES_COMMIT}"
+sudo cp gl4es-fix/gl4es-preproc-conditional-defines.patch Arkbuild/tmp/gl4es/
+call_chroot "cd /tmp/gl4es && patch -Np1 < gl4es-preproc-conditional-defines.patch &&
+  mkdir -p build && cd build &&
+  cmake .. -DNOX11=ON -DGLX_STUBS=ON -DEGL_WRAPPER=ON -DGBM=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo &&
+  make -j\20"
+if [ -f Arkbuild/tmp/gl4es/lib/libGL.so.1 ] && [ -f Arkbuild/tmp/gl4es/lib/libEGL.so.1 ]; then
+  sudo mkdir -p Arkbuild/usr/lib/gl4es
+  for f in libGL.so.1 libEGL.so.1; do
+    sudo install -m 644 Arkbuild/tmp/gl4es/lib/$f Arkbuild/usr/lib/gl4es/
+    call_chroot "strip --strip-unneeded /usr/lib/gl4es/$f"
+  done
+else
+  echo "WARNING: gl4es did not build; ports without their own gl4es get none."
+fi
+sudo rm -rf Arkbuild/tmp/gl4es

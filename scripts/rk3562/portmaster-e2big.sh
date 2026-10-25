@@ -11,7 +11,9 @@
 # for this joystick, through SDL_GAMECONTROLLERCONFIG_FILE.
 #
 # It also points gl4es at the render-target fix (LIBGL_GLES), and lets the Vulkan driver chosen in
-# ES (DARKOS_VULKAN) through to a port run with $ESUDO, see below.
+# ES (DARKOS_VULKAN) through to a port run with $ESUDO, see below. And it keeps libgl_dArkOS.txt,
+# which gl4es ports source instead of libgl_default.txt: the same, and the image's gl4es
+# (/usr/lib/gl4es, build_gl4es.sh) for a port without a gl4es of its own.
 #
 # PortMaster overwrites its files when it updates itself, so this runs at boot
 # and from portmaster-e2big.path whenever mod_dArkOS.txt changes.
@@ -19,6 +21,7 @@
 MARK="# dArkOS RG52 Mini: E2BIG guard"
 MARK_GL4ES="# dArkOS RG52 Mini: gl4es render-target fix"
 MARK_VULKAN="# dArkOS RG52 Mini: Vulkan driver through sudo"
+MARK_LIBGL="# dArkOS RG52 Mini: the image's gl4es"
 
 for dir in /opt/system/Tools/PortMaster /roms/ports/PortMaster /roms2/ports/PortMaster /roms/tools/PortMaster; do
   f="$dir/mod_dArkOS.txt"
@@ -55,6 +58,22 @@ if [ -n "$DARKOS_VULKAN" ] && [[ "$ESUDO" == sudo* ]] && [[ "$ESUDO" != *DARKOS_
 fi
 VULKAN
     logger -t portmaster-e2big "Vulkan driver pass-through added to $f"
+  fi
+  # gl4es ports source libgl_${CFW_NAME}.txt, else libgl_default.txt; PortMaster has no dArkOS one
+  lg="$dir/libgl_dArkOS.txt"
+  if [ -f /usr/lib/gl4es/libGL.so.1 ] && ! grep -qF "$MARK_LIBGL" "$lg" 2>/dev/null; then
+    [ -f "$lg" ] || cp "$dir/libgl_default.txt" "$lg" 2>/dev/null || : > "$lg"
+    cat >> "$lg" <<'LIBGL'
+
+# dArkOS RG52 Mini: the image's gl4es (added by /usr/local/bin/portmaster-e2big.sh)
+# A port without a gl4es folder of its own (or one whose folder the user deleted) gets the
+# image's, built with our fix of gl4es's shader preprocessor (#defines under an #if it cannot
+# evaluate). Without it, libGL.so.1 would be Debian's, which needs X.
+if [ ! -d "$PWD/gl4es.$DEVICE_ARCH" ] && [ ! -d "$PWD/gl4es" ] && [ -f /usr/lib/gl4es/libGL.so.1 ]; then
+    export LD_LIBRARY_PATH="/usr/lib/gl4es:$LD_LIBRARY_PATH"
+fi
+LIBGL
+    logger -t portmaster-e2big "image gl4es fallback added to $lg"
   fi
   grep -qF "$MARK" "$f" && continue
   cat >> "$f" <<'GUARD'
