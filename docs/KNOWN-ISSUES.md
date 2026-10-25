@@ -1348,6 +1348,34 @@ it. Encrypted dumps do not run.
 - **Core options saved before 006** keep accurate multiplication on: RetroArch
   writes every option of a core into `retroarch-core-options.cfg` with its
   value at the time. Images before it had no 3DS core in a release.
+- **Games that draw the two eyes interleaved (2026-10-25, patches 013 and
+  014).** Some games draw each object into one eye and then into the other:
+  Castlevania: Lords of Shadow – Mirror of Fate here, Metroid: Samus Returns
+  on GammaOS. "Disable Right Eye Render" does not catch that, and on the Mali
+  GPU every switch between the eyes ends a render pass: Castlevania's intro
+  ran at 9 fps. Two of GammaOS's switches help, and they are core options
+  (Graphics):
+  - **Interleaved Right Eye Skip** (`citra_stereo_skip`; GammaOS's
+    `stereo_skip`) learns the buffer the game shows as the right eye and
+    leaves out what is drawn into it and copied out of it. It works only with
+    "Disable Right Eye Render" on and 3D off. The risk: a game that also uses
+    that buffer for something it shows loses effects, or its top screen
+    stops.
+  - **GPU Flush Lag** (`citra_gpu_flush_lag`; `async_gpu_flush_lag`): when
+    the game flushes its cache, the GPU thread may stay up to this many jobs
+    behind instead of finishing all of them first. The risk: the game reads a
+    picture the GPU has not finished, or changes data the GPU has not used
+    yet (flicker, garbage). It affects any game, not only stereo ones.
+
+  Both default to **Auto**: on (the skip, a lag of 24) for the titles listed
+  in the core (`title_switches` in `core_settings.cpp`; now only
+  000400000009E500, the owner's Russian copy of Castlevania), off for the rest,
+  as GammaOS has them. Castlevania's intro runs at 21-22 fps with Auto, 9 with
+  both off. They are not on for every game because only that one was tried.
+  A change applies at once. To keep it for one game: Quick Menu → Core
+  Options → Manage Core Options → Save Game Options. At Auto, the environment
+  variables of patch 002 (`persist_gammaos_azahar_nano_stereo_skip`,
+  `persist_gammaos_azahar_nano_async_gpu_flush_lag`) still win over the list.
 - **RetroArch's FPS counter costs about 20%** on the vulkan driver (29.7 fps
   without it, 24.3 with it, same savestate, 2126.2). Measure without it.
 - **RGA scaling** (`video_ctx_scaling`) changes nothing on the vulkan driver

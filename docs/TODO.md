@@ -768,16 +768,27 @@ Where the time went:
   the GPU and had it uploaded again, three times a frame. Patch 013 leaves such
   copies out while `stereo_skip` holds a right eye target.
 
-Patch 013 sets both switches for this title (000400000009E500, the owner's
-copy) in `retro_load_game`, unless the environment already sets them.
+Patch 013 set both switches for this title (000400000009E500, the owner's
+copy) in `retro_load_game`, unless the environment already set them.
 Grabs at frames 700, 1300, 1900 and 2500 match the build without any of this.
+The image with 013 (20261025042625) ran it at 22.4 / 21.1 fps (frames 60-360 /
+360-660), GPU 82% busy.
+
+Patch 014 makes the two switches core options, Interleaved Right Eye Skip and
+GPU Flush Lag (KNOWN-ISSUES.md, Azahar), at Auto by default: on for the titles
+in `title_switches` (`core_settings.cpp`), off for the rest. The core reads
+them at every display transfer and cache flush, so a change in the menu
+applies at once; turning the skip off forgets the learned target. The owner
+chose options over turning them on for every game: a misjudged target hides
+what the screen shows, and the flush lag touches every game.
 
 Open:
 * Only the intro was measured; the game itself was not played.
-* The game's other releases have other title IDs. Add them when known.
+* The game's other releases have other title IDs. Add them to
+  `title_switches` when known.
 * `stereo_skip` may help other games that draw the eyes interleaved (GammaOS
   wrote it for Metroid: Samus Returns). It is off by default there. No other
-  game was tried.
+  game was tried with either switch.
 
 ## Battery in sleep (2026-10-19)
 
