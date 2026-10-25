@@ -10,7 +10,7 @@ F=/etc/darkos/vulkan.conf
 [ -f "$F" ] || exit 0
 grep -q '^[[:space:]]*es_systems[[:space:]]*=' "$F" && exit 0
 LINE=$(grep -h '^[[:space:]]*es_systems[[:space:]]*=' "$F.ota-new" 2>/dev/null | tail -1)
-[ -n "$LINE" ] || LINE="es_systems = 3ds, n3ds, ps2, ppsspp, pspminis, Gamecube, psx, dreamcast, naomi, Sega Atomiswave, ports"
+[ -n "$LINE" ] || LINE="es_systems = 3ds, n3ds, ps2, ppsspp, pspminis, psx, dreamcast, naomi, Sega Atomiswave, ports"
 printf '\n%s\n' "$LINE" >> "$F" || exit 0
 echo "$F" >> /var/lib/darkos-ota/merged
 echo "  $F: es_systems added"

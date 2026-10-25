@@ -1,5 +1,6 @@
 #!/bin/bash
-# In every package, first: keep Quick Mode on. "Enable Quick Mode" copies
+# In every package, after the release's own hooks (the all-*.sh run in name order,
+# this one after all-fix-root-dir and all-gpu-links): keep Quick Mode on. "Enable Quick Mode" copies
 # pause.sh.qm and finish.sh.qm over /usr/local/bin/pause.sh and finish.sh, and
 # swaps its entry in Options -> Advanced for "Disable Quick Mode". None of it is
 # under etc/, home/, root/ or var/lib/, so the client lays the update's files

@@ -6,10 +6,12 @@
 # them (cortex-a53 has none, they are NOPs there) dpkg, apt and perl run 13x faster and gcc 1.7x
 # in the build chroot (docs/BUILDING.md). QEMU_CPU still overrides the default.
 #
-# Installs /usr/local/bin/qemu-aarch64-darkos; /usr/local/sbin/register-qemu-binfmt.sh (the WSL
-# workaround, docs/BUILDING.md) registers it for aarch64 when it is there. -march=native: the
+# Installs /usr/local/bin/qemu-aarch64-darkos, and register-qemu-binfmt.sh next to this script
+# as /usr/local/sbin/register-qemu-binfmt.sh (the WSL workaround, docs/BUILDING.md), which
+# registers it for aarch64 when it is there. -march=native: the
 # binary runs only on the machine that built it (or one with the same CPU features).
 set -e
+H=$(cd "$(dirname "$0")" && pwd)
 V=8.2.10
 W=${W:-$HOME/rg52/qemu-work}
 mkdir -p "$W" && cd "$W"
@@ -29,5 +31,6 @@ sudo install -m 755 qemu-aarch64 /usr/local/bin/qemu-aarch64-darkos
 if [ -e /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then
   echo -1 | sudo tee /proc/sys/fs/binfmt_misc/qemu-aarch64 > /dev/null
 fi
+sudo install -m 755 "$H/register-qemu-binfmt.sh" /usr/local/sbin/register-qemu-binfmt.sh
 sudo /usr/local/sbin/register-qemu-binfmt.sh
 grep interpreter /proc/sys/fs/binfmt_misc/qemu-aarch64
