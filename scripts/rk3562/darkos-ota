@@ -245,6 +245,7 @@ def download(entry):
             sha256_file(dst) == entry["sha256"]:
         log("already downloaded: " + dst)
         return dst
+    make_room(need * 3 + (200 << 20))
     if free_bytes("/") < need * 3 + (200 << 20):
         raise OtaError("not enough space on the root filesystem: the update "
                        "needs about %d MiB" % ((need * 3) >> 20))
@@ -445,6 +446,23 @@ def drop_snapshots(keep=None):
                            capture_output=True)
 
 
+def make_room(need):
+    """The snapshot of the update before goes when this one starts
+    (take_snapshot), but it still pins the files that update replaced: on a
+    full root filesystem they can be the space this one needs. Dropped first
+    then, unless an update is half applied and it is the way back."""
+    if free_bytes("/") >= need or not snapshots() or \
+            load_state().get("status") == "applying":
+        return
+    log("not enough space on the root filesystem: dropping %s"
+        % " ".join(snapshots()))
+    drop_snapshots()
+    # the space comes back once btrfs's cleaner has gone through them, and it
+    # starts on them at the next commit (on the console: half a minute later)
+    for c in (["filesystem", "sync"], ["subvolume", "sync"], ["filesystem", "sync"]):
+        subprocess.run(["btrfs"] + c + ["/"], capture_output=True)
+
+
 def take_snapshot(build_id):
     snap = SNAP_PREFIX + build_id
     drop_snapshots()
@@ -579,12 +597,15 @@ def install(pkg, assume_yes=False):
     log("update %s (%s) -> %s (%s)" % (rel.get("VERSION"), rel["BUILD_ID"],
                                       m["version"], m["build_id"]))
     stage = os.path.join(WORK_DIR, "stage")
-    if free_bytes("/") < m.get("root_bytes", 0) + (300 << 20):
-        raise OtaError("not enough space on the root filesystem")
     if free_bytes("/boot") < m.get("boot_bytes", 0) + (1 << 20):
         raise OtaError("not enough space on the boot partition (%d MiB free, "
                        "%d MiB needed)" % (free_bytes("/boot") >> 20,
                                             (m.get("boot_bytes", 0) >> 20) + 1))
+    need = m.get("root_bytes", 0) + (300 << 20)
+    make_room(need)
+    if free_bytes("/") < need:
+        raise OtaError("not enough space on the root filesystem (%d MiB free, "
+                       "%d MiB needed)" % (free_bytes("/") >> 20, need >> 20))
     uboot = m.get("uboot")
     uboot_part = None
     if uboot:

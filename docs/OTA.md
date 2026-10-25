@@ -78,7 +78,9 @@ Not in a package (see `ROOT_EXCLUDE` in `make-ota.py`):
    - free space on `/` and on `/boot`;
    - no update half applied.
 2. **Takes a read-only btrfs snapshot of `/`** (`/.ota-snapshot-<old build>`).
-   Only the latest one is kept. Downloads live in a subvolume of their own
+   Only the latest one is kept: the one of the update before goes here, or
+   already in step 1 (and before a download) if `/` is short of space without
+   it, since it pins the files that update replaced. Downloads live in a subvolume of their own
    (`/var/cache/darkos-ota/dl`), so the snapshot does not pin them.
 3. **Unpacks the payload** into `/var/cache/darkos-ota/stage` and checks every
    file's sha256. On a mismatch the update stops there.
