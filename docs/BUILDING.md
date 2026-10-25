@@ -136,6 +136,37 @@ Two more things WSL needs:
 `wsl --shutdown` unloads kernel modules, so anything not in `modules-load.d`
 has to be reloaded afterwards.
 
+## qemu: emulate a Cortex-A53, not "max" (2026-10-25)
+
+qemu-user runs an aarch64 binary on the CPU model "any", which is "max": every
+feature, pointer authentication (PAuth) among them, computed with the QARMA5
+cipher in C. Debian's arm64 packages are built with `-mbranch-protection`, so
+their functions start and end with PAC instructions, and in the build chroot
+most of the time went there. On a CPU without PAuth those instructions are
+NOPs (they are in the hint space), so the same binaries run unchanged on a
+Cortex-A53 model, which is also what the RK3562 has. Measured in the build
+chroot, WSL2 on a Xeon E5-2680 v4 (20 of its 28 threads):
+
+| qemu (aarch64 user mode) | g++ -O2 pugixml.cpp | dpkg -l, apt-cache, perl loop | python loop |
+|---|---|---|---|
+| Ubuntu's 8.2.2, default (max) | 134.7 s | 52.0 s | 150.2 s |
+| the same, `QEMU_CPU=cortex-a53` | 80.8-82.0 s | 4.0 s | 7.5 s |
+| 11.1.2, -O3 -march=native, LTO, cortex-a53 | 81.3 s | 4.3-4.4 s | 7.8-8.0 s |
+| 11.1.2 the same, and a profile (PGO) | 80.5-88.7 s | 4.2-4.4 s | 7.7-7.8 s |
+| 8.2.10, -O3 -march=native, LTO, cortex-a53 | 78.6-79.5 s | 3.8 s | 7.0-8.1 s |
+
+`max,pauth-impdef=on` (16.4 s on the python loop) and `max,pauth=off` (8.4 s)
+are in between. A newer QEMU and a profile do not help: the time is in the
+code TCG generates, which neither touches.
+
+So the build host runs the last row: `tools/qemu-host/build.sh` builds it with
+cortex-a53 as the default CPU and installs `/usr/local/bin/qemu-aarch64-darkos`,
+and `/usr/local/sbin/register-qemu-binfmt.sh` registers that for aarch64 when it
+is there (Ubuntu's otherwise). A default in the binary, not `QEMU_CPU` in the
+environment: the build runs `sudo chroot`, and sudo drops the environment.
+Programs in the chroot that pick features at run time see the A53's (fp, asimd,
+aes, pmull, sha1, sha2, crc32), as on the device; "max" offered them SVE.
+
 ## Things that cost hours, once each
 
 **The toolchain PATH used to be relative.** `utils.sh` put
