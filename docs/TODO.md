@@ -889,6 +889,34 @@ Open:
 * GammaOS measured it under Android: no gain, 200 MB more memory, lmkd killed
   the emulator once. Here RetroArch's peak was 1067 MB against 1132 on libmali.
 
+## libmali g29p1-5 in place of g29p1-4 (2026-10-25, for the build after 20261025042625)
+
+Rockchip's libmali mirror (JeffyCN/mirrors) carries g29p1 releases up to -5 on
+its `libmali-next` branch (3e59dab3b6, 2026-06-24); the image had -4 from
+`BSP/mali.tar.gz`. Both report `g29p1-12eac0` to Vulkan; `rk_so_ver` tells them
+apart (4 and 5). Rockchip publishes no change log. Tried on the console bound
+over the system blob, the same tests as for a release:
+
+| | g29p1-4 | g29p1-5 |
+|---|---|---|
+| God of War demo (ARMSX2), fps | 42.2 (earlier run) | 41.2 |
+| ND Demo (Dolphin), fps | 44.5 (earlier run) | 46.9 |
+| Resident Evil (YabaSanshiro), fps | 60 | 60 |
+| AeroGauge (RetroArch, mupen64plus_next), fps | 59.53 | 59.47 |
+| Super Mario 3D Land (Azahar) | 59.8 | compiles its pipelines again on the first start |
+
+ES, its menus and the Vulkan selector work on it. The owner took -5 for the
+image (expecting fixes in the shader compiler); `build_deps.sh` fetches it
+pinned by commit and sha256. Open: Castlevania's intro on -5 once its
+pipelines are compiled.
+
+Seen on the way, on both: RetroArch with mupen64plus_next does not end on
+SIGTERM. `systemctl stop` of the test unit waits its 90 s and kills it, the
+picture frozen meanwhile; RetroArch's own quit (the hotkey twice,
+`quit_press_twice`) ends it in 1.4 s. Matters if anything stops RetroArch by
+signal (a shutdown with a game running): check what ES and the power-off path
+send.
+
 ## Battery in sleep (2026-10-19)
 
 Sleep is deep now, the black screensaver ends in sleep on battery, two hours

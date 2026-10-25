@@ -189,7 +189,12 @@ Read off the blobs and the config rather than from documentation, 2026-09-16.
 
 The hardware path is ARM's `libmali-bifrost-g52-g29p1.so`, 57 MB, installed as
 `libMali.so` with `libEGL`, `libGLESv2`, `libgbm` and friends symlinked onto it
-by `build_deps.sh`. Vulkan comes from the same file: it exports
+by `build_deps.sh`. It is release g29p1-5 (`rk_so_ver: 5`), from Rockchip's
+libmali mirror (JeffyCN/mirrors, branch `libmali-next`, commit 3e59dab3b6),
+pinned there by commit and sha256; `BSP/mali.tar.gz` holds the g29p1-4 the
+image had before. On its first start with -5, Azahar compiled Super Mario 3D
+Land's Vulkan pipelines again instead of taking them from its cache. Vulkan
+comes from the same file: it exports
 `vk_icdGetInstanceProcAddr`, and `finishing_touches` installs
 `BSP/vulkan/rk_vk.json` (`api_version 1.3.276`), a vendor
 `libvulkan.so.1.3.274` loader and `vulkaninfo`. The manifest names

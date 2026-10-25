@@ -86,11 +86,23 @@ do
 
   # Install Mali blob
   if [ "${whichmali_bsp}" == "true" ] && [ "$FOLDER" == "aarch64" ]; then
-    # RK3562 64-bit: extract g29p1 from BSP tarball (GLES + EGL + gbm + CL + Vulkan ICD)
-    echo "Installing BSP Mali g29p1 (${whichmali}) from BSP/mali.tar.gz..."
-    tar xzf BSP/mali.tar.gz -C /tmp mali/${whichmali}
-    sudo cp /tmp/mali/${whichmali} Arkbuild/usr/lib/${ARCHITECTURE}/
-    rm -f /tmp/mali/${whichmali}
+    # RK3562 64-bit: g29p1 (GLES + EGL + gbm + CL + Vulkan ICD). BSP/mali.tar.gz has g29p1-4;
+    # the image ships g29p1-5 (rk_so_ver 5) from Rockchip's libmali mirror, pinned by commit
+    # and checksum. A driver other than the one meant must not end up in an image, so a
+    # failed download stops the build.
+    MALI_URL="https://raw.githubusercontent.com/JeffyCN/mirrors/3e59dab3b69ab4e1dc2b0e6271a4174c108b9335/lib/aarch64-linux-gnu/${whichmali}"
+    MALI_SHA256="605e3a5caf1be62bb48d97b1168434257355d56db5e3be9b515cfa742c173118"
+    MALI_CACHE=Arkbuild_package_cache/${CHIPSET}/${whichmali%.so}-5.so
+    echo "Installing Mali g29p1-5 (${whichmali})..."
+    sudo mkdir -p Arkbuild_package_cache/${CHIPSET}
+    if [ "$(sha256sum ${MALI_CACHE} 2>/dev/null | cut -c1-64)" != "${MALI_SHA256}" ]; then
+      sudo wget -t 3 -T 60 -O ${MALI_CACHE}.part "${MALI_URL}" && sudo mv ${MALI_CACHE}.part ${MALI_CACHE}
+    fi
+    if [ "$(sha256sum ${MALI_CACHE} 2>/dev/null | cut -c1-64)" != "${MALI_SHA256}" ]; then
+      echo "ERROR: ${whichmali} g29p1-5 did not download or has another checksum"
+      exit 1
+    fi
+    sudo cp ${MALI_CACHE} Arkbuild/usr/lib/${ARCHITECTURE}/${whichmali}
     (
       cd Arkbuild/usr/lib/${ARCHITECTURE}
       sudo ln -sf ${whichmali} libMali.so
