@@ -1376,6 +1376,32 @@ it. Encrypted dumps do not run.
   Options → Manage Core Options → Save Game Options. At Auto, the environment
   variables of patch 002 (`persist_gammaos_azahar_nano_stereo_skip`,
   `persist_gammaos_azahar_nano_async_gpu_flush_lag`) still win over the list.
+- **Realtime Audio** (Audio, patch 016; Azahar's `enable_realtime_audio`):
+  when a game runs below full speed, its sound plays at real time instead of
+  slowing down with it, so it does not break up, but it can run ahead of the
+  picture. Off by default; GammaOS has it on.
+- **Cheats (2026-10-25, patch 017).** Quick Menu → Cheats lists the game's
+  cheats; switch them and Apply Changes. They come from a folder shared with
+  GammaOS, `ROMs/cheats/3ds/azahar` (`/roms/cheats/3ds/azahar`), laid out as
+  GammaOS's azahar-nano keeps it:
+  - `<title id>.txt`: every cheat of the game with its `*citra_enabled`
+    mark. Azahar's cheats folder points here, so its cheat engine loads the
+    list when the game boots and saves the marks to it. On a dual-boot card
+    a cheat switched on in one system is on in the other.
+  - `custom/<title id>.txt`: the user's own cheats, in the Gateway / CTRPF
+    text format (a README there shows it). A code typed into RetroArch's
+    cheat menu lands here as "RetroArch code N".
+
+  The database is GammaOS's `cheats3ds.zip` (CTRPF, 60FPS and Sharkive
+  Action Replay codes, 752 games), unpacked into `/usr/share/azahar/cheats3ds`
+  by `build_retroarch.sh`, so a card with dArkOS alone has it too. Before a
+  game boots the core rebuilds its list from the user's cheats, then the
+  database's, the marks carried over by name, and writes the same list as
+  RetroArch's cheat file (`~/.config/retroarch/cheats/Azahar/<rom>.cht`),
+  which RetroArch reads right after loading the game. Checked on the console
+  with Super Mario 3D Land (Europe): 12 cheats listed, one switched on and
+  off through RetroArch, the mark in the shared list each time. Castlevania:
+  Lords of Shadow – Mirror of Fate has none in the database.
 - **RetroArch's FPS counter costs about 20%** on the vulkan driver (29.7 fps
   without it, 24.3 with it, same savestate, 2126.2). Measure without it.
 - **RGA scaling** (`video_ctx_scaling`) changes nothing on the vulkan driver

@@ -256,6 +256,22 @@ if [ "$CHIPSET" == "rk3562" ]; then
   build_a53_core samecdi https://github.com/libretro/same_cdi.git same_cdi
   # Nintendo 3DS: not in rg503's set at all, built here from a pinned release
   build_a53_core azahar pinned azahar
+  # and its cheat database: GammaOS's cheats3ds.zip (CTRPF, 60FPS and Sharkive Action Replay
+  # codes, one <title id>.txt per game, 752 games), which the core merges into the cheats folder
+  # shared with GammaOS when a game starts (azahar-patch-017)
+  AZ_CHEATS_URL="https://raw.githubusercontent.com/TheGammaSqueeze/GammaOSNextDistribution-14/dbb613ef825f6f069ce6335c987e2b072b9af926/frameworks/base/cmds/azahar-nano/assets/cheats3ds.zip"
+  AZ_CHEATS_SHA256="62efa9af3858a2ebf6a01701846646701bf2f18b3b218408f0a64af9cc01cd38"
+  AZ_CHEATS_ZIP=Arkbuild_package_cache/${CHIPSET}/cheats3ds.zip
+  if [ "$(sha256sum ${AZ_CHEATS_ZIP} 2>/dev/null | cut -c1-64)" != "${AZ_CHEATS_SHA256}" ]; then
+    sudo wget -t 3 -T 60 -O ${AZ_CHEATS_ZIP}.part "${AZ_CHEATS_URL}" && sudo mv ${AZ_CHEATS_ZIP}.part ${AZ_CHEATS_ZIP}
+  fi
+  if [ "$(sha256sum ${AZ_CHEATS_ZIP} 2>/dev/null | cut -c1-64)" == "${AZ_CHEATS_SHA256}" ]; then
+    sudo rm -rf Arkbuild/usr/share/azahar/cheats3ds
+    sudo mkdir -p Arkbuild/usr/share/azahar/cheats3ds
+    sudo unzip -q -o ${AZ_CHEATS_ZIP} -d Arkbuild/usr/share/azahar/cheats3ds
+  else
+    echo "cheats3ds.zip did not download or has another checksum; the image ships no 3DS cheats"
+  fi
 fi
 
 # Build freej2me-lr.jar and freej2me-plus-lr.jar

@@ -806,6 +806,13 @@ Taken:
   pipeline compiles; the hybrid path left it out with a cold cache, as it
   did for the bottom screen before 009. Applies as is. On the console:
   Castlevania 21.1 / 20.6 fps, Super Mario 3D Land 59.9, as before.
+* **dbb613ef825**, cheats, the database and the merge: patch 017, with a
+  folder shared with GammaOS (`ROMs/cheats/3ds/azahar`, agreed with the
+  GammaOS session; they take the same path when they port the commit) and
+  RetroArch's cheat menu instead of their frontend's (KNOWN-ISSUES.md,
+  Azahar).
+* **0e442662ca4**, realtime audio only: patch 016 makes it a core option,
+  off until the owner has listened to it under RetroArch (open).
 
 Not taken:
 * **0e442662ca4**, "performance defaults on" (frontend). Of the five values
@@ -815,17 +822,16 @@ Not taken:
   drawn a new frame, but here that skips the frame handed to RetroArch too,
   and the core would have to hand it a dupe (`video_cb(NULL)`); the gain is
   the core's present pass, about 1.2 ms, in 30 fps games only. Realtime
-  audio scales the DSP's tick by the frame time, so a slow game's sound
-  plays at real time; whether it sounds better under RetroArch needs a
-  listen (open). The CPU clock ladder fixes their menu; ours is in order.
+  audio is an option now (above). The CPU clock ladder fixes their menu;
+  ours is in order.
 * **c88869e5bf1**: malisx2 (bmdhacks/malisx2, a Mesa-based Vulkan driver
   over kbase, written for ARMSX2) bundled and the default on the Mali-G52.
   It accepts job-manager kbase from UK 11.22; the console's is 11.47 (DDK
   g25p0), and it has a Linux build (ROCKNIX, VK_KHR_display). Not measured
-  anywhere on the RG52: a project of its own (open).
-* **dbb613ef825**, cheats: a frontend menu over a cheat database. Here
-  `retro_cheat_set` does nothing, so RetroArch's cheats do not reach the
-  core either (open, if wanted).
+  anywhere on the RG52: a project of its own (open). GammaOS measured their
+  build on the RG52 under Android: Castlevania 16.7-17.0 fps against
+  17.4-20.0 on libmali, Super Mario 3D Land the same at 60 (+9% uncapped),
+  200 MB more memory, and lmkd killed the emulator once.
 * Frontend and Android only: the DRM presenter's pacing (9a28c805178,
   f66a67211f5), a start screen (aeb2ab4a6fe), colour matrices (076b8fcef48),
   panels and sleep (e2c4505db64, f0e49ef952a), menu labels, data folders.
