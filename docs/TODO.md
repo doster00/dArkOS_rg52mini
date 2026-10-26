@@ -318,15 +318,65 @@ Open: other GameCube games on malisx2; whether a game that relies on perf
 queries (with `PerfQueriesEnable` in its settings) misbehaves with results
 of 0.
 
-## PS2: sound in heavy games like Azahar's realtime audio (to do, noted 2026-10-25)
+## PS2: sound in heavy games like Azahar's realtime audio (read in the code 2026-10-26, to try)
 
 The owner's idea, after Azahar's realtime audio made a 21 fps 3DS game sound
 much better (KNOWN-ISSUES.md, Azahar): in a PS2 game running below full
-speed the sound breaks up the same way. Look at how ARMSX2 paces its SPU2
-output: the emulated time the SPU2 runs on against the time it is played in
-(PCSX2 has time stretching for the opposite case, a host that cannot keep
-up with the audio), and whether its output can follow the frame time.
-`LightweightMode` (below) is the only SPU2 setting measured so far.
+speed the sound breaks up the same way. Read in ARMSX2 a7ad453 (the image's),
+not tried on the console yet:
+
+**How the sound is paced now.** The SPU2 mixes one 48 kHz sample per 768 IOP
+cycles of emulated time (`TimeUpdate` in `pcsx2/SPU2/spu2sys.cpp`,
+`TickInterval`), called from the IOP whenever it touches the SPU2 and from
+`SPU2async`. The samples go to an `AudioStream` (`pcsx2/Host/AudioStream.cpp`,
+Cubeb), which a host callback drains at 48 kHz of real time. Time stretching
+(SoundTouch, `SyncMode = TimeStretch`, the default) is on: when the game runs
+slow the buffer empties, its tempo follows the buffer's fullness, and the
+sound slows down with the game instead of stopping. When the buffer runs dry
+anyway, the stream plays silence until it has refilled 1/32 of itself
+(`ReadFrames`, `m_filling`): that is the breaking up.
+
+**Our ini sets nothing of it.** `pcsx2/configs/PCSX2.ini.rg52mini` has
+`[SPU2/Output] OutputModule = cubeb, Latency = 100, SynchMode = 0`, the old
+SPU2-X keys; ARMSX2 reads `Backend`, `SyncMode`, `BufferMS`,
+`OutputLatencyMS` (`Pcsx2Config::SPU2Options::LoadSave`,
+`AudioStreamParameters::LoadSave`), so it runs on its defaults: Cubeb, time
+stretching, a **50 ms** buffer target and 20 ms output latency, where 100 was
+meant. Frames here often take 80-120 ms (God of War's ship: p95 116 ms, the
+driver A/B above), and the IOP produces sound only while the emulation
+advances, so a 50 ms target empties within one slow frame. First thing to
+try, a setting: `BufferMS = 100` or 150 in the right section (more latency,
+fewer gaps), with the old keys dropped.
+
+**Azahar's way, for the SPU2: possible, as a patch.** Azahar makes its HLE
+DSP's audio tick follow the frame time, so a slow game still makes a frame's
+worth of sound per frame of real time. The SPU2's equivalent is a
+`TickInterval` shorter than 768 while the game is slow: 768 x speed, the speed
+from the frame time (`PerformanceMetrics::GetSpeed`, or better a loop on the
+output buffer's fullness: shorten the interval while the buffer is below its
+target), clamped to 1/4-1, never longer than 768 (fast forward has its own
+nominal rate). What it would do:
+- Voices advance per mixed sample, so pitch is right and sampled sound (sound
+  effects, streamed music and speech) plays at real speed. Music a game
+  sequences itself on the IOP (note on/off from its own timers) keeps the
+  game's slowed tempo at the right pitch.
+- Streams are read faster in emulated time: SPU2 IRQs at buffer addresses come
+  sooner, so the game's IOP driver must refill sooner. The IOP is mostly idle
+  and the disc far faster than an ADPCM stream, so it should keep up; AutoDMA
+  input (`ReadInput`) is the same. Where it does not, stale data plays.
+- Sound can run ahead of the picture (lip sync, cutscenes timed by the
+  stream); an FMV player that syncs video to its audio would drop frames.
+- Emulation is no longer deterministic: the IOP sees the SPU2 at timings that
+  depend on the host's speed, so benchmarks between fixed frame numbers need
+  it off.
+As an option (`[SPU2/Output] RealtimeAudio`), on by default if it sounds
+better, as Azahar's; time stretching stays for the jitter. To do when the
+console is free: the `BufferMS` setting first, then the patch, the owner
+listening to God of War and Jak (the savestate and bench in
+`T:\Dump\RG52Mini\dArkOS\malisx2\tools\ps2-bench`), and the underrun
+count for numbers (`LOG_UNDERRUN` in `AudioStream.cpp`, compiled out
+unless its define is switched on). `LightweightMode`
+(below) is the only SPU2 setting measured so far.
 
 ## PS2: the GPU gets the heat; what else was tried (2026-10-22)
 
