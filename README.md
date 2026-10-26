@@ -70,7 +70,7 @@ EmulationStation-fcamod, RetroArch и около тридцати отдельн
 
 | Выпуск | Дата | Коротко |
 |---|---|---|
-| [1.3](https://github.com/mamaich/dArkOS_rg52mini/releases/tag/v1.3) (сборка 10252026) | 26.10.2026 | Nintendo 3DS на Azahar с изменениями azahar-nano от GammaOS: Super Mario 3D Land на полной скорости, Castlevania: Mirror of Fate 21–22 кадра вместо 9, читы, Realtime Audio; PS2 на ARMSX2 вместо форка PCSX2; выбор драйвера Vulkan для каждой системы (Arm или malisx2); драйвер Mali g29p1-5; свой gl4es для портов; глубокий сон (около 4,5 дня от полного заряда) и выключение после двух часов сна на батарее; Home больше не переключает Bluetooth; обновление по сети и с 1.2, и сразу с 1.1 |
+| [1.3](https://github.com/mamaich/dArkOS_rg52mini/releases/tag/v1.3) (сборка 10252026) | 26.10.2026 | Nintendo 3DS на Azahar с изменениями azahar-nano от GammaOS: Super Mario 3D Land на полной скорости, Castlevania: Mirror of Fate около 21 кадра вместо 9, читы, Realtime Audio; PS2 на ARMSX2 вместо форка PCSX2; выбор драйвера Vulkan для каждой системы (Arm или malisx2); драйвер Mali g29p1-5; свой gl4es для портов; глубокий сон (около 4,5 дня от полного заряда) и выключение после двух часов сна на батарее; Home больше не переключает Bluetooth; обновление по сети и с 1.2, и сразу с 1.1 |
 | [1.2](https://github.com/mamaich/dArkOS_rg52mini/releases/tag/v1.2) (сборка 10182026) | 18.10.2026 | Первое обновление по сети, с 1.1; игры в zip снова запускаются в RetroArch; Dreamcast, Naomi и Atomiswave по умолчанию в отдельном flycast (59–60 кадров); ядра N64, flycast, CD-i, PuzzleScript и GameTank собраны под Cortex-A53 этой консоли; работают retrorun, PC-98, Apple II и ECWolf; на общей карте с GammaOS видны игры в папках ES-DE; эмуляторы с приоритетом -19; у каждой карты свои ключи SSH; apt не подменяет библиотеки Mali |
 | [1.1](https://github.com/mamaich/dArkOS_rg52mini/releases/tag/v1.1) (сборка 10142026) | 15.10.2026 | Обновление по сети (Options → Update); нажатия кнопки питания во время засыпания и пробуждения не теряются, долгий сон не заканчивается повторным, на заставке «black» кнопка зажигает экран; правильная картинка на Vulkan у DuckStation, PCSX2, PPSSPP, Dolphin и flycast; порты на gl4es без чёрных текстур; переключатели Bluetooth и Wi-Fi; исправления безопасности Debian и RetroArch; `/` снова принадлежит root |
 | [1.0](https://github.com/mamaich/dArkOS_rg52mini/releases/tag/v10082026) (сборка 10082026) | 09.10.2026 | Vulkan-программы (RetroArch на Vulkan, порты вроде Mina the Hollower) больше не рисуют боком — свой слой поворота; RetroArch пересобран со всеми патчами, исправлен драйвер «oga»; свежий DSperate; работа на общей карте с GammaOS Next |
@@ -90,7 +90,7 @@ EmulationStation-fcamod, RetroArch и около тридцати отдельн
 | [docs/KNOWN-ISSUES.md](docs/KNOWN-ISSUES.md) | чего нет в образе и почему |
 | [docs/OTA.md](docs/OTA.md) | обновление по воздуху с 1.1: формат пакета, общая карта с GammaOS, как выпускать |
 | [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | что реально ускоряет эмуляторы здесь, а что нет — включая проверенное и отвергнутое |
-| [docs/TODO.md](docs/TODO.md) | что дальше и что ждёт следующей сборки |
+| [docs/TODO.md](docs/TODO.md) | что дальше: открытые вопросы, что попробовать и что измерено по пути |
 
 Отдельно стоит заглянуть в PERFORMANCE.md перед тем, как предлагать
 оптимизации: там записаны отрицательные результаты, и они обошлись дороже

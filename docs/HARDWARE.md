@@ -290,9 +290,12 @@ v10052026 ships `uboot-oc-stocktee-shmkept.img`
 (`next-dev-g6eeb07c058-dirty`, md5 `0e743c774c9892195715251dd2262ade`): the
 stock BL32 v1.07 (`3.13.0-891-g9f2aca7d1`, 473472 bytes in the FIT) and a BL31
 whose frequency tables carry the overclocking entries from `05-разгон.md` in
-the U-Boot fork. Those entries only matter if the kernel asks for those rates,
-and this kernel does not: its CPU table ends at 2016 MHz. The name says the
-SHM patch below is kept.
+the U-Boot fork. Those entries only matter if the kernel asks for those rates.
+Since `cc3acb8c3` it can: the CPU table has a 2208 MHz step marked
+`turbo-mode`, used only with cpufreq boost on, and the GPU table a 1000 MHz
+one, capped at 900 MHz outside the overclock governor (KNOWN-ISSUES.md, the
+"overclock" governor). Without boost the CPU table ends at 2016 MHz. The name
+says the SHM patch below is kept.
 
 v09292026 shipped the build made from `uboot-bl32-v102.img`
 (`next-dev-g66a8e67e16`): BL32 v1.02 in the FIT instead of v1.03, and the SHM

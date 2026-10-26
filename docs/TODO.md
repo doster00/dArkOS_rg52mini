@@ -102,6 +102,57 @@ on the device:
    says it breaks video previews), Dolphin Stretch option, batteryplus,
    headphone auto-switch (needs kernel work), bluealsa conf path.
 
+## Left by the patch audit after 1.3 (2026-10-26, to do)
+
+Every patch we carry is applied by a recipe and applied cleanly in the 1.3
+build or in the build its cached binary comes from; none came up reversed or
+failed. Fixed the same day: the OTA packages run the hooks of the releases
+they skip (OTA.md), PPSSPP's and ECWolf's cache keys take in their patches,
+retrorun's key is stored as it is looked up (it never matched: the clone's
+HEAD is the miniloong branch by then), and a failed gl4es build stops the
+image build. Left, each costing a rebuild of something big, so best done
+with the next change there:
+
+- **RetroArch** (one rebuild for all of it): `retroarch.sh` is not in the
+  cache key; `retroarch-patch-0000` applies with fuzz 2 (patch's limit, so the
+  next context change stops the build) and `0008` with fuzz 1; regenerate both
+  against the tree as patched so far. `0008` only goes into the second,
+  unrotated build, which the RK3562 never installs: drop it for every RK3562
+  unit, as `build_retroarch.sh` does for the units other than rg52mini.
+  Its "restore pristine patches" step (`git -C ... checkout -- patches/`)
+  never runs: the copied submodule's `.git` points at a gitdir outside the
+  copy, so it fails silently; harmless while each build gets a fresh copy.
+  Our `retroarch-patch-0016` reuses the number of upstream's deleted 0016, so
+  an upstream change to that file will conflict in a merge.
+- **SDL2**: `sdl2-patch-0005-odroidgoa-rotate-cursor` (2023, against 2.28)
+  applies with fuzz 1; regenerate it. `build_sdl2.sh` copies this repo's 0004
+  and 0005 in as 0005 and 0006, next to the core builds' own different 0005
+  (`drm-connector`); both edit `SDL_kmsdrmvideo.c` and the build works only
+  because the glob sorts `d` before `k`. Name them as they apply. Its comment
+  about "the odroidgoa skip logic in sdl2.sh" describes logic our sdl2.sh no
+  longer has. `build_sdl2_ondevice.sh` applies the core patches before the
+  rotation and never 0008, so a rebuild on the device loses the scaled modes:
+  bring it up to date or delete it.
+- **Kodi**: its key is a constant bumped by hand, and `build_kodi.sh` has no
+  `verify_action`; kodi-install's "There was an issue applying" is not one of
+  the messages `scripts/audit-components.sh` looks for.
+- **ScummVM**: `build_scummvmsa.sh` keys on christianhaitian's network copy of
+  the recipe (v2026.4.0) while our fork builds v2026.3.0, so the key names
+  the wrong version.
+- **Patches without a header** (what and why): `azahar-patch-001`,
+  `retrorun-patch-0002`, `ppsspp-patch-010`, `dolphinsa-patch-011`, the core
+  builds' `sdl2-patch-0005-drm-connector`, this repo's `sdl2-patch-0004` and
+  `-0005`, `kodi-patch-001`; and upstream's `gametank-002`,
+  `flycast-patch-makefile` and `ecwolf-001` as we edited them for the A53
+  (KNOWN-ISSUES.md has the why). `azahar-009` and `-010` are GammaOS's and
+  upstream's code under "From: dArkOS RG52 Mini port", where 015 names
+  GammaOS. A header changes the patch and so the key: add one when the patch
+  is next touched.
+- **Rotation patches the rotate layer made idle**: `flycastsa-patch-004`
+  (Rotate90 stays off), `ppsspp-patch-010` and `dolphinsa-patch-011` (the
+  layer gives them a landscape swapchain; KNOWN-ISSUES.md, VK_LAYER_DARKOS_rotate).
+  Candidates for removal once checked on the device.
+
 ## Found while testing 1.2 (2026-10-18)
 
 * **ScummVM's MIDI device.** Its ini asks for `fluidsynth`, which this
@@ -153,9 +204,11 @@ nes-box folder (KNOWN-ISSUES). Left:
   clang names each function whose code changed since training (hash mismatch,
   its data dropped); their share of the profile's counts (`llvm-profdata show
   --all-functions --counts`) is what is lost. GammaOS's profile lost 44%.
-* **More games.** Only Super Mario 3D Land was played. Check a heavier one
+* **More games.** Super Mario 3D Land was played; Castlevania's intro and
+  Luigi's Mansion's start were measured (below). Check a heavier one
   (Monster Hunter, Zelda) and what speed it reaches.
-* **azahar-nano's switches:** only their defaults were measured. Since
+* **azahar-nano's switches:** their defaults were measured, and on
+  Castlevania the stereo skip and the GPU flush lag (below). Since
   006-008 (2026-10-23) the core is set up as GammaOS's frontend sets it
   (KNOWN-ISSUES, "GammaOS's settings").
 * **Presenting on a thread of its own.** With both eyes drawn Super Mario 3D
@@ -225,7 +278,10 @@ read its log and malisx2's (MESA_DEBUG, DARKOS_VULKAN_DEBUG=1). Suspects from
 the vulkaninfo comparison: malisx2 has no geometry shaders, logicOp, wide lines
 or shaderInt64, 16 vertex bindings against 32, and Vulkan 1.1; Dolphin can do
 without most of these, so a refusal at device creation or a missing format is
-more likely than a missing feature. If it runs, put Gamecube back on both lists.
+more likely than a missing feature. If it runs: add `Gamecube` to vulkan.conf's `es_systems` line (an untouched
+file gets it with the update) and, for a user's own copy that has the line
+already, a `1.4-` hook that adds it there (the 1.3 hook only writes a
+missing line).
 
 ## PS2: sound in heavy games like Azahar's realtime audio (to do, noted 2026-10-25)
 
@@ -608,7 +664,7 @@ after a warm-up, fps between fixed frames.
 
   The SoC reached 81-84 C by the end of each 75 s run.
 
-### Code from them, taken (2026-10-24, for the build after 20261024000117)
+### Code from them, taken (2026-10-24, in 1.3)
 
 Each measured on the device against a build made the same way without it (the
 A/B builds are not the image's: Dolphin and ARMSX2 cross-built with clang,
@@ -706,7 +762,7 @@ the image).
   * PPSSPP: wait for 1.21.
   * The libretro flycast is 4c293f3, from 2022.
 
-## Keys: L3 closes by itself, Home toggled Bluetooth (2026-10-24, for the build after 20261024000117)
+## Keys: L3 closes by itself, Home toggled Bluetooth (2026-10-24, in 1.3)
 
 The case names two buttons the code does not:
 * Home is BTN_MODE, SDL's button 10, and RetroArch's hotkey enable.
@@ -734,7 +790,7 @@ The problems found:
   `ogage/patches/0001` removes it. Bluetooth is still switched in Options >
   Bluetooth.
 
-## Azahar: save states in RetroArch (2026-10-24, for the build after 20261024000117)
+## Azahar: save states in RetroArch (2026-10-24, in 1.3)
 
 The owner found saves and loads slow. Measured with Super Mario 3D Land: its
 state is 292 MB serialized and 23 MB compressed. A test launched RetroArch with
@@ -766,10 +822,10 @@ Measured, not changed:
 Two of a load's 5 s were RetroArch's: the size check and the undo buffer,
 1.4 s each.
 * `retroarch-patches/retroarch-patch-0024` skips the size check for loads,
-  which should make a load about 3.5 s. Measure it on the build that has it.
+  which should make a load about 3.5 s. 1.3 has it; not measured yet.
 * The undo buffer stays: it is a feature (Undo Load State).
 
-## Azahar: Castlevania: Lords of Shadow – Mirror of Fate (2026-10-25, for the build after 20261024000117)
+## Azahar: Castlevania: Lords of Shadow – Mirror of Fate (2026-10-25, in 1.3)
 
 The owner found it slow. Measured on its intro, a cutscene in the game's
 engine: frames 60 to 660 after a RetroArch save state, each run from the same
@@ -989,7 +1045,7 @@ internals), 7% kernel. In the driver no hot spot: Bifrost register allocation
 about 13%, NIR's algebraic passes about 11%, hash sets 6%, then many passes of
 1-3% each. A faster allocator could take a few % more; not tried.
 
-## libmali g29p1-5 in place of g29p1-4 (2026-10-25, for the build after 20261025042625)
+## libmali g29p1-5 in place of g29p1-4 (2026-10-25, in 1.3)
 
 Rockchip's libmali mirror (JeffyCN/mirrors) carries g29p1 releases up to -5 on
 its `libmali-next` branch (3e59dab3b6, 2026-06-24); the image had -4 from
@@ -1002,7 +1058,7 @@ over the system blob, the same tests as for a release:
 | God of War demo (ARMSX2), fps | 42.2 (earlier run) | 41.2 |
 | ND Demo (Dolphin), fps | 44.5 (earlier run) | 46.9 |
 | Resident Evil (YabaSanshiro), fps | 60 | 60 |
-| AeroGauge (RetroArch, mupen64plus_next), fps | 59.53 | 59.47 |
+| AeroGauge (RetroArch, mupen64plus_next), fps (window not noted; not the 54/57 of frames 600-1800) | 59.53 | 59.47 |
 | Super Mario 3D Land (Azahar) | 59.8 | compiles its pipelines again on the first start |
 
 ES, its menus and the Vulkan selector work on it. The owner took -5 for the
@@ -1189,7 +1245,7 @@ patches; and ECWolf builds again (2026-10-15).
 
 ## RetroArch fixes after v1.22.2 that need porting by hand
 
-Releases 1.1 and 1.2 carry upstream's fixes that apply as they are
+Releases 1.1 to 1.3 carry upstream's fixes that apply as they are
 (`retroarch-patch-0021`, `-0022`; 0022 with the zip fix of 1.2). These are in v1.22.2 too, but master
 rewrote the code around them, so each needs a small port. Recheck whether a
 tag newer than v1.22.2 has appeared first: moving to it would replace all of
@@ -1248,7 +1304,7 @@ things:
 - `SAMPLER[n]` sized by nested macros comes out too small.
 
 Before posting:
-- check another gl4es port with the 1.1 image, so that the report can say
+- check another gl4es port with the current image, so that the report can say
   whether more than Don't Starve is affected;
 - if possible, build gl4es with one of the two suspected spots changed, and
   name the cause instead of a suspicion.
@@ -1269,12 +1325,11 @@ their own gl4es, so: upstream (post the report with the patch when the owner
 says), and the image's own fixed gl4es in `/usr/lib/gl4es` with
 `libgl_dArkOS.txt` taking it for a port without a gl4es folder; a user deletes
 a port's folder to switch (KNOWN-ISSUES.md). Built on 2026-10-25 in the build
-chroot (4.5 minutes with the cortex-a53 qemu). Not yet run on the console:
-Don't Starve with its gl4es folder renamed, the original `postprocess*.ksh`
-back and bloom and distortion on (its script turns them off because those
-shaders broke). Since then run on the console (KNOWN-ISSUES.md, gl4es): with
-the folder renamed the port takes `/usr/lib/gl4es`, all 8 postprocess shaders
-compile and a loaded save looks right.
+chroot (4.5 minutes with the cortex-a53 qemu). Run on the console since
+(KNOWN-ISSUES.md, gl4es): Don't Starve with its gl4es folder renamed, the
+original `postprocess*.ksh` back and bloom and distortion on (its script
+turns them off because those shaders broke). The port takes `/usr/lib/gl4es`,
+all 8 postprocess shaders compile and a loaded save looks right.
 
 On the side: libmali's GLSL compiler is closed. malisx2's is ours (Mesa's NIR
 and Bifrost back end), but only for Vulkan programs on it; per-program shader

@@ -180,6 +180,30 @@ sudo drops the environment.
 Programs in the chroot that pick features at run time see the A53's (fp, asimd,
 aes, pmull, sha1, sha2, crc32), as on the device; "max" offered them SVE.
 
+## Patches that no other page describes
+
+Most of our patches are described where their effect is (KNOWN-ISSUES.md,
+PERFORMANCE.md, TODO.md). These are not:
+
+| patch | what it does |
+|---|---|
+| `retroarch-patch-0000-rk3562-rotation-90` | drm_go2 on the portrait panel: `GO2_ROTATION_DEGREES_90`, no rejection of portrait displays, XRGB8888 |
+| `retroarch-patch-0008-norotation-rga` | 0000 turned back to unrotated, for a second RetroArch build; the RK3562 never installs that build (TODO.md, "Left by the patch audit after 1.3") |
+| `retroarch-patch-0016-rk3562-oga-rotation-90` | the oga video driver turned by another 180 degrees: with `video_driver = "oga"` everything was upside down |
+| `retroarch-patches/retroarch-patch-0020-libgo2-rgba-format` | libgo2 maps XRGB8888 to `RK_FORMAT_RGBA_8888`, not BGRA: red and blue were swapped in the oga driver's RGA blits |
+| `sdl2-patch-0004-odroidgoa-kmsdrm`, `sdl2-patch-0005-odroidgoa-rotate-cursor` (this repo) | SDL2 makes landscape GBM surfaces and RGA turns each frame onto the portrait panel, and the cursor with it; `build_sdl2.sh` copies them in as 0005 and 0006 for the RG52 Mini |
+| `flycastsa-patch-004-rotate-270` | flycast's `rend.Rotate90` turns the other way, 270 degrees; it only acts with `Rotate90=yes`, which the image no longer sets since the rotate layer turns Vulkan |
+
+Dropped from upstream in the merge of 2026-10-05 (core builds' c82b722),
+because every patch that matches a recipe's glob applies on every device:
+`dolphinsa-patch-011-miniloong-rotate270` and
+`ppsspp-patch-0010-miniloong-vulkan-rotation` (the miniloong's own rotation,
+which on top of ours would rotate twice), `retroarch-patch-0016-vulkan-miniloong-menu-fix`
+(the miniloong's widget placement; our own 0016 has that number now) and
+`retroarch-patch-0013-fix-color-rotated-build` (0000 already makes the
+presenter XRGB8888, so 0013 does not apply). ECWolf's 002 went when upstream
+took it in (KNOWN-ISSUES.md).
+
 ## Things that cost hours, once each
 
 **The toolchain PATH used to be relative.** `utils.sh` put

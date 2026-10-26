@@ -14,7 +14,7 @@ hardware it says so; where it is inference it says that too.
 | [KNOWN-ISSUES.md](KNOWN-ISSUES.md) | what is missing from the image and why |
 | [OTA.md](OTA.md) | updates over the air from 1.1 on, and how a release is made |
 | [PERFORMANCE.md](PERFORMANCE.md) | what actually makes emulators faster here |
-| [TODO.md](TODO.md) | what is next, and what is waiting on the next build |
+| [TODO.md](TODO.md) | what is next: open questions, things to try, and what was measured on the way |
 
 ## The device
 
@@ -47,7 +47,8 @@ in `.gitmodules` meant submodules only resolved for people with an SSH key.
 ## State of the port
 
 The current release is 1.3 (build 10252026, 2026-10-26); from 1.1 on, a card
-updates over the air (OTA.md). 2026-09-16 was the first release of this fork.
+updates over the air (OTA.md). The first release of this fork was build
+09162026, published 2026-09-19.
 What was checked on hardware in those first weeks:
 
 | | |
@@ -67,7 +68,7 @@ Bluetooth and USB host are the two things the upstream port cannot do. Both
 come from the device tree and driver changes described in
 [HARDWARE.md](HARDWARE.md).
 
-New in 1.3, each with its section in [KNOWN-ISSUES.md](KNOWN-ISSUES.md):
+New in 1.3, described in [KNOWN-ISSUES.md](KNOWN-ISSUES.md) and [TODO.md](TODO.md):
 
 | | |
 |---|---|
@@ -75,6 +76,10 @@ New in 1.3, each with its section in [KNOWN-ISSUES.md](KNOWN-ISSUES.md):
 | PS2 | ARMSX2 in place of bmdhacks' PCSX2 fork, with a profile and ThinLTO; Jak and Daxter draws right |
 | Vulkan | Arm's driver or malisx2, chosen per program (`/etc/darkos/vulkan.conf`) or per system in ES; libmali is the default |
 | Sleep | deep sleep instead of s2idle (~42 mA against ~185), power-off after two hours asleep on battery |
+| GPU driver | Arm's g29p1-5 in place of g29p1-4, pinned by commit and sha256 |
+| Ports | a fixed gl4es in `/usr/lib/gl4es` for PortMaster ports that bring none, or whose own one is renamed away |
+| Keys | Home no longer toggles Bluetooth; DraStic's menu on Home+X; Azahar swaps the screens on Back |
+| N64 | mupen64plus_next draws on a thread of its own (GLideN64 threaded) |
 
 Built but never launched: freej2me-plus. It had been silently missing from
 earlier images and now exists — whether it runs is another question.

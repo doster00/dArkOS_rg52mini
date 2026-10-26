@@ -1,7 +1,7 @@
 # Known issues
 
 All of these are visible in the build log. `make rg52mini` ends with an audit
-that names them, so start there rather than reading 80 000 lines. Build
+that names them, so start there rather than reading 70 000 lines. Build
 20261025224049 (release 1.3), the same as 1.2's:
 
     ==================== COMPONENT AUDIT ====================
@@ -89,8 +89,9 @@ as a network problem. No surviving mirror carries the tag:
 
 It is now built from `Mechafatnick/YabaSanshiroPi`, pinned to commit
 `91990f8` (2021-09-04, roughly the 1.9.0 era) rather than to master, so it stays
-reproducible. Four of the eleven patches apply; the other seven are skipped for
-reasons rather than convenience, listed in the recipe. `YAB_WANT_VULKAN=OFF`,
+reproducible. Of the eleven patches it inherits five apply (03-06,
+and 07 after the first build pass) and six are skipped for reasons rather
+than convenience, listed in the recipe; 12 and 13 are ours. `YAB_WANT_VULKAN=OFF`,
 because that fork has no `yabause/src/vulkan` at all — not because the device
 lacks Vulkan, which it has. The `n2.cmake` toolchain file stays: it is the
 aarch64 one, and `pi4.cmake` would build for armv7.
@@ -851,9 +852,17 @@ does not reach it.
 ## The build cache is keyed by upstream version, not by build flags
 
 Each component caches to `Arkbuild_package_cache/<chipset>/<name>.tar.gz` with a
-`.commit` file holding the upstream tag or commit. That is the whole key.
-Change a compiler flag, a patch, or anything else on our side and the key does
-not move, so the cache is restored and the change does not happen.
+`.commit` file holding its key. For most components that is the upstream tag
+or commit alone: change a compiler flag, a patch, or anything else on our side
+and the key does not move, so the cache is restored and the change does not
+happen. Fourteen recipes add a hash to the key, so a change there rebuilds:
+of the recipe and its patches (dolphinsa, ecwolfsa, flycastsa, gametank,
+malisx2, pcsx2sa, ppssppsa, retrorun, yabasanshirosa), of the recipe alone
+(dsperate, which has no patches, and fake08, whose two patches are
+upstream's and not in its key) or of the patches alone
+(emulationstation-rk3562, ogage, and retroarch, whose `retroarch.sh` is not
+in it); `git grep -l sha1sum -- 'build_*.sh'`. Kodi's key is a constant in
+`build_kodi.sh`, bumped by hand.
 
 Two consequences worth knowing:
 
@@ -1164,7 +1173,7 @@ put in GammaOS's folder did not show up here: our EmulationStation reads one
 is DT_LNK, not DT_DIR).
 
 `scripts/rk3562/es-aliases.py`, run by `build_emulationstation-rk3562.sh` on the
-installed `es_systems.cfg`, adds a system for each of 28 such folders: a copy
+installed `es_systems.cfg`, adds a system for each of 29 such folders: a copy
 of the system dArkOS uses for that machine (command, emulators, extensions,
 platform, theme) with the folder's path, both in a group named after the main
 system (`<group>arcade</group>`). Folders with no dArkOS emulator behind them
@@ -1366,6 +1375,12 @@ A report on 1.0: the battery ran flat "in sleep". Measured on revision B on
   end, then asks for the power-off every second until it happens, so ES dying
   on its way out no longer brings the menu back (TODO.md, "Open questions on
   the device").
+* **ES restarted under the black screensaver** (a crash, `systemctl restart`)
+  left the backlight at 0: the screensaver's mark in `/run/darkos-screensaver`
+  still said `on`, and nothing lit the screen again. Since 1.3 the ES launcher
+  (`emulationstation.sh.rg52mini`) finds the mark of an ES that is gone, clears
+  it and the autosleep mark, and puts back the brightness from before the
+  screensaver (60 if it has none).
 
 ## Nintendo 3DS: Azahar in RetroArch (1.3)
 
@@ -1474,8 +1489,8 @@ dual-boot card GammaOS's `n3ds` is an alias of it. Encrypted dumps do not run.
   Both default to **Auto**: on (the skip, a lag of 24) for the titles listed
   in the core (`title_switches` in `core_settings.cpp`; now only
   000400000009E500, the owner's Russian copy of Castlevania), off for the rest,
-  as GammaOS has them. Castlevania's intro runs at 21-22 fps with Auto, 9 with
-  both off. They are not on for every game because only that one was tried.
+  as GammaOS has them. Castlevania's intro runs at about 21 fps with Auto (20.3-21.2
+  in 1.3), 9 with both off. They are not on for every game because only that one was tried.
   A change applies at once. To keep it for one game: Quick Menu → Core
   Options → Manage Core Options → Save Game Options. At Auto, the environment
   variables of patch 002 (`persist_gammaos_azahar_nano_stereo_skip`,
@@ -1523,6 +1538,10 @@ dual-boot card GammaOS's `n3ds` is an alias of it. Encrypted dumps do not run.
   without it, 24.3 with it, same savestate, 2126.2). Measure without it.
 - **RGA scaling** (`video_ctx_scaling`) changes nothing on the vulkan driver
   (29.8 against 29.9), so it stays off.
+- **Save states in RetroArch take 1.4 s instead of about 27**
+  (`azahar-patch-012`, streamed through zstd; `retroarch-patch-0024` skips
+  RetroArch's size check on a load; TODO.md, "Azahar: save states in
+  RetroArch").
 - **Savestates from the 1.3 test build** (2126.2) load and play. Azahar
   refuses a state made by another source revision; `azahar-patch-005` makes
   that a warning in the log.
