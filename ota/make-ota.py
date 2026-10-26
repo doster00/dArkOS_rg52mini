@@ -51,16 +51,24 @@ ROOT_EXCLUDE = [
     "var/lib/systemd/", "var/lib/darkos-ota/", "var/lib/bluetooth/",
     "home/ark/pcsx2/", "home/ark/armsx2/", "home/ark/sdl3/", "root/.bash_history",
     "home/ark/.bash_history", "home/ark/.cache/",
+    # firstboot (it expands the root and formats the games partition as exFAT
+    # on a fresh card): a package never brings its unit or the link enabling it
+    "etc/systemd/system/firstboot.service",
+    "etc/systemd/system/multi-user.target.wants/firstboot.service",
 ]
 # Files of the package database that hooks/all-merge-dpkg.sh merges with the
 # device's: a package that changes one also carries the old build's version,
 # as hooks/base/<path>.gz.
 MERGE_BASE = ["var/lib/dpkg/status", "var/lib/apt/extended_states",
               "var/lib/dpkg/triggers/File"]
-# On p3: what the dual-boot builder owns (never in a package), and the
-# leftovers of firstboot that only a fresh card needs.
+# On p3: what the dual-boot builder owns (never in a package), and what
+# firstboot runs and consumes on a fresh card: its scripts (expandtoexfat.sh
+# repartitions and formats), the fstabs it installs and its marker. A
+# disabled firstboot would not run them, but a package does not carry them.
 BOOT_EXCLUDE = ["dualboot", "bootmenu_*.bmp", "bootmenu2_*.bmp",
-                "System Volume Information/"]
+                "System Volume Information/",
+                "firstboot.sh", "expandtoexfat.sh", "fstab.exfat", "fstab.dualboot",
+                "doneit"]
 
 # Nodes of the device tree the boot loader's menu uses on a dual-boot card.
 DTB_NODES = [r"play_joystick", r"adc-keys", r"saradc@ffaa0000",

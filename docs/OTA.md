@@ -67,6 +67,12 @@ Not in a package (see `ROOT_EXCLUDE` in `make-ota.py`):
   build's links back after it (measured on the 1.1 → 1.2 test update,
   2026-10-15; Vulkan still worked through Debian's loader);
 - what firstboot consumes: `/roms.tar`, `/tempthemes`, everything under `/roms`;
+- firstboot itself, which on a fresh card expands the root and formats the
+  games partition as exFAT: its unit and the link that enables it, and on p3
+  `firstboot.sh`, `expandtoexfat.sh`, `fstab.exfat`, `fstab.dualboot`,
+  `doneit` (`BOOT_EXCLUDE`). It is disabled after the first boot anyway; up
+  to 1.3 a package could still carry a changed `expandtoexfat.sh` (the 1.3
+  packages do), which nothing ran;
 - build leftovers in the image: `/meson`, `*/.git`, `/home/ark/pcsx2`, `/home/ark/armsx2`, `/home/ark/sdl3`;
 - `/boot` of the root filesystem, which p3 hides.
 
