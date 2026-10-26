@@ -113,6 +113,12 @@ rg43h:
 	@sleep 5
 	./build_rg43h.sh
 
+# RG43V Pro uses the rg43h image: same landscape 1024x768 panel and DTB. The
+# H/V model is asked once on first boot (FN button + left-stick polarity).
+rg43v:
+	$(info RG43V Pro: building the rg43h image; choose "RG43V Pro" at first boot.)
+	@$(MAKE) rg43h
+
 rg52mini:
 	$(info dArkOS will be built using the $(DEBIAN_CODE_NAME) release of Debian.)
 	$(info debian building caching enabled? ${ENABLE_CACHE})
