@@ -9,8 +9,8 @@ else
 fi
 # Same reasoning as build_fake08.sh: the upstream tag does not move when we
 # change compiler flags in the recipe, and this one carries the
-# -fno-stack-protector work.
-PPSSPP_RECIPE_SHA=$(sha1sum ${CHIPSET}_core_builds/scripts/ppsspp.sh 2>/dev/null | cut -c1-12)
+# -fno-stack-protector work. The patches it copies in are in the key too.
+PPSSPP_RECIPE_SHA=$(cat ${CHIPSET}_core_builds/scripts/ppsspp.sh ${CHIPSET}_core_builds/patches/ppsspp-patch* 2>/dev/null | sha1sum | cut -c1-12)
 if [ -f "Arkbuild_package_cache/${CHIPSET}/ppsspp_${UNIT}.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/ppsspp_${UNIT}.commit)" == "${PPSSPP_TAG}-${PPSSPP_RECIPE_SHA}" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/ppsspp_${UNIT}.tar.gz
 else
@@ -18,10 +18,6 @@ else
 	  # Remove libvulkan-dev dependency to avoid pulling in Mesa's loader
 	  # (we use Rockchip's proprietary Vulkan loader; PPSSPP bundles its own headers)
 	  sed -i 's/ libvulkan-dev//' Arkbuild/home/ark/${CHIPSET}_core_builds/scripts/ppsspp.sh
-	  # Skip patch-003 (320x240 hardcode) — that's for small-screen RK3326 devices.
-	  # RK3562 uses VK_KHR_display which needs pixel_xres/yres to match the actual
-	  # display mode; SDL reports 1280x720 via RGA rotation, not 320x240.
-	  rm -f Arkbuild/home/ark/${CHIPSET}_core_builds/patches/ppsspp-patch-003-fix-window-size.patch
 	  # The Vulkan rotation patch is only for portrait-panel devices (e.g. RG52 Mini).
 	  # Remove it for landscape-native devices to avoid unnecessary rotation.
 	  if [ "$UNIT" != "rg52mini" ]; then

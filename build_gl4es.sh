@@ -15,6 +15,7 @@ call_chroot "cd /tmp/gl4es && patch -Np1 < gl4es-preproc-conditional-defines.pat
   mkdir -p build && cd build &&
   cmake .. -DNOX11=ON -DGLX_STUBS=ON -DEGL_WRAPPER=ON -DGBM=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo &&
   make -j\20"
+verify_action
 if [ -f Arkbuild/tmp/gl4es/lib/libGL.so.1 ] && [ -f Arkbuild/tmp/gl4es/lib/libEGL.so.1 ]; then
   sudo mkdir -p Arkbuild/usr/lib/gl4es
   for f in libGL.so.1 libEGL.so.1; do
@@ -22,6 +23,9 @@ if [ -f Arkbuild/tmp/gl4es/lib/libGL.so.1 ] && [ -f Arkbuild/tmp/gl4es/lib/libEG
     call_chroot "strip --strip-unneeded /usr/lib/gl4es/$f"
   done
 else
-  echo "WARNING: gl4es did not build; ports without their own gl4es get none."
+  # A failed patch or build stops the image build, as the other recipes do,
+  # rather than shipping an image whose ports find no /usr/lib/gl4es.
+  echo "gl4es did not build: no libGL.so.1 or libEGL.so.1. Stopping here."
+  exit 1
 fi
 sudo rm -rf Arkbuild/tmp/gl4es

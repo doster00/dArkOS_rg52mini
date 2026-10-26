@@ -4,8 +4,10 @@
 # The cache key is the head of the GitHub repository builds-alt.sh clones; the
 # bitbucket mirror asked before stopped at 51994be, so the key never matched.
 # A cached tarball without the binary is a failed build and is not reused.
+# The recipe and its patches are in the key too, so a change to them rebuilds.
 ecwolf_head="$(git ls-remote https://github.com/ECWolfEngine/ECWolf.git HEAD | cut -f1)"
-if [ -f "Arkbuild_package_cache/${CHIPSET}/ecwolfsa.tar.gz" ] && [ -n "$ecwolf_head" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/ecwolfsa.commit)" == "$ecwolf_head" ] && tar -tzf Arkbuild_package_cache/${CHIPSET}/ecwolfsa.tar.gz | grep -qx "Arkbuild/opt/ecwolf/ecwolf"; then
+ECWOLF_RECIPE_SHA=$(cat ${CHIPSET}_core_builds/scripts/ecwolfsa.sh ${CHIPSET}_core_builds/patches/ecwolf-patch* 2>/dev/null | sha1sum | cut -c1-12)
+if [ -f "Arkbuild_package_cache/${CHIPSET}/ecwolfsa.tar.gz" ] && [ -n "$ecwolf_head" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/ecwolfsa.commit)" == "${ecwolf_head}-${ECWOLF_RECIPE_SHA}" ] && tar -tzf Arkbuild_package_cache/${CHIPSET}/ecwolfsa.tar.gz | grep -qx "Arkbuild/opt/ecwolf/ecwolf"; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/ecwolfsa.tar.gz
 else
 	call_chroot "cd /home/ark &&
@@ -24,7 +26,7 @@ else
 	fi
 	if [ -f Arkbuild/opt/ecwolf/ecwolf ]; then
 	  sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/ecwolfsa.tar.gz Arkbuild/opt/ecwolf/
-	  sudo git --git-dir=Arkbuild/home/ark/${CHIPSET}_core_builds/ecwolf/.git --work-tree=Arkbuild/home/ark/${CHIPSET}_core_builds/ecwolf rev-parse HEAD > Arkbuild_package_cache/${CHIPSET}/ecwolfsa.commit
+	  echo "$(sudo git --git-dir=Arkbuild/home/ark/${CHIPSET}_core_builds/ecwolf/.git --work-tree=Arkbuild/home/ark/${CHIPSET}_core_builds/ecwolf rev-parse HEAD)-${ECWOLF_RECIPE_SHA}" > Arkbuild_package_cache/${CHIPSET}/ecwolfsa.commit
 	fi
 fi
 sudo mkdir -p Arkbuild/home/ark/.config/ecwolf

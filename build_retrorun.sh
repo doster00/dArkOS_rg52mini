@@ -11,6 +11,8 @@ fi
 # our RG52 Mini rotation patch lives there, and a key of the upstream commit
 # alone would keep restoring a binary built without it.
 RR_RECIPE_SHA=$(cat ${CHIPSET}_core_builds/scripts/retrorun.sh ${CHIPSET}_core_builds/patches/retrorun-patch* 2>/dev/null | sha1sum | cut -c1-12)
+# The key stored after a build is this one: the clone's HEAD is the miniloong
+# branch by then (retrorun.sh checks it out last), so it never matched.
 RR_KEY="$(curl -s https://api.github.com/repos/navy1978/retrorun/commits/master | jq -r '.sha')-${RR_RECIPE_SHA}"
 
 if [ -f "Arkbuild_package_cache/${CHIPSET}/retrorun.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/retrorun.commit)" == "$RR_KEY" ]; then
@@ -32,7 +34,7 @@ else
 	fi
 	if [ -f Arkbuild/usr/local/bin/retrorun ]; then
 	  sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/retrorun.tar.gz Arkbuild/usr/local/bin/retrorun
-	  echo "$(sudo git --git-dir=Arkbuild/home/ark/${CHIPSET}_core_builds/retrorun/.git --work-tree=Arkbuild/home/ark/${CHIPSET}_core_builds/retrorun rev-parse HEAD)-${RR_RECIPE_SHA}" | sudo tee Arkbuild_package_cache/${CHIPSET}/retrorun.commit >/dev/null
+	  echo "$RR_KEY" | sudo tee Arkbuild_package_cache/${CHIPSET}/retrorun.commit >/dev/null
 	fi
 fi
 if [[ "${BUILD_ARMHF}" == "y" ]]; then
@@ -55,7 +57,7 @@ if [[ "${BUILD_ARMHF}" == "y" ]]; then
 	  fi
 	  if [ -f Arkbuild/usr/local/bin/retrorun32 ]; then
 	    sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/retrorun32.tar.gz Arkbuild/usr/local/bin/retrorun32
-	    echo "$(sudo git --git-dir=Arkbuild32/home/ark/${CHIPSET}_core_builds/retrorun/.git --work-tree=Arkbuild32/home/ark/${CHIPSET}_core_builds/retrorun rev-parse HEAD)-${RR_RECIPE_SHA}" | sudo tee Arkbuild_package_cache/${CHIPSET}/retrorun32.commit >/dev/null
+	    echo "$RR_KEY" | sudo tee Arkbuild_package_cache/${CHIPSET}/retrorun32.commit >/dev/null
 	  fi
   fi
 fi
