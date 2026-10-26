@@ -194,9 +194,9 @@ VolumeAdjustLFE = 0.000000
 
 
 [SPU2/Output]
-OutputModule = cubeb
-Latency = 100
-SynchMode = 0
+Backend = Cubeb
+SyncMode = TimeStretch
+BufferMS = 100
 SpeakerConfiguration = 0
 
 

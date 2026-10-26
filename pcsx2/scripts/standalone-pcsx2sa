@@ -69,6 +69,23 @@ if [ "$DEVICE" = "RG52MINI" ] && [ ! -e "$selfread_flag" ]; then
     touch "$selfread_flag"
 fi
 
+# ARMSX2 reads [SPU2/Output] BufferMS, not the SPU2-X keys the template carried up to 1.3
+# (OutputModule, Latency = 100, SynchMode): such an ini ran on ARMSX2's default 50 ms buffer,
+# which a slow frame here (80-120 ms in God of War) emptied, and the sound broke up. An ini
+# without BufferMS gets 100 once; the flag next to it keeps a value set by hand afterwards.
+spu2buf_flag="/$directory/ps2/pcsx2/inis/.spu2-buffer-100"
+ini="/$directory/ps2/pcsx2/inis/PCSX2.ini"
+if [ ! -e "$spu2buf_flag" ] && [ -f "$ini" ]; then
+    if ! sed -n '/^\[SPU2\/Output\]/,/^\[/p' "$ini" | grep -q '^BufferMS'; then
+        if grep -q '^\[SPU2/Output\]' "$ini"; then
+            sed -i '/^\[SPU2\/Output\]/a BufferMS = 100' "$ini"
+        else
+            printf '\n[SPU2/Output]\nBufferMS = 100\n' >> "$ini"
+        fi
+    fi
+    touch "$spu2buf_flag"
+fi
+
 # Tell the killer daemon how to terminate us on hotkey
 echo "VAR=armsx2-sdl" > /home/ark/.config/KILLIT
 sudo systemctl restart killer_daemon.service

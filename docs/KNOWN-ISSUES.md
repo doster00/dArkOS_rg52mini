@@ -1284,6 +1284,17 @@ core alike. Without the extension all 72 convert pipelines build.
 for the fp16 extension next to it. LSFG is off by default and nothing in
 the image turns it on.
 
+## PS2: the sound broke up in heavy games — fixed after 1.3
+
+ARMSX2 ran on a 50 ms audio buffer: `PCSX2.ini.rg52mini` set its output with
+the old SPU2-X keys (`OutputModule`, `Latency = 100`, `SynchMode`), which
+ARMSX2 does not read, so `BufferMS` stayed at its default. A frame here often
+takes 80-120 ms in a heavy game and the emulation makes sound only as it
+advances, so the buffer ran dry and the sound stopped until it refilled.
+With `BufferMS = 100` (150 tried too) God of War sounds right to the owner
+(2026-10-26). The template sets it, and the launcher adds it once to an ini
+made from the old one (TODO.md, "PS2: sound in heavy games").
+
 ## PS2: the system list showed its name as plain text — fixed in 1.3
 
 nes-box, the default theme, has no ps2 folder, so ES wrote "PlayStation 2" in
