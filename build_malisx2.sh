@@ -2,7 +2,12 @@
 #
 # Build malisx2 and install it at /usr/lib/aarch64-linux-gnu/malisx2/.  Source:
 #
-#   https://github.com/bmdhacks/malisx2  at ${MALISX2_COMMIT} below
+#   https://github.com/mamaich/malisx2-rg52mini  at ${MALISX2_COMMIT} below
+#
+# That is our fork of https://github.com/bmdhacks/malisx2: our changes are
+# commits there (the first, 077e853: deviceName "Mali-G52 (malisx2)"), and the
+# work on the driver itself has its own notes and session
+# (T:\Dump\RG52Mini\dArkOS\malisx2\README.md on the owner's PC).
 #
 # malisx2 is a Vulkan driver for Arm's Mali GPUs on Arm's own kernel driver
 # (kbase), made of Mesa's panfrost compiler and Vulkan runtime.  Here it is the
@@ -23,14 +28,15 @@ if [ "$CHIPSET" != "rk3562" ]; then
     return 0
 fi
 
-MALISX2_REMOTE="https://github.com/bmdhacks/malisx2"
-# Pinned: a newer commit is a deliberate update (patches checked, profile
-# retrained).
-MALISX2_COMMIT="eae966306c1a4e19e10fdce87b9a27503f8c1f26"
+MALISX2_REMOTE="https://github.com/mamaich/malisx2-rg52mini"
+# Pinned: a newer commit is a deliberate update (profile retrained, or the
+# functions it changed lose their profile data).
+MALISX2_COMMIT="077e853ba4152ce898b3b5224198a4efec10dfa2"
 MALISX2_SRC="Arkbuild/home/ark/malisx2"
 MALISX2_LIB="/usr/lib/aarch64-linux-gnu/malisx2/libvulkan_malisx2.so"
 # Profile for clang's profile-guided optimisation: the driver at the commit
-# above with our patches, instrumented, on an RG52 Mini: Super Mario 3D Land
+# above (trained on bmdhacks' eae9663 with the device-name change, the same
+# tree), instrumented, on an RG52 Mini: Super Mario 3D Land
 # and Luigi's Mansion started with empty pipeline caches, so that they compile
 # every pipeline, then running (2026-10-25).  Castlevania, left out of it,
 # measures it (docs/TODO.md).  Its file-local functions are named by the path
@@ -49,8 +55,8 @@ if [ ! -d "Arkbuild_package_cache/${CHIPSET}" ]; then
   mkdir -p "Arkbuild_package_cache/${CHIPSET}"
 fi
 
-# This recipe, our patches and the profile: a change to any of them rebuilds it
-RECIPE_SHA=$(cat build_malisx2.sh malisx2/patches/*.patch ${PGO} | sha1sum | cut -c1-12)
+# This recipe and the profile: a change to either rebuilds it
+RECIPE_SHA=$(cat build_malisx2.sh ${PGO} | sha1sum | cut -c1-12)
 CACHE_KEY="${MALISX2_COMMIT}_${RECIPE_SHA}"
 
 if [ -f "Arkbuild_package_cache/${CHIPSET}/malisx2.tar.gz" ] && \
@@ -83,11 +89,6 @@ if [ ! -f "Arkbuild${MALISX2_LIB}" ]; then
     git -C "${MALISX2_SRC}/mesa" checkout -q --force FETCH_HEAD
     verify_action
 
-    # Our changes, on the tree as fetched above (each patch says what it does)
-    for p in malisx2/patches/*.patch; do
-        patch -d "${MALISX2_SRC}" -Np1 < "$p"
-        verify_action
-    done
     gunzip -c "${PGO}" > "${MALISX2_SRC}/malisx2.profdata"
     if [ "$(sha256sum Arkbuild_package_cache/${MESON_TGZ} 2>/dev/null | cut -c1-64)" != "${MESON_SHA256}" ]; then
         wget -t 3 -T 60 -O "Arkbuild_package_cache/${MESON_TGZ}" "${MESON_URL}"
