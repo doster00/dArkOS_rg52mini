@@ -619,8 +619,8 @@ def install(pkg, assume_yes=False):
             if cur == uboot["sha256"]:
                 uboot = None
             elif cur != uboot["old_sha256"]:
-                log("boot loader: differs from the one of %s (installed by hand, "
-                    "e.g. the DDR 928 MHz one) - not touched" % m["from_version"])
+                log("boot loader: differs from the one of %s (written by hand) "
+                    "- not touched" % m["from_version"])
                 uboot = None
 
     snap = take_snapshot(rel["BUILD_ID"])

@@ -98,8 +98,10 @@ Not in a package (see `ROOT_EXCLUDE` in `make-ota.py`):
    Each file goes to a temporary name in the same directory and is renamed into place.
 7. **Writes the boot loader,** if the package has one, the card is not
    dual-boot, and the partition named `uboot` on the card holds the boot loader
-   of the old build. A loader installed by hand (`install-ddr928.sh`) is left
-   alone and logged. The written loader is read back and compared.
+   of the old build. A loader on the card that matches neither build (written
+   there by hand) is left alone and logged. (The DDR 928 MHz loader of
+   `install-ddr928.sh` is on the eMMC, which an update never touches.) The
+   written loader is read back and compared.
 8. **Runs the hooks** with `OTA_FROM`, `OTA_TO` and `OTA_DUALBOOT` in the environment.
 9. **On any failure in steps 6–8,** puts everything back:
    - root files from the snapshot, with the ones a hook changed
@@ -141,9 +143,10 @@ changes, so an update that brings new versions of these scripts would leave
 Quick Mode half on. `hooks/all-keep-quickmode.sh`, in every package, does it
 again with the update's versions when `quickmode.sh` is there,
 and lists what it changed for a rollback. It is not the first hook: the
-package lists the hooks sorted by name (`make-ota.py`), the release's own
-(`1.3-*.sh`) before the `all-*.sh` ones, and the client runs them in that
-order, so it comes after the release's hooks, `all-fix-root-dir.sh` and
+package lists the releases' own hooks first (`1.3-*.sh`; a package that
+skips a release has that release's too, oldest first, `make-ota.py`), then
+the `all-*.sh` ones by name, and the client runs them in that order, so it
+comes after the releases' hooks, `all-fix-root-dir.sh` and
 `all-gpu-links.sh`. No hook before it touches `pause.sh` or `finish.sh`. What
 Quick Mode changes in `/etc` and `/home` is kept by step 4 anyway.
 
@@ -212,7 +215,11 @@ may change, so the client checks free space and assumes no sizes.
    minutes of comparing, when it does not exist (TODO.md, "Found while
    testing 1.2").
    Packages from older releases straight to the new one can be made the same
-   way; the client picks the newest entry for its build.
+   way; the client picks the newest entry for its build. Such a package also
+   runs the hooks of the releases it skips (`ota/hooks/<version>*.sh` of every
+   version after the old one, oldest first), so a hook has to work on any
+   later build too. Up to 2026-10-26 make-ota took the new release's hooks
+   only; the 1.1 → 1.3 package lost nothing by it, since 1.2 had none.
 3. Upload the package as an asset of the release, next to the image volumes.
 4. Only then commit and push `ota/rg52mini.json`; devices see the update from
    that moment.

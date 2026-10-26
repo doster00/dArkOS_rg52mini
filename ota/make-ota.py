@@ -196,6 +196,36 @@ def release(root):
     return d
 
 
+def version(s):
+    try:
+        return tuple(int(x) for x in s.split("."))
+    except ValueError:
+        return None
+
+
+def pick_hooks(hooks_dir, old, new):
+    """The hooks a package from release `old` to `new` runs, in order: those
+    of every release after `old` up to `new` (<version>.sh, <version>-*.sh),
+    so that a package skipping a release still runs that release's, oldest
+    release first; then all-*.sh. Each group in name order."""
+    vo, vn = version(old or ""), version(new or "")
+    own, every = [], []
+    if not os.path.isdir(hooks_dir):
+        return []
+    for h in os.listdir(hooks_dir):
+        if not h.endswith(".sh"):
+            continue
+        if h.startswith("all-"):
+            every.append(h)
+            continue
+        hv = version(h[:-3].split("-", 1)[0])
+        if hv and vn and hv <= vn and (vo is None or hv > vo):
+            own.append((hv, h))
+        elif vn is None and (h == new + ".sh" or h.startswith(new + "-")):
+            own.append(((), h))
+    return [h for _, h in sorted(own)] + sorted(every)
+
+
 def dtb_nodes(path):
     dts = subprocess.run(["dtc", "-q", "-I", "dtb", "-O", "dts", path],
                          capture_output=True, text=True, check=True).stdout
@@ -327,16 +357,11 @@ def main():
                                          old_sha256=hashlib.sha256(uo[:len(un)]).hexdigest())
                 members.append("uboot.img")
             hooks_dir = a.hooks_dir
-            v = rn.get("VERSION", "")
-            if os.path.isdir(hooks_dir):
-                for h in sorted(os.listdir(hooks_dir)):
-                    # the release's own, then all-*.sh for every package
-                    if h.endswith(".sh") and (h == v + ".sh" or h.startswith(v + "-")
-                                              or h.startswith("all-")):
-                        os.makedirs(os.path.join(work, "hooks"), exist_ok=True)
-                        shutil.copy(os.path.join(hooks_dir, h), os.path.join(work, "hooks", h))
-                        manifest["hooks"].append("hooks/" + h)
-                        members.append("hooks/" + h)
+            for h in pick_hooks(hooks_dir, ro.get("VERSION"), rn.get("VERSION", "")):
+                os.makedirs(os.path.join(work, "hooks"), exist_ok=True)
+                shutil.copy(os.path.join(hooks_dir, h), os.path.join(work, "hooks", h))
+                manifest["hooks"].append("hooks/" + h)
+                members.append("hooks/" + h)
             for e in rf:
                 if e["path"] in MERGE_BASE and e["type"] == "file" and not e.get("meta") \
                         and os.path.isfile(os.path.join(O.dirs["root"], e["path"])):
