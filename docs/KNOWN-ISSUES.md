@@ -1238,6 +1238,23 @@ ES also shows the full name in its menus (systems to show, emulator settings,
 scraper). Nothing else in the image reads it; ES keys its settings, gamelists
 and collections on `<name>`, which did not change.
 
+## PICO-8 three times in EMULATOR SETTINGS — fixed after 1.3
+
+On a dual-boot card with games in both `/roms/pico-8/carts` and GammaOS's
+`/roms/pico8`, EMULATOR SETTINGS listed PICO-8 three times. ES lists every
+system there, and with two of the aliases above holding games there were
+three: the group, which has no emulators of its own (the first entry, nothing
+to choose in it), `pico-8` and the alias `pico8`, which had the same full name.
+TurboGrafx-16, TurboGrafx-CD, Nintendo 3DS, ColecoVision, Pokemon Mini and
+Macintosh had the same full name for their aliases too; Arcade and its
+FinalBurn Neo showed one entry more.
+
+`es-0001-groups-for-alias-folders.patch` now leaves the group out of EMULATOR
+SETTINGS, and `es-aliases.py` gives an alias whose full name is its main
+system's the folder after it: "PICO-8 (pico8)", "TurboGrafx-16 (tg16)". The
+group's folders show the same names. Checked on the device on 2026-10-26:
+PICO-8 and PICO-8 (pico8), Arcade and FinalBurn Neo, nothing else twice.
+
 ## PS2: the pause menu closed the game — fixed in 1.3
 
 Select+X (PCSX2's `OpenPauseMenu`) showed the pause menu for half a second,
