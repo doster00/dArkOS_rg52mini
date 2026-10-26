@@ -267,21 +267,55 @@ first, with the times of the 2026-10-19 build:
   Kodi's 71 addons spent most of a 43-hour build there (KNOWN-ISSUES); it is
   cached, so this matters only when it has to be built again.
 
-## Dolphin on malisx2: why it does not start (to do for the release after 1.3, noted 2026-10-25)
+## Dolphin on malisx2: why it does not start (looked into 2026-10-26, to do for 1.4)
 
 Dolphin (dolphin-emu-nogui) did not start on malisx2 when it was measured
 against libmali ("malisx2 measured against libmali" below), so 1.3 leaves
 Gamecube out of the systems that offer MALISX2 (vk-driver-select/vulkan.conf's
-es_systems line, and the list in ota/hooks/1.3-vulkan-es-systems.sh). The owner
-asks to look: it may be easy. To do: start it with DARKOS_VULKAN=malisx2 and
-read its log and malisx2's (MESA_DEBUG, DARKOS_VULKAN_DEBUG=1). Suspects from
-the vulkaninfo comparison: malisx2 has no geometry shaders, logicOp, wide lines
-or shaderInt64, 16 vertex bindings against 32, and Vulkan 1.1; Dolphin can do
-without most of these, so a refusal at device creation or a missing format is
-more likely than a missing feature. If it runs: add `Gamecube` to vulkan.conf's `es_systems` line (an untouched
-file gets it with the update) and, for a user's own copy that has the line
-already, a `1.4-` hook that adds it there (the 1.3 hook only writes a
-missing line).
+es_systems line, and the list in ota/hooks/1.3-vulkan-es-systems.sh).
+
+**First: no occlusion query pool.** Run with `-C Logger.Options.WriteToConsole=True
+-C Logger.Options.Verbosity=4 -C Logger.Logs.VIDEO=True`, Dolphin says
+`vkCreateQueryPool failed: (-8: VK_ERROR_FEATURE_NOT_PRESENT)`, then "Failed to
+create query pool", "Failed to initialize video backend!". Its Vulkan
+PerfQuery (`VKPerfQuery.cpp`) makes a pool of 512 occlusion queries at start
+and gives up the backend when that fails. malisx2 on the job manager (G52,
+G57) has timestamp pools only (`src/vk/mali_jm_query.c`: "only timestamp
+query pools are supported"), because ARMSX2 uses no other kind. Dolphin uses
+the pool only with `PerfQueriesEnable` on (`PerfQueryBase::ShouldEmulate`,
+off by default; some game INIs turn it on).
+
+**With that out of the way** (a test layer that hands Dolphin a timestamp
+pool in place of the refused occlusion pool; Dolphin only resets it):
+- Metroid Prime (USA, Rev 2) runs on malisx2 and draws right: the attract
+  sequence and the title screen, 33.5 fps by Dolphin's counter there, no
+  error in 45-70 s. On libmali at about the same point 32.5.
+- ND Demo crashes the GPU on its first draw into the EFB (a 640x528 pass, one
+  draw; `MALISX2_MEASURE=draws`): "Unhandled Page fault ... at VA
+  0x7C75FFFF0", device lost. That is Dolphin's 48 MiB vertex stream buffer
+  (0x6C7600000 in its maps) plus 0xFFFFFFF0: a read 16 bytes before the
+  buffer, the offset added as an unsigned 32-bit number. The same with
+  ubershaders (`ShaderCompilationMode=1`, which read vertices from a storage
+  buffer by gl_VertexIndex), so the vertex index itself seems to come out as
+  -1, rather than one attribute path going wrong (a guess, not decoded). The draws Dolphin records there are ordinary
+  (`drawIndexed count=174 firstIndex=6 vertexOffset=2` and the like), and
+  malisx2's index scan (`index_range`, `scan_u16`) looks right. Next: decode
+  that submit's jobs (`MALISX2_MEASURE=csf` captures them; the decoder
+  `tools/mali_jc_decode.py` is not in malisx2's tree at eae9663).
+- Other differences Dolphin sees, harmless so far: "Missing both
+  geometryShader and wideLines" (lines and points are expanded in the vertex
+  shader; libmali with `-C GFX.Settings.PreferVSForLinePointExpansion=True`
+  ran 40 s clean, whether the option took was not checked), and two bits of
+  the shader cache's host config (1C4FED40 against 1C6EED40), read as depth
+  clamp on and logic op off.
+
+To do: a Dolphin patch that leaves PerfQuery off when the pool cannot be made
+(a warning instead of failing the backend; with libmali nothing changes), or
+occlusion queries in malisx2. Then Gamecube can offer MALISX2: add `Gamecube`
+to vulkan.conf's `es_systems` line (an untouched file gets it with the
+update) and, for a user's own copy that has the line already, a `1.4-` hook
+that adds it there (the 1.3 hook only writes a missing line). ND Demo's crash
+is malisx2's to fix; other games are untested.
 
 ## PS2: sound in heavy games like Azahar's realtime audio (to do, noted 2026-10-25)
 
