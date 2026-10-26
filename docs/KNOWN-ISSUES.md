@@ -1614,6 +1614,34 @@ caught it down for 0.7 s and for 3 s (2026-10-24).
   `ogage/patches/0001` removes it. Bluetooth is switched in Options >
   Bluetooth.
 
+## GTA San Andreas: the camera turned by itself — fixed after 1.3
+
+The GTA San Andreas port (folder `gtasa`, a wrapper around the Android game;
+seen in its builds v15 and v30) reads the pad through evdev itself and grabs
+it before SDL starts. It picks a layout by the pad's name, does not know
+`rk3562-joystick` ("unknown device — using R36S layout as fallback" in
+`gtasa.log`), and in that layout writes ABS_Z into the right stick's X and
+ABS_RZ into its Y, where some R36S kernels report the right stick, taking
+every axis's rest as (min + max) / 2. Here ABS_Z/ABS_RZ are L2/R2, 0..32767
+and 0 at rest: after any event of L2 the right stick sits at full left (0
+against 16383) and the camera turns until the right stick is moved; R2 does
+it to the vertical. A press does it, and so does the trigger's noise: L2 rose
+to 1000-1300, past the kernel's dead zone of 800, a few times in 30 s with
+nobody pressing it. The vendor's kernel reports the triggers on the same axes
+(`play_joystick`, 0..9, 0 at rest), and by the port's code it takes the same
+branch there.
+
+`trigaxes-off` (`trigaxes-off/`, built by `build_trigaxesoff.sh`), which
+`runport.sh` preloads for a port script naming a `gtasa` folder, drops
+ABS_Z/ABS_RZ from the process's reads of the pad; L2/R2 still reach the port
+as BTN_TL2/BTN_TR2, which it binds them to. On the console with v30: the
+camera stays, L2/R2 work (2026-10-26).
+
+GTA III and Vice City (re3/reVC from PortMaster) read the pad through SDL's
+game controller, which keeps the triggers apart from the right stick; a
+camera turning there has another cause, not looked into (their stick dead
+zones are 0 in `re3.ini`/`reVC.ini`).
+
 ## HDMI output does nothing
 
 Reported from the device on 2026-10-01: plugging a cable produces no reaction

@@ -1264,6 +1264,16 @@ and rk628 probe order before concluding anything about the hardware.
 
 ## Open questions on the device
 
+* **L2's noise passes the kernel's dead zone** (2026-10-26). With a game
+  running and nobody pressing it, ABS_Z rose to 1073 and 1272 a few times in
+  30 s (`TRIG_DZ_OUTPUT` 800 in `rk3562-joystick.c`, whose comment has the
+  noise peaking at 536); R2 stayed 0. Harmless to programs that read the
+  trigger as a trigger, and the GTA San Andreas port, which did not, has
+  `trigaxes-off` (KNOWN-ISSUES.md). The vendor's driver starts its 0..9 at
+  about 125 mV of a trigger resting near 11 mV. If a game is found to react,
+  widen the dead zone (and scale the rest of the travel to the full range),
+  after a measurement with the console lying untouched; the right stick's Y
+  showed one jump to -4793 in the same run, which also wants that.
 * **Is the speaker click gone?** `spk-mute-delay-ms = <100>` is in the device
   tree and the GPIO reads `out lo` in silence, which is necessary but does not
   prove the click went away. Needs an ear.

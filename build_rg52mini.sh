@@ -121,6 +121,7 @@ source ./build_vkrotate.sh
 source ./build_vkselect.sh
 source ./build_malisx2.sh
 source ./build_gl4esfix.sh
+source ./build_trigaxesoff.sh
 source ./build_gl4es.sh
 if [[ "${BUILD_RKMPP_FFMPEG}" == "y" ]]; then
   source ./build_ffmpeg.sh
