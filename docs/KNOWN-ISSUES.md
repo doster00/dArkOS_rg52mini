@@ -436,7 +436,8 @@ azahar-nano on the G52. Measured here (TODO.md, "malisx2"): it compiles
 pipelines about six times faster (a game's first run stutters less), but draws
 Castlevania: Lords of Shadow – Mirror of Fate a quarter slower and God of War 5%
 slower, implements Vulkan 1.1 with 24 device extensions against libmali's 1.3
-with 135, and Dolphin does not start on it. So libmali stays the default.
+with 135, and in 1.3 Dolphin did not start on it (it does since 1.4, below). So
+libmali stays the default.
 
 The choice below replaces the old "Vulkan Driver Toggle" tool, which is no
 longer in the image.
@@ -461,13 +462,14 @@ an emulator's adapter list would not work, so:
   choice; AUTO leaves it unset, so vulkan.conf decides. The choice is offered
   for the systems the file's `es_systems` line names, comma-separated and
   editable on the device: now 3ds, n3ds, ps2, ppsspp, pspminis, psx,
-  dreamcast, naomi, Sega Atomiswave, ports, the systems whose emulators draw
-  with Vulkan. Gamecube is left out, although Dolphin draws with Vulkan:
-  Dolphin does not start on malisx2. A system ES shows under an alias is
+  dreamcast, naomi, Sega Atomiswave, ports and, since 1.4, Gamecube: the
+  systems whose emulators draw with Vulkan (1.3 left Gamecube out, as
+  Dolphin did not start on malisx2). A system ES shows under an alias is
   named by the alias (n3ds is the 3DS folder of a GammaOS card,
   es-aliases.py). The update keeps a user's
   vulkan.conf and adds the line if it has none
-  (`ota/hooks/1.3-vulkan-es-systems.sh`). Like the other rows of that menu, a
+  (`ota/hooks/1.3-vulkan-es-systems.sh`), and from 1.4 Gamecube to a line
+  that has not got it (`ota/hooks/1.4-vulkan-gamecube.sh`). Like the other rows of that menu, a
   change is saved when the menu is left with B; START closes all menus without
   saving.
 - **PortMaster:** a port that runs its game with `$ESUDO` (sudo with a
@@ -482,8 +484,27 @@ change of the device name to "Mali-G52 (malisx2)" (then
 `malisx2/patches/`), -O3 for the Cortex-A53, full LTO and a profile
 (`malisx2/pgo/`), installed at `/usr/lib/aarch64-linux-gnu/malisx2/`. After
 1.3 the source is our fork, github.com/mamaich/malisx2-rg52mini (077e853:
-eae9663 and the device name as a commit), where the driver work goes on. With LTO and the profile it compiles
+eae9663 and the device name as a commit), where the driver work goes on.
+1.4 takes its b1c114a: occlusion query pools accepted, every result 0
+samples (0488ddb), and storage-buffer reads in v7 vertex shaders
+bounds-checked (80994d9); ARMSX2 runs as fast with it (TODO.md). With LTO and the profile it compiles
 Castlevania's 368 pipelines in 7.4 s instead of 8.1, draws as fast as before.
+
+**Dolphin on malisx2 (1.4).** Two things kept Dolphin off malisx2 in 1.3.
+Its Vulkan backend makes a pool of 512 occlusion queries at start and gave
+up the whole backend when malisx2, which had timestamp pools only on the job
+manager, refused it ("Failed to create query pool"). And without geometry
+shaders and wide lines it expands lines in the vertex shader, reading the
+other end of a line as `input_buffer[vertex_id - 1]`, while malisx2's v7
+Vertex job shades every index from the draw's smallest to its largest, those
+no index uses as well: for one of them the read went 16 bytes before Dolphin's
+vertex buffer and faulted the GPU (ND Demo, its first draw into the EFB).
+malisx2 0488ddb accepts occlusion pools (every result 0, as with perf queries
+off) and 80994d9 bounds-checks storage-buffer reads in v7 vertex shaders;
+`dolphinsa-patch-014` lets Dolphin run without the pool when a driver refuses
+it, with perf queries off (their results read 0; with libmali nothing
+changes). On the console: ND Demo 41 fps, Metroid Prime runs and draws right;
+other GameCube games are not tried yet (TODO.md, "Dolphin on malisx2").
 
 ## gl4es ports rendered black into their own textures: gl4es-fix (after 1.0)
 

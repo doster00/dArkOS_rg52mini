@@ -267,55 +267,56 @@ first, with the times of the 2026-10-19 build:
   Kodi's 71 addons spent most of a 43-hour build there (KNOWN-ISSUES); it is
   cached, so this matters only when it has to be built again.
 
-## Dolphin on malisx2: why it does not start (looked into 2026-10-26, to do for 1.4)
+## Dolphin on malisx2: why it did not start (found 2026-10-26, fixed for 1.4)
 
-Dolphin (dolphin-emu-nogui) did not start on malisx2 when it was measured
-against libmali ("malisx2 measured against libmali" below), so 1.3 leaves
-Gamecube out of the systems that offer MALISX2 (vk-driver-select/vulkan.conf's
-es_systems line, and the list in ota/hooks/1.3-vulkan-es-systems.sh).
+1.3 left Gamecube out of the systems that offer MALISX2: Dolphin did not
+start on malisx2. Two causes, both fixed (KNOWN-ISSUES.md, "Dolphin on
+malisx2"):
 
-**First: no occlusion query pool.** Run with `-C Logger.Options.WriteToConsole=True
--C Logger.Options.Verbosity=4 -C Logger.Logs.VIDEO=True`, Dolphin says
-`vkCreateQueryPool failed: (-8: VK_ERROR_FEATURE_NOT_PRESENT)`, then "Failed to
-create query pool", "Failed to initialize video backend!". Its Vulkan
-PerfQuery (`VKPerfQuery.cpp`) makes a pool of 512 occlusion queries at start
-and gives up the backend when that fails. malisx2 on the job manager (G52,
-G57) has timestamp pools only (`src/vk/mali_jm_query.c`: "only timestamp
-query pools are supported"), because ARMSX2 uses no other kind. Dolphin uses
-the pool only with `PerfQueriesEnable` on (`PerfQueryBase::ShouldEmulate`,
-off by default; some game INIs turn it on).
+- **No occlusion query pool.** Dolphin's Vulkan PerfQuery (`VKPerfQuery.cpp`)
+  makes 512 occlusion queries at start and fails the backend without them;
+  malisx2 on the job manager had timestamp pools only (`mali_jm_query.c`), so
+  `vkCreateQueryPool` said VK_ERROR_FEATURE_NOT_PRESENT. The pool is only used
+  with `PerfQueriesEnable` on (off unless a game's settings turn it on).
+  Fixed twice: malisx2 0488ddb accepts the pool (every result 0 samples), and
+  `dolphinsa-patch-014` runs Dolphin without perf queries when a driver
+  refuses it. Found with Dolphin's log on the console
+  (`-C Logger.Options.WriteToConsole=True -C Logger.Logs.VIDEO=True`).
+- **A GPU fault in ND Demo.** Past the pool (a test layer handing Dolphin a
+  timestamp pool), ND Demo's first draw into the EFB faulted the GPU at
+  Dolphin's 48 MiB vertex stream buffer + 0xFFFFFFF0. Without geometry shaders
+  and wide lines Dolphin expands lines in the vertex shader and reads the
+  other end of a line as `input_buffer[vertex_id - 1]`; malisx2's v7 Vertex
+  job, without IDVS, shades every index in [min, max], those no index uses as
+  well, and for one of them that read was index -1. malisx2 80994d9
+  bounds-checks storage-buffer reads in v7 vertex shaders (found by the
+  malisx2 session).
 
-**With that out of the way** (a test layer that hands Dolphin a timestamp
-pool in place of the refused occlusion pool; Dolphin only resets it):
-- Metroid Prime (USA, Rev 2) runs on malisx2 and draws right: the attract
-  sequence and the title screen, 33.5 fps by Dolphin's counter there, no
-  error in 45-70 s. On libmali at about the same point 32.5.
-- ND Demo crashes the GPU on its first draw into the EFB (a 640x528 pass, one
-  draw; `MALISX2_MEASURE=draws`): "Unhandled Page fault ... at VA
-  0x7C75FFFF0", device lost. That is Dolphin's 48 MiB vertex stream buffer
-  (0x6C7600000 in its maps) plus 0xFFFFFFF0: a read 16 bytes before the
-  buffer, the offset added as an unsigned 32-bit number. The same with
-  ubershaders (`ShaderCompilationMode=1`, which read vertices from a storage
-  buffer by gl_VertexIndex), so the vertex index itself seems to come out as
-  -1, rather than one attribute path going wrong (a guess, not decoded). The draws Dolphin records there are ordinary
-  (`drawIndexed count=174 firstIndex=6 vertexOffset=2` and the like), and
-  malisx2's index scan (`index_range`, `scan_u16`) looks right. Next: decode
-  that submit's jobs (`MALISX2_MEASURE=csf` captures them; the decoder
-  `tools/mali_jc_decode.py` is not in malisx2's tree at eae9663).
-- Other differences Dolphin sees, harmless so far: "Missing both
-  geometryShader and wideLines" (lines and points are expanded in the vertex
-  shader; libmali with `-C GFX.Settings.PreferVSForLinePointExpansion=True`
-  ran 40 s clean, whether the option took was not checked), and two bits of
-  the shader cache's host config (1C4FED40 against 1C6EED40), read as depth
-  clamp on and logic op off.
+Checked on the console with patch 014's build over the image's Dolphin
+(2026-10-26): ND Demo on libmali 37 fps, no errors; on malisx2 1.3 Dolphin
+starts and Metroid Prime runs (31 fps), ND Demo faults as above; on malisx2
+80994d9 ND Demo 41 fps, no errors. Metroid Prime on 80994d9 with the image's
+Dolphin: 39.6 fps (the malisx2 session).
 
-To do: a Dolphin patch that leaves PerfQuery off when the pool cannot be made
-(a warning instead of failing the backend; with libmali nothing changes), or
-occlusion queries in malisx2. Then Gamecube can offer MALISX2: add `Gamecube`
-to vulkan.conf's `es_systems` line (an untouched file gets it with the
-update) and, for a user's own copy that has the line already, a `1.4-` hook
-that adds it there (the 1.3 hook only writes a missing line). ND Demo's crash
-is malisx2's to fix; other games are untested.
+**What the bounds checks cost ARMSX2**, which expands sprites in the vertex
+shader too: none measurable. The image's ARMSX2 through ES's command, after a
+reboot, three rounds in turn, malisx2 3a8c885 against 80994d9 (both LTO and
+the profile, as the image builds it), fps by the kernel's flips:
+
+| | 3a8c885 | 80994d9 |
+|---|---|---|
+| Jak and Daxter's intro, frames 300-1850 | 32.91 / 36.04 / 35.16 | 35.62 / 35.30 / 35.51 |
+| God of War demo from a savestate on the ship, frames 100-1500 | 21.71 / 21.96 / 22.19 | 21.72 / 22.28 / 21.43 |
+
+Frame times' p95 and p99 are the same (they fall on the 16.7 ms grid). The
+savestate is new (the owner's earlier one went with the card's reflash):
+`T:\Dump\RG52Mini\dArkOS\malisx2\states\gow-ship-20261026.p2s`, made on
+libmali at the start of the ship level, Kratos standing in the rain. The
+bench is in that folder's `tools/ps2-bench/` (`drv-ab.sh`).
+
+Open: other GameCube games on malisx2; whether a game that relies on perf
+queries (with `PerfQueriesEnable` in its settings) misbehaves with results
+of 0.
 
 ## PS2: sound in heavy games like Azahar's realtime audio (to do, noted 2026-10-25)
 

@@ -5,8 +5,10 @@
 #   https://github.com/mamaich/malisx2-rg52mini  at ${MALISX2_COMMIT} below
 #
 # That is our fork of https://github.com/bmdhacks/malisx2: our changes are
-# commits there (the first, 077e853: deviceName "Mali-G52 (malisx2)"), and the
-# work on the driver itself has its own notes and session
+# commits there (077e853: deviceName "Mali-G52 (malisx2)"; 0488ddb: occlusion
+# query pools accepted, every result 0 samples; 80994d9: storage-buffer reads
+# in v7 vertex shaders bounds-checked, so Dolphin runs on it), and the work on
+# the driver itself has its own notes and session
 # (T:\Dump\RG52Mini\dArkOS\malisx2\README.md on the owner's PC).
 #
 # malisx2 is a Vulkan driver for Arm's Mali GPUs on Arm's own kernel driver
@@ -31,12 +33,13 @@ fi
 MALISX2_REMOTE="https://github.com/mamaich/malisx2-rg52mini"
 # Pinned: a newer commit is a deliberate update (profile retrained, or the
 # functions it changed lose their profile data).
-MALISX2_COMMIT="077e853ba4152ce898b3b5224198a4efec10dfa2"
+MALISX2_COMMIT="b1c114a7e59c365caf0e81b49036d7ff5edf989d"
 MALISX2_SRC="Arkbuild/home/ark/malisx2"
 MALISX2_LIB="/usr/lib/aarch64-linux-gnu/malisx2/libvulkan_malisx2.so"
 # Profile for clang's profile-guided optimisation: the driver at the commit
-# above (trained on bmdhacks' eae9663 with the device-name change, the same
-# tree), instrumented, on an RG52 Mini: Super Mario 3D Land
+# (trained on 077e853, bmdhacks' eae9663 with the device-name change; after it
+# only the query pools and the vertex stage's robustness changed, which lose
+# their profile data and nothing else), instrumented, on an RG52 Mini: Super Mario 3D Land
 # and Luigi's Mansion started with empty pipeline caches, so that they compile
 # every pipeline, then running (2026-10-25).  Castlevania, left out of it,
 # measures it (docs/TODO.md).  Its file-local functions are named by the path
