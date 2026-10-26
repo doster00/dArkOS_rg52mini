@@ -1051,6 +1051,14 @@ Done since:
   dArkOS root mounted as the chroot: 33 minutes from nothing, cached by commit,
   recipe, patches and profile after that.
 * Its compiler on the CPU, see "malisx2's compiler: LTO and a profile" below.
+* ARMSX2's draw path on v7 (the fork's f35bacc, in 1.4; the malisx2 session,
+  its docs/changes.md): fewer compute copy jobs per draw, a stage's tables and
+  FAU block kept when a new pipeline would build them the same (copies per
+  draw: God of War 2.53 to 2.12, Jak and Daxter 1.97 to 1.82), the same
+  picture. Against b1c114a, three rounds each: God of War 4.5% faster (frames
+  100-1500; 7.1% over 800-1500), Jak 1.3%, each on its own profile; 0.7% and
+  1.4% with neither profiled. Luigi's Mansion's 269 pipelines compile in
+  2.93 s against 2.92.
 * Where Castlevania's time goes on it, see below. The vertex side is the work:
   IDVS and descriptors/uniforms written by the CPU, in malisx2 (upstream's to
   do).
@@ -1125,6 +1133,15 @@ with the tree at /home/ark/malisx2, the chroot's path; the recipe's build
 matching the host's shows it is taken there. Castlevania's speed on malisx2
 does not move with it (16.7-16.9 / 15.5-15.8 fps either way; the GPU is the
 limit).
+
+Retrained 2026-10-26 on fa1831a (the image's f35bacc, same sources), with
+`-fprofile-update=atomic`, as the code of ARMSX2's draw path had changed and a
+changed function loses its profile (2026-10-25's left `draw`, `cmd_gfx_fau`,
+the push descriptors, `mali_v7_desc_refresh`, `mali_v7_ubo_copy` and
+`queue_submit` without it): the same two 3DS games, and ARMSX2 started as ES
+does, 75-90 s each of Jak and Daxter (its intro and a save), God of War (a
+savestate on the ship) and the Burnout 3 demo, as on the A53 ARMSX2 waits on
+the driver's CPU side too. How to make one: malisx2's docs/building.md.
 
 perf over the preload: 79% in the driver, 11% libc (malloc/free and their
 internals), 7% kernel. In the driver no hot spot: Bifrost register allocation

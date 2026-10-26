@@ -7,8 +7,10 @@
 # That is our fork of https://github.com/bmdhacks/malisx2: our changes are
 # commits there (077e853: deviceName "Mali-G52 (malisx2)"; 0488ddb: occlusion
 # query pools accepted, every result 0 samples; 80994d9: storage-buffer reads
-# in v7 vertex shaders bounds-checked, so Dolphin runs on it), and the work on
-# the driver itself has its own notes and session
+# in v7 vertex shaders bounds-checked, so Dolphin runs on it; 4c73962-fa1831a:
+# fewer compute copy jobs per draw on v7, a stage's tables and FAU block kept
+# across pipelines that would build them the same), and the work on the
+# driver itself has its own notes and session
 # (T:\Dump\RG52Mini\dArkOS\malisx2\README.md on the owner's PC).
 #
 # malisx2 is a Vulkan driver for Arm's Mali GPUs on Arm's own kernel driver
@@ -33,20 +35,27 @@ fi
 MALISX2_REMOTE="https://github.com/mamaich/malisx2-rg52mini"
 # Pinned: a newer commit is a deliberate update (profile retrained, or the
 # functions it changed lose their profile data).
-MALISX2_COMMIT="b1c114a7e59c365caf0e81b49036d7ff5edf989d"
+MALISX2_COMMIT="f35bacc831730835ac2971e55c7242fde5039045"
 MALISX2_SRC="Arkbuild/home/ark/malisx2"
 MALISX2_LIB="/usr/lib/aarch64-linux-gnu/malisx2/libvulkan_malisx2.so"
 # Profile for clang's profile-guided optimisation: the driver at the commit
-# (trained on 077e853, bmdhacks' eae9663 with the device-name change; after it
-# only the query pools and the vertex stage's robustness changed, which lose
-# their profile data and nothing else), instrumented, on an RG52 Mini: Super Mario 3D Land
-# and Luigi's Mansion started with empty pipeline caches, so that they compile
-# every pipeline, then running (2026-10-25).  Castlevania, left out of it,
-# measures it (docs/TODO.md).  Its file-local functions are named by the path
-# of their source (Mesa's reach the compiler by absolute paths), so it is made
-# for this tree at /home/ark/malisx2, where the chroot builds it.
-PGO="malisx2/pgo/malisx2-20261025.profdata.gz"
-PGO_SHA256="3970444e573a78bcbf4c8bbfd275a6e6b4062744a1ea66a9f50130d625b3b78d"
+# (trained on fa1831a, the same sources: after it only documentation),
+# instrumented with -fprofile-update=atomic (emulators compile pipelines on
+# several threads), on an RG52 Mini (2026-10-26).  The compiler: Super Mario
+# 3D Land and Luigi's Mansion started with empty pipeline caches, so that they
+# compile every pipeline, then running.  The draw path: ARMSX2 started as ES
+# does, Jak and Daxter from its intro and from a save, God of War from a
+# savestate on the ship, the Burnout 3 demo, 75-90 s each.  Castlevania, left
+# out of it, measures the compiler (docs/TODO.md).  A profile of older code
+# loses the functions changed since: 2026-10-25's, of 077e853, has no data for
+# fa1831a's draw path.  God of War on fa1831a against b1c114a: 0.7% faster
+# with neither profiled, 4.5% with each on its own profile.  Its file-local
+# functions are named by the path of their source (Mesa's reach the compiler
+# by absolute paths), so it is made for this tree at /home/ark/malisx2, where
+# the chroot builds it, with the build directory in it (malisx2's
+# docs/building.md).
+PGO="malisx2/pgo/malisx2-20261026.profdata.gz"
+PGO_SHA256="bc846f65c39299c0345980d723056b0e9fb20176ff91e50ba67d6f94bb1332d8"
 # Meson from its release, run from the tree: Debian trixie's 1.7.0 fails to
 # write the build of the Rust crate Mesa makes of structured sources
 # ("'CustomTargetIndex' object has no attribute 'subdir'"); 1.12.1 builds it.
