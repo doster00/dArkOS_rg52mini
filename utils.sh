@@ -264,11 +264,13 @@ function setup_arkbuild32() {
 }
 
 function mount_arkbuild() {
-  # Bind essential host filesystems into chroot for networking
-  sudo mount --bind /dev Arkbuild/dev
-  sudo mount -t devpts none Arkbuild/dev/pts -o newinstance,ptmxmode=0666
-  sudo mount --bind /proc Arkbuild/proc
-  sudo mount --bind /sys Arkbuild/sys
+  # Bind essential host filesystems into chroot for networking. Each one only
+  # if missing: bootstrap_rootfs calls this right after debootstrap's second
+  # stage as well.
+  mountpoint -q Arkbuild/dev || sudo mount --bind /dev Arkbuild/dev
+  mountpoint -q Arkbuild/dev/pts || sudo mount -t devpts none Arkbuild/dev/pts -o newinstance,ptmxmode=0666
+  mountpoint -q Arkbuild/proc || sudo mount --bind /proc Arkbuild/proc
+  mountpoint -q Arkbuild/sys || sudo mount --bind /sys Arkbuild/sys
   echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1" | sudo tee Arkbuild/etc/resolv.conf > /dev/null
 }
 

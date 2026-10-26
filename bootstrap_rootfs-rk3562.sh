@@ -33,6 +33,11 @@ else
     fi
     # Second stage must run first to make the chroot functional
     sudo chroot Arkbuild/ /debootstrap/debootstrap --second-stage
+    # apt needs /dev/pts inside the chroot (it opens a pty for its terminal
+    # log); without it "E: Can not write log (Is /dev/pts mounted?)" and the
+    # installs below fail. Mounted only after the second stage, which creates
+    # device nodes in Arkbuild/dev and must not do that on the host's /dev.
+    mount_arkbuild
     # Now we can install additional packages
     sudo chroot Arkbuild/ bash -c "DEBIAN_FRONTEND=noninteractive apt-get -y update"
     sudo chroot Arkbuild/ bash -c "DEBIAN_FRONTEND=noninteractive apt-get -y install ccache eatmydata"
@@ -43,6 +48,15 @@ else
       sudo chroot Arkbuild/ bash -c "DEBIAN_FRONTEND=noninteractive eatmydata apt-get -y update"
       sudo chroot Arkbuild/ bash -c "DEBIAN_FRONTEND=noninteractive eatmydata apt-get -y install libc6:armhf liblzma5:armhf libasound2t64:armhf libfreetype6:armhf libxkbcommon-x11-0:armhf libudev1:armhf libudev0:armhf libgbm1:armhf libstdc++6:armhf"
     fi
+
+    # Unmount before archiving: through the bind mounts tar would walk the
+    # host's /proc (/proc/kcore never ends), /sys and /dev. mount_arkbuild
+    # below makes them again.
+    for m in sys proc dev/pts dev; do
+      if mountpoint -q Arkbuild/${m}; then
+        sudo umount Arkbuild/${m} || sudo umount -l Arkbuild/${m}
+      fi
+    done
 
     sudo cat Arkbuild/etc/os-release | grep "^DEBIAN_VERSION_FULL=" | cut -d'=' -f2 > Arkbuild_package_cache/debian_${DEBIAN_CODE_NAME}_rootfs.commit
     sudo tar -cvpzf Arkbuild_package_cache/debian_${DEBIAN_CODE_NAME}_rootfs.tar.gz Arkbuild/

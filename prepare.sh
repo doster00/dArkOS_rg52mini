@@ -6,7 +6,16 @@ if [ -z $(dpkg --print-foreign-architectures | grep i386) ]; then
   sudo dpkg --add-architecture i386
 fi
 sudo apt -y update
-for NEEDED_TOOL in bc btrfs-progs build-essential bison flex ccache curl debconf-utils debootstrap device-tree-compiler dosfstools e2fsprogs eatmydata gcc gdisk jq lib32stdc++6 libc6-i386 libncurses5-dev libssl-dev lz4 lzop p7zip-full parted patchelf python-is-python3 qemu-user-static zlib1g:i386 xfsprogs
+# Ubuntu 26.04 and Debian trixie dropped qemu-user-static: qemu-user ships
+# static binaries there and qemu-user-binfmt registers them. Older hosts still
+# need qemu-user-static, as their qemu-user is dynamic and cannot run in the
+# arm64 chroot.
+if apt-cache show qemu-user-static 2>/dev/null | grep -q '^Version:'; then
+  QEMU_PKG=qemu-user-static
+else
+  QEMU_PKG=qemu-user-binfmt
+fi
+for NEEDED_TOOL in bc btrfs-progs build-essential bison flex ccache curl debconf-utils debootstrap device-tree-compiler dosfstools e2fsprogs eatmydata gcc gdisk jq lib32stdc++6 libc6-i386 libncurses5-dev libssl-dev lz4 lzop p7zip-full parted patchelf python-is-python3 ${QEMU_PKG} zlib1g:i386 xfsprogs
 do
   apt list --installed 2>/dev/null | grep -q "$NEEDED_TOOL"
   if [[ $? != "0" ]]; then
