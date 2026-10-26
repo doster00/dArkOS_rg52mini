@@ -9,6 +9,13 @@ if [ -f "Arkbuild_package_cache/${CHIPSET}/flycastsa.tar.gz" ] && \
    [ "$(cat Arkbuild_package_cache/${CHIPSET}/flycastsa.commit 2>/dev/null)" == "${FLYCASTSA_RECIPE_SHA}" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/flycastsa.tar.gz
 else
+	# The libretro flycast core (scripts/flycast.sh, built earlier with RetroArch)
+	# and the standalone (scripts/flycastsa.sh) both use the directory name
+	# flycast/ under core_builds. On a build with cold caches the libretro clone
+	# is still there, the standalone recipe skips its own clone and fails with
+	# "pathspec 'v2.6' did not match" / no CMakeLists.txt. Start from clean dirs.
+	sudo rm -rf Arkbuild/home/ark/${CHIPSET}_core_builds/flycast \
+	            Arkbuild/home/ark/${CHIPSET}_core_builds/flycast-build
 	call_chroot "cd /home/ark &&
 	  cd ${CHIPSET}_core_builds &&
 	  chmod 777 builds-alt.sh &&
@@ -23,8 +30,14 @@ else
 	fi
 	sudo cp -R Arkbuild/home/ark/${CHIPSET}_core_builds/flycastsa-64/flycast${ext} Arkbuild/opt/flycastsa/flycast
 	sudo rm -f Arkbuild_package_cache/${CHIPSET}/flycastsa.tar.gz Arkbuild_package_cache/${CHIPSET}/flycastsa.commit
-	sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/flycastsa.tar.gz Arkbuild/opt/flycastsa/
-	echo "${FLYCASTSA_RECIPE_SHA}" | sudo tee Arkbuild_package_cache/${CHIPSET}/flycastsa.commit > /dev/null
+	# Cache only a real result: a failed build used to leave an empty directory
+	# here that was cached and restored as if it were flycast.
+	if [ -s Arkbuild/opt/flycastsa/flycast ]; then
+	  sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/flycastsa.tar.gz Arkbuild/opt/flycastsa/
+	  echo "${FLYCASTSA_RECIPE_SHA}" | sudo tee Arkbuild_package_cache/${CHIPSET}/flycastsa.commit > /dev/null
+	else
+	  echo "WARNING: flycast standalone was not built; not caching it"
+	fi
 fi
 
 sudo mkdir -p Arkbuild/home/ark/.config/flycast
