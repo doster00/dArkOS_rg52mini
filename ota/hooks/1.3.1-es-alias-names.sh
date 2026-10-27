@@ -1,5 +1,5 @@
 #!/bin/bash
-# 1.4: an alias system whose full name is its main system's gets its folder after it, "PICO-8
+# 1.3.1: an alias system whose full name is its main system's gets its folder after it, "PICO-8
 # (pico8)", as scripts/rk3562/es-aliases.py now names them: EMULATOR SETTINGS listed both under
 # one name. A device whose es_systems.cfg is the user's own copy (kept by the update, the image's
 # beside it as es_systems.cfg.ota-new) gets the same names in it; the rest of the file stays. An

@@ -14,6 +14,14 @@ RETROARCH_KEY="${RETROARCH_TAG}"
 if [ "$CHIPSET" == "rk3562" ]; then
   RETROARCH_KEY="${RETROARCH_TAG}_$(cat rk3562_core_builds/patches/retroarch-patch-* retroarch-patches/retroarch-patch-* 2>/dev/null | sha1sum | cut -c1-12)"
 fi
+# The 32-bit tarball also carries the armhf libSDL2, which only a rebuild of
+# RetroArch32 builds again (setup_arkbuild32), so its key covers SDL2's recipe
+# and patches too: a change there used to leave the old library in every image
+# that restored RetroArch32 from the cache.
+RETROARCH32_KEY="${RETROARCH_KEY}"
+if [ "$CHIPSET" == "rk3562" ]; then
+  RETROARCH32_KEY="${RETROARCH_KEY}_sdl2-$(cat build_sdl2.sh rk3562_core_builds/scripts/sdl2.sh rk3562_core_builds/patches/sdl2-patch-* sdl2-patch-* 2>/dev/null | sha1sum | cut -c1-12)"
+fi
 if [ -f "Arkbuild_package_cache/${CHIPSET}/retroarch_${UNIT}.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/retroarch_${UNIT}.commit)" == "${RETROARCH_KEY}" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/retroarch_${UNIT}.tar.gz
 else
@@ -208,9 +216,9 @@ fi
 
 # RK3562: build here the cores whose rg503 builds are for the RK3566's
 # Cortex-A55 and die on this A53 (inline LSE atomics, see docs/KNOWN-ISSUES.md),
-# over the downloaded ones. Each is cached by its recipe and, unless the recipe
-# pins a commit, the upstream head; a failed build keeps the downloaded core
-# and caches nothing.
+# or are built with no optimisation at all (onscripter), over the downloaded
+# ones. Each is cached by its recipe and, unless the recipe pins a commit, the
+# upstream head; a failed build keeps the downloaded core and caches nothing.
 build_a53_core() {  # builds-alt target, upstream git URL or "pinned", cores it makes...
   local target=$1 url=$2; shift 2
   local recipe key cache files c
@@ -238,7 +246,7 @@ build_a53_core() {  # builds-alt target, upstream git URL or "pinned", cores it 
   umount_xtool
   for c in "$@"; do
     if [ ! -f Arkbuild/home/ark/${CHIPSET}_core_builds/cores64/${c}_libretro.so ]; then
-      echo "${c} did not build; the image keeps rg503's, which cannot run on the A53"
+      echo "${c} did not build; the image keeps rg503's (see above for what is wrong with it)"
       return
     fi
   done
@@ -254,6 +262,9 @@ if [ "$CHIPSET" == "rk3562" ]; then
   build_a53_core flycast pinned flycast flycast_rumble
   build_a53_core puzzlescript https://github.com/nwhitehead/pzretro.git puzzlescript
   build_a53_core samecdi https://github.com/libretro/same_cdi.git same_cdi
+  # rg503's is -O0 since upstream dropped its Makefile for a CMakeLists with no
+  # build type; onscripter.sh now asks for Release
+  build_a53_core onscripter https://github.com/iyzsong/onscripter-libretro.git onscripter
   # Nintendo 3DS: not in rg503's set at all, built here from a pinned release
   build_a53_core azahar pinned azahar
   # and its cheat database: GammaOS's cheats3ds.zip (CTRPF, 60FPS and Sharkive Action Replay
@@ -329,7 +340,7 @@ else
 fi
 
 if [[ "${BUILD_ARMHF}" == "y" ]]; then
-	if [ -f "Arkbuild_package_cache/${CHIPSET}/retroarch32_${UNIT}.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/retroarch32_${UNIT}.commit)" == "${RETROARCH_KEY}" ]; then
+	if [ -f "Arkbuild_package_cache/${CHIPSET}/retroarch32_${UNIT}.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/retroarch32_${UNIT}.commit)" == "${RETROARCH32_KEY}" ]; then
       sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/retroarch32_${UNIT}.tar.gz
 	else
 		setup_arkbuild32
@@ -421,7 +432,7 @@ if [[ "${BUILD_ARMHF}" == "y" ]]; then
 		  MALI_LIB="${whichmali}"
 		fi
 		sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/retroarch32_${UNIT}.tar.gz Arkbuild/opt/retroarch/bin/retroarch32 Arkbuild/home/ark/.config/retroarch32/ Arkbuild/usr/lib/arm-linux-gnueabihf/libSDL2-2.0.so.0.${extension} Arkbuild/usr/lib/arm-linux-gnueabihf/librga.so* Arkbuild/usr/lib/arm-linux-gnueabihf/libgo2.so* Arkbuild/usr/lib/arm-linux-gnueabihf/${MALI_LIB} Arkbuild/usr/lib/arm-linux-gnueabihf/{libEGL.so,libEGL.so.1,libEGL.so.1.1.0,libGLES_CM.so,libGLES_CM.so.1,libGLESv1_CM.so,libGLESv1_CM.so.1,libGLESv1_CM.so.1.1.0,libGLESv2.so,libGLESv2.so.2,libGLESv2.so.2.0.0,libGLESv2.so.2.1.0,libGLESv3.so,libGLESv3.so.3,libgbm.so,libgbm.so.1,libgbm.so.1.0.0,libmali.so,libmali.so.1,libMaliOpenCL.so,libOpenCL.so,libwayland-egl.so,libwayland-egl.so.1,libwayland-egl.so.1.0.0,libMali.so}
-		echo "${RETROARCH_KEY}" > Arkbuild_package_cache/${CHIPSET}/retroarch32_${UNIT}.commit
+		echo "${RETROARCH32_KEY}" > Arkbuild_package_cache/${CHIPSET}/retroarch32_${UNIT}.commit
 	fi
 	sudo cp retroarch32/configs/retroarch.cfg.${UNIT} Arkbuild/home/ark/.config/retroarch32/retroarch.cfg
 	sudo cp retroarch32/configs/retroarch.cfg.spectate Arkbuild/home/ark/.config/retroarch32/retroarch.cfg.spectate

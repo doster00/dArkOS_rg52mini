@@ -293,6 +293,29 @@ How to check this for any component, since nothing reports it:
 
 A component whose second number is near zero is being built for debugging.
 
+### Two more, found on 2026-10-27: libSDL2 and the ONScripter core
+
+A static audit of the 1.3 image's machine code (the share of loads and stores
+against the stack pointer, 4-13% in optimised code) found two more, which the
+check above misses because their makefiles do not print compile lines:
+
+* **libSDL2**, both the arm64 and the armhf copy.
+  `rk3562_core_builds/scripts/sdl2.sh` gave cmake no build type, SDL's CMake
+  picks none of its own, so there was no -O at all and SDL's debug asserts
+  were in (`-- Install configuration: ""` in the build log; 35.8% stack
+  operations against 10.9% in Debian's 2.32.4). Release since 1.3.1. It
+  changes little: the emulators that run below full speed spend well under 1%
+  of a core in SDL, which pumps events and swaps, and ES at rest took 14.9% of
+  a core against 14.8% (2016 MHz fixed, two rounds each). The armhf copy rides
+  in RetroArch32's cached tarball, whose key now hashes SDL2's recipe and
+  patches as well.
+* **The ONScripter core** (visual novels; rg503's download), -O0 since
+  upstream replaced its Makefile with a CMakeLists that names no build type.
+  `onscripter.sh` asks for Release and `build_retroarch.sh` builds it here
+  since 1.3.1. On the device, a test script: 120 image changes (640x480 PNG
+  and JPEG) in 2.6 s against 12.0, and 60 crossfades of 0.5 s in 32.4 s
+  against 38.6 (30 s nominal: the -O0 core could not draw its fades in time).
+
 ## Not worth doing
 
 * **LSE atomics** (`CONFIG_ARM64_LSE_ATOMICS`). ARMv8.1 feature, this is an

@@ -266,6 +266,30 @@ OPP table starts at 300; the NPU list is untouched. `drivers/rknpu/` also parks
 at 200 MHz — fine with this BL31, but needs the same check if a future table
 drops the NPU's lowest step.
 
+## DSperate stopped at start on an ext4 /roms — fixed in 1.3.1
+
+On the dual-boot card, whose /roms is GammaOS's ext4 storage, every game in
+DSperate ended a moment after its window opened: "terminate called after
+throwing an instance of 'std::bad_alloc'". nds.sh sets `cheats =
+/roms/nds/cheats`, a directory; with no usrcheat.dat in it, DSperate (e04b806)
+kept the directory as the database's path and read it as a file. fopen takes
+a directory, and on ext4 a directory's end is INT64_MAX (the htree EOF), so
+`ftell` gave 2^63-1 and the vector resize asked for that much. On exFAT a
+directory reports a small size and the read just fails, which is why the
+EASYROMS card never showed it. Found with an LD_PRELOAD hook printing a
+backtrace at an `operator new` of more than 1 GB.
+
+`dsperate-patch-0001-cheats-directory` (rk3562_core_builds 6978c9e): a
+directory without usrcheat.dat means no database, and the reader takes
+regular files only. The recipe also pins DSperate at e04b806 now (it built
+main's head of the day), and its patches had never applied: they were copied
+into `dsperate/` while the clone is `DSperate/`. Checked on the device:
+Diddy Kong Racing DS and the Pokemon demo at 60 fps, START and A work.
+
+Since then the screens are side by side by default (`layout = horizontal` in
+the shipped ini; nds.sh adds the line to an ini that has no layout line). A
+layout picked with the hotkey is still kept per game in games/<rom>.ini.
+
 ## DSperate (NDS) is slow unless the governor is performance — fixed in 1.3
 
 `perfmax` now sets `performance` when no governor was chosen ("Games ran on the
@@ -436,7 +460,7 @@ azahar-nano on the G52. Measured here (TODO.md, "malisx2"): it compiles
 pipelines about six times faster (a game's first run stutters less), but draws
 Castlevania: Lords of Shadow – Mirror of Fate a quarter slower and God of War 5%
 slower, implements Vulkan 1.1 with 24 device extensions against libmali's 1.3
-with 135, and in 1.3 Dolphin did not start on it (it does since 1.4, below). So
+with 135, and in 1.3 Dolphin did not start on it (it does since 1.3.1, below). So
 libmali stays the default.
 
 The choice below replaces the old "Vulkan Driver Toggle" tool, which is no
@@ -462,14 +486,14 @@ an emulator's adapter list would not work, so:
   choice; AUTO leaves it unset, so vulkan.conf decides. The choice is offered
   for the systems the file's `es_systems` line names, comma-separated and
   editable on the device: now 3ds, n3ds, ps2, ppsspp, pspminis, psx,
-  dreamcast, naomi, Sega Atomiswave, ports and, since 1.4, Gamecube: the
+  dreamcast, naomi, Sega Atomiswave, ports and, since 1.3.1, Gamecube: the
   systems whose emulators draw with Vulkan (1.3 left Gamecube out, as
   Dolphin did not start on malisx2). A system ES shows under an alias is
   named by the alias (n3ds is the 3DS folder of a GammaOS card,
   es-aliases.py). The update keeps a user's
   vulkan.conf and adds the line if it has none
-  (`ota/hooks/1.3-vulkan-es-systems.sh`), and from 1.4 Gamecube to a line
-  that has not got it (`ota/hooks/1.4-vulkan-gamecube.sh`). Like the other rows of that menu, a
+  (`ota/hooks/1.3-vulkan-es-systems.sh`), and from 1.3.1 Gamecube to a line
+  that has not got it (`ota/hooks/1.3.1-vulkan-gamecube.sh`). Like the other rows of that menu, a
   change is saved when the menu is left with B; START closes all menus without
   saving.
 - **PortMaster:** a port that runs its game with `$ESUDO` (sudo with a
@@ -485,7 +509,7 @@ change of the device name to "Mali-G52 (malisx2)" (then
 (`malisx2/pgo/`), installed at `/usr/lib/aarch64-linux-gnu/malisx2/`. After
 1.3 the source is our fork, github.com/mamaich/malisx2-rg52mini (077e853:
 eae9663 and the device name as a commit), where the driver work goes on.
-1.4 takes its 38e50a5: occlusion query pools accepted, every result 0
+1.3.1 takes its 38e50a5: occlusion query pools accepted, every result 0
 samples (0488ddb); storage-buffer reads in v7 vertex shaders bounds-checked
 (80994d9), which costs ARMSX2 nothing measurable (TODO.md); fewer compute
 copy jobs per draw on v7 (4c73962-fa1831a: a stage's tables and FAU block
@@ -500,7 +524,7 @@ the ship 1.7% more, Jak and Daxter in game 0.8%, and Castlevania in Azahar
 1.4-2.3%. With LTO and a profile it compiled Castlevania's 368 pipelines in
 7.4 s instead of 8.1 (2026-10-25).
 
-**Dolphin on malisx2 (1.4).** Two things kept Dolphin off malisx2 in 1.3.
+**Dolphin on malisx2 (1.3.1).** Two things kept Dolphin off malisx2 in 1.3.
 Its Vulkan backend makes a pool of 512 occlusion queries at start and gave
 up the whole backend when malisx2, which had timestamp pools only on the job
 manager, refused it ("Failed to create query pool"). And without geometry
@@ -889,12 +913,12 @@ Each component caches to `Arkbuild_package_cache/<chipset>/<name>.tar.gz` with a
 or commit alone: change a compiler flag, a patch, or anything else on our side
 and the key does not move, so the cache is restored and the change does not
 happen. Fourteen recipes add a hash to the key, so a change there rebuilds:
-of the recipe and its patches (dolphinsa, ecwolfsa, flycastsa, gametank,
-malisx2, pcsx2sa, ppssppsa, retrorun, yabasanshirosa), of the recipe alone
-(dsperate, which has no patches, and fake08, whose two patches are
-upstream's and not in its key) or of the patches alone
-(emulationstation-rk3562, ogage, and retroarch, whose `retroarch.sh` is not
-in it); `git grep -l sha1sum -- 'build_*.sh'`. Kodi's key is a constant in
+of the recipe and its patches (dolphinsa, dsperate, ecwolfsa, flycastsa,
+gametank, malisx2, pcsx2sa, ppssppsa, retrorun, yabasanshirosa), of the
+recipe alone (fake08, whose two patches are upstream's and not in its key)
+or of the patches alone (emulationstation-rk3562, ogage, and retroarch,
+whose `retroarch.sh` is not in it; RetroArch32's also hashes SDL2's recipe
+and patches, because its tarball carries the armhf libSDL2); `git grep -l sha1sum -- 'build_*.sh'`. Kodi's key is a constant in
 `build_kodi.sh`, bumped by hand.
 
 Two consequences worth knowing:
@@ -1243,7 +1267,7 @@ ES also shows the full name in its menus (systems to show, emulator settings,
 scraper). Nothing else in the image reads it; ES keys its settings, gamelists
 and collections on `<name>`, which did not change.
 
-## PICO-8 three times in EMULATOR SETTINGS — fixed after 1.3
+## PICO-8 three times in EMULATOR SETTINGS — fixed in 1.3.1
 
 On a dual-boot card with games in both `/roms/pico-8/carts` and GammaOS's
 `/roms/pico8`, EMULATOR SETTINGS listed PICO-8 three times. ES lists every
@@ -1311,7 +1335,7 @@ core alike. Without the extension all 72 convert pipelines build.
 for the fp16 extension next to it. LSFG is off by default and nothing in
 the image turns it on.
 
-## PS2: the sound broke up in heavy games — fixed after 1.3
+## PS2: the sound broke up in heavy games — fixed in 1.3.1
 
 ARMSX2 ran on a 50 ms audio buffer: `PCSX2.ini.rg52mini` set its output with
 the old SPU2-X keys (`OutputModule`, `Latency = 100`, `SynchMode`), which
@@ -1636,7 +1660,7 @@ caught it down for 0.7 s and for 3 s (2026-10-24).
   `ogage/patches/0001` removes it. Bluetooth is switched in Options >
   Bluetooth.
 
-## GTA San Andreas: the camera turned by itself — fixed after 1.3
+## GTA San Andreas: the camera turned by itself — fixed in 1.3.1
 
 The GTA San Andreas port (folder `gtasa`, a wrapper around the Android game;
 seen in its builds v15 and v30) reads the pad through evdev itself and grabs

@@ -267,7 +267,7 @@ first, with the times of the 2026-10-19 build:
   Kodi's 71 addons spent most of a 43-hour build there (KNOWN-ISSUES); it is
   cached, so this matters only when it has to be built again.
 
-## Dolphin on malisx2: why it did not start (found 2026-10-26, fixed for 1.4)
+## Dolphin on malisx2: why it did not start (found 2026-10-26, fixed for 1.3.1)
 
 1.3 left Gamecube out of the systems that offer MALISX2: Dolphin did not
 start on malisx2. Two causes, both fixed (KNOWN-ISSUES.md, "Dolphin on
@@ -1051,7 +1051,7 @@ Done since:
   dArkOS root mounted as the chroot: 33 minutes from nothing, cached by commit,
   recipe, patches and profile after that.
 * Its compiler on the CPU, see "malisx2's compiler: LTO and a profile" below.
-* ARMSX2's draw path on v7 (the fork's f35bacc, in 1.4; the malisx2 session,
+* ARMSX2's draw path on v7 (the fork's f35bacc, in 1.3.1; the malisx2 session,
   its docs/changes.md): fewer compute copy jobs per draw, a stage's tables and
   FAU block kept when a new pipeline would build them the same (copies per
   draw: God of War 2.53 to 2.12, Jak and Daxter 1.97 to 1.82), the same
@@ -1059,7 +1059,7 @@ Done since:
   100-1500; 7.1% over 800-1500), Jak 1.3%, each on its own profile; 0.7% and
   1.4% with neither profiled. Luigi's Mansion's 269 pipelines compile in
   2.93 s against 2.92.
-* On top of it the fork's 38e50a5 (b74141a's code, 2026-10-27; in 1.4): v7
+* On top of it the fork's 38e50a5 (b74141a's code, 2026-10-27; in 1.3.1): v7
   descriptor tables without images and the uniform words filled on the CPU,
   the words read from uncached memory in runs by memcpy
   (`mali_v7_host_ubo_run` 0.95% of Jak and Daxter's samples before, under

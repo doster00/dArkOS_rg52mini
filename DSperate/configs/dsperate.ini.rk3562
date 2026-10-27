@@ -50,7 +50,8 @@ gpu3d = true                    # RG52 Mini: 3D on the Mali-G52 through Vulkan. 
                                 # exact reference, if a game draws wrong.
 # scale = 2                     # window size, in DS pixels
 # fullscreen = false
-# layout = vertical             # vertical | horizontal | single | pip | dominant_v | dominant_h
+layout = horizontal             # RG52 Mini: side by side, larger on the 16:9 panel than stacked.
+                                # vertical | horizontal | single | pip | dominant_v | dominant_h
 # layout_cycle = vertical,horizontal,single,pip,dominant_v,dominant_h   # what the layout hotkeys step through
 # screen = top                  # top | bottom: the screen shown alone (single), large (pip) or dominant
 # pip_corner = br               # tl | tr | bl | br: where the pip inset sits
