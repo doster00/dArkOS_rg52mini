@@ -1071,7 +1071,10 @@ Done since:
   fps (frames 60-360) and 15.68 to 15.90 (360-660), God of War on the ship
   21.71 to 22.09 (100-1500), Jak and Daxter in game 15.46 to 15.59
   (100-800), each faster in every round; Jak's intro and God of War from the
-  owner's save within the spread. The same picture.
+  owner's save within the spread. The same picture. Pipelines compile as
+  fast as before (compbench, malisx2's cache deleted, builds in turn):
+  Castlevania's 415 in 8674 ms against 8650 (+0.3%, four runs each), Luigi's
+  Mansion's 288 in 2991 against 2970 (+0.7%, two runs), within the spread.
 * Where Castlevania's time goes on it, see below. The vertex side is the work:
   IDVS and descriptors/uniforms written by the CPU, in malisx2 (upstream's to
   do).
