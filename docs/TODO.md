@@ -1059,6 +1059,19 @@ Done since:
   100-1500; 7.1% over 800-1500), Jak 1.3%, each on its own profile; 0.7% and
   1.4% with neither profiled. Luigi's Mansion's 269 pipelines compile in
   2.93 s against 2.92.
+* On top of it the fork's 38e50a5 (b74141a's code, 2026-10-27; in 1.4): v7
+  descriptor tables without images and the uniform words filled on the CPU,
+  the words read from uncached memory in runs by memcpy
+  (`mali_v7_host_ubo_run` 0.95% of Jak and Daxter's samples before, under
+  0.3% after); forward pixel kill kept for draws that read no colour
+  attachment under rasterization order access (`MALISX2_V7_FPK_ROA=0` for
+  the old way); AFBC for textures too (`MALISX2_V7_AFBC_TEX=0`; God of War
+  reads 8-9% less texture data from memory). With the profile retrained on
+  it, against f35bacc on its own, three rounds: Castlevania 16.39 to 16.77
+  fps (frames 60-360) and 15.68 to 15.90 (360-660), God of War on the ship
+  21.71 to 22.09 (100-1500), Jak and Daxter in game 15.46 to 15.59
+  (100-800), each faster in every round; Jak's intro and God of War from the
+  owner's save within the spread. The same picture.
 * Where Castlevania's time goes on it, see below. The vertex side is the work:
   IDVS and descriptors/uniforms written by the CPU, in malisx2 (upstream's to
   do).
@@ -1142,6 +1155,10 @@ the push descriptors, `mali_v7_desc_refresh`, `mali_v7_ubo_copy` and
 does, 75-90 s each of Jak and Daxter (its intro and a save), God of War (a
 savestate on the ship) and the Burnout 3 demo, as on the A53 ARMSX2 waits on
 the driver's CPU side too. How to make one: malisx2's docs/building.md.
+Retrained 2026-10-27 on b74141a (the image's 38e50a5, same sources) after
+the CPU-side copies and AFBC for textures: the two 3DS games, God of War on
+the ship, Jak and Daxter's intro and Jak and Daxter in game from the owner's
+save (no Burnout 3 this time).
 
 perf over the preload: 79% in the driver, 11% libc (malloc/free and their
 internals), 7% kernel. In the driver no hot spot: Bifrost register allocation

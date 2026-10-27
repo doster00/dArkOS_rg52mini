@@ -485,15 +485,20 @@ change of the device name to "Mali-G52 (malisx2)" (then
 (`malisx2/pgo/`), installed at `/usr/lib/aarch64-linux-gnu/malisx2/`. After
 1.3 the source is our fork, github.com/mamaich/malisx2-rg52mini (077e853:
 eae9663 and the device name as a commit), where the driver work goes on.
-1.4 takes its f35bacc: occlusion query pools accepted, every result 0
+1.4 takes its 38e50a5: occlusion query pools accepted, every result 0
 samples (0488ddb); storage-buffer reads in v7 vertex shaders bounds-checked
-(80994d9), which costs ARMSX2 nothing measurable (TODO.md); and fewer compute
+(80994d9), which costs ARMSX2 nothing measurable (TODO.md); fewer compute
 copy jobs per draw on v7 (4c73962-fa1831a: a stage's tables and FAU block
 kept across pipelines that would build them the same), with the profile
-retrained on it and on ARMSX2's drawing as well (2026-10-26). ARMSX2 on it
-against b1c114a, each with its own profile: God of War 4.5% faster (frames
-100-1500), Jak and Daxter 1.3%. With LTO and the profile it compiles
-Castlevania's 368 pipelines in 7.4 s instead of 8.1.
+retrained on it and on ARMSX2's drawing as well (2026-10-26); then
+descriptor tables and uniform words filled on the CPU, forward pixel kill
+kept under rasterization order access and AFBC for textures (9ca29fd-b74141a),
+with the profile retrained again (2026-10-27). ARMSX2 on fa1831a against
+b1c114a, each with its own profile: God of War 4.5% faster (frames
+100-1500), Jak and Daxter 1.3%; on b74141a against f35bacc: God of War on
+the ship 1.7% more, Jak and Daxter in game 0.8%, and Castlevania in Azahar
+1.4-2.3%. With LTO and a profile it compiled Castlevania's 368 pipelines in
+7.4 s instead of 8.1 (2026-10-25).
 
 **Dolphin on malisx2 (1.4).** Two things kept Dolphin off malisx2 in 1.3.
 Its Vulkan backend makes a pool of 512 occlusion queries at start and gave
