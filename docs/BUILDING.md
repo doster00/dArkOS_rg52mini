@@ -13,6 +13,25 @@ alone. Only `make clean_complete` throws them away.
 note in KNOWN-ISSUES first, because Kodi's dependency resolution has broken
 other components before.
 
+## Before a build: what is new upstream
+
+    tools/upstream/check.py            # at most once a day; --force to repeat
+    tools/upstream/check.py --only ARMSX2 Dolphin
+
+It lists, for every component the image builds or downloads, what upstream has
+past the version we use: newer releases of what we pin, commits after a pinned
+commit, upstream commits our forks lack, and what changed on the branches the
+build follows by itself. Our versions are read from the recipes;
+`tools/upstream/components.json` says where each pin is written, and needs a
+new row when a recipe gets a new component or moves its pin to another file.
+State and the reports are kept in `~/.cache/darkos-upstream/`.
+
+The owner's rule (2026-10-27): run it before a full build, at most once a day,
+and bring what is new to the owner rather than moving a pin. A pin is there
+because something was checked on the device at that version; DSperate was
+pinned that day after upstream's head broke on the dual-boot card. The list is
+what to decide about, not a to-do list.
+
 ## Compilers that run natively in the chroot
 
 Everything in `Arkbuild` runs under qemu, and a compiler under qemu is slow:
