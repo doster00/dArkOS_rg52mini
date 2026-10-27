@@ -13,8 +13,9 @@
 # descriptor tables without images and the uniform words filled on the CPU,
 # the words copied in runs; bc3a6d1: forward pixel kill kept for draws that
 # read no colour attachment under rasterization order access; b511c07: AFBC
-# for textures too), and the work on the driver itself has its own notes and
-# session
+# for textures too; d2afec5: the tiler's lowest hierarchy levels on the G52,
+# bins of 32 and 128 px as libmali uses, and AFBC for D32 depth attachments),
+# and the work on the driver itself has its own notes and session
 # (T:\Dump\RG52Mini\dArkOS\malisx2\README.md on the owner's PC).
 #
 # malisx2 is a Vulkan driver for Arm's Mali GPUs on Arm's own kernel driver
@@ -39,19 +40,21 @@ fi
 MALISX2_REMOTE="https://github.com/mamaich/malisx2-rg52mini"
 # Pinned: a newer commit is a deliberate update (profile retrained, or the
 # functions it changed lose their profile data).
-MALISX2_COMMIT="38e50a55b44b445dca517ca4a7355a39bcce855f"
+MALISX2_COMMIT="5eccf34827862cd77cc16c2380845878ea2f1d6f"
 MALISX2_SRC="Arkbuild/home/ark/malisx2"
 MALISX2_LIB="/usr/lib/aarch64-linux-gnu/malisx2/libvulkan_malisx2.so"
-# Profile for clang's profile-guided optimisation: the driver at the commit
-# (trained on b74141a, the same sources: after it only documentation), on an
-# RG52 Mini (2026-10-27).  Azahar: Super Mario 3D Land and Luigi's Mansion.
+# Profile for clang's profile-guided optimisation: trained on b74141a on an
+# RG52 Mini (2026-10-27). After it only d2afec5 changes code, small paths in
+# mali_image.c and mali_jm_cmd_render.c that lose their profile data (clang's
+# out-of-date warnings for them are expected); not worth a retraining.  Azahar: Super Mario 3D Land and Luigi's Mansion.
 # ARMSX2 started as ES does: God of War from a savestate on the ship, Jak and
 # Daxter's intro, and Jak and Daxter in game from the owner's save.
 # Castlevania is left out of it, to measure with (docs/TODO.md).  Against
 # f35bacc on 2026-10-26's profile, three rounds: Castlevania 1.4-2.3% faster,
 # God of War on the ship 1.7%, Jak and Daxter in game 0.8%, each faster in
-# every round, the other scenes within the spread (malisx2's
-# docs/changes.md).  A profile of older code loses the functions changed
+# every round, the other scenes within the spread; d2afec5 on top, three
+# rounds: God of War on the ship 1.7-2.7% more and from the owner's save 1.9%,
+# Jak and Castlevania within the spread (malisx2's docs/changes.md).  A profile of older code loses the functions changed
 # since: 2026-10-25's, of 077e853, had no data for fa1831a's draw path, and
 # God of War on fa1831a against b1c114a was 0.7% faster with neither
 # profiled, 4.5% with each on its own profile.  Its file-local functions are

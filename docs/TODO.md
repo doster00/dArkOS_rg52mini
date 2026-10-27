@@ -1075,6 +1075,14 @@ Done since:
   fast as before (compbench, malisx2's cache deleted, builds in turn):
   Castlevania's 415 in 8674 ms against 8650 (+0.3%, four runs each), Luigi's
   Mansion's 288 in 2991 against 2970 (+0.7%, two runs), within the spread.
+* Then 5eccf34 (d2afec5's code, 2026-10-27; in 1.3.1): the tiler's hierarchy
+  mask on the G52 is 0x0a, bins of 32 and 128 px as libmali uses, instead of
+  0x82 (`MALISX2_JM_HIER_MASK=130` for the old one), and D32 depth
+  attachments are AFBC (`MALISX2_V7_AFBC_DEPTH=0` to turn it off). Three
+  rounds, both together: God of War on the ship 1.7-2.7% faster, from the
+  owner's save (100-800) 1.9%; Jak and Daxter and Castlevania within the
+  spread. Tiler work 16% less, tile writes to memory 20% less, texture reads
+  14-17% less. The profile stays the one trained on b74141a.
 * Where Castlevania's time goes on it, see below. The vertex side is the work:
   IDVS and descriptors/uniforms written by the CPU, in malisx2 (upstream's to
   do).
