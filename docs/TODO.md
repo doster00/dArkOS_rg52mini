@@ -1461,6 +1461,20 @@ and rk628 probe order before concluding anything about the hardware.
   would change the answer.
 * **`CONFIG_ZRAM_WRITEBACK`.** Compiled in, unused. It is the other way to
   spend the eMMC partition — see PERFORMANCE.md.
+* **malisx2's FP16 for ARMSX2** (2026-10-29, the owner's call). malisx2
+  ce57011 (on 1c45a6e, not yet in the fork) computes fragment shader
+  arithmetic in FP16 where nothing needs 32 bits, with `MALISX2_V7_FP16=1`
+  in the program's environment (off by default; its first run compiles the
+  fragment shaders again). Measured here with ARMSX2 2.9 and its 2026-10-28
+  profile, as ES starts it, after a warm-up, off against on: God of War on
+  the ship 22.48 against 22.80 fps over frames 100-1500 (+1.4%, five rounds,
+  on ahead in four), 28.29 against 29.10 over 100-800 (+2.9%, ahead in all
+  five), 18.64 against 18.74 over 800-1500; Jak and Daxter's intro 35.98
+  against 35.89 (five rounds), Jak in game from the owner's save 16.47
+  against 16.41 (two). The pictures are the same. The malisx2 session saw
+  +4.1% on God of War with 1.3.1's ARMSX2. To take it: the commit pushed to
+  the fork, `MALISX2_COMMIT` moved, and the variable exported for ARMSX2 only
+  (its launcher); Azahar and Dolphin are on libmali.
 
 ## Repairs, each its own small job
 
