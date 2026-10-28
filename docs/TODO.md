@@ -48,6 +48,76 @@ it. Confirmed on the device.
   found on revision B; confirmed working on a revision A unit by its owner.
   KNOWN-ISSUES has the evidence.
 
+## Upstream updates for 1.4 (2026-10-28)
+
+`tools/upstream/check.py` on 2026-10-27 found newer releases of ten components
+and twelve commits in christianhaitian's recipes. Each was read (what changed,
+whether our patches apply, what the recipe needs), built in a chroot of the
+cached rootfs as the image build does, and tried on the console against
+1.3.1's build, with the new files bound over the image's for the run.
+
+| Component | Taken | On the console (fps, against 1.3.1) |
+|---|---|---|
+| Azahar | 2126.1.2 -> 2126.2, GammaOS's 1feeb9c2d16 as patch 019 | Super Mario 3D Land 58.8 / 59.1 (seven runs each, within the spread), Castlevania 21.5 / 21.5; 1.3 states and pipeline caches load |
+| ARMSX2 | a7ad453 -> 2.9, the profile retrained | Jak's intro 34.1 / 34.2, God of War on the ship 20.7 / 21.1 |
+| Dolphin | e6583f8 (2023) -> 2609a | ND Demo 45.7 / 45.6, 46.3 with AccurateFmadds and PrecisionFrameTiming off (the image's setting); Metroid Prime starts, Hotkey+Start quits |
+| flycast | v2.6 -> v2.7 and four fixes from master | Crazy Taxi 59.9; kov7sprt keeps its NVRAM |
+| ScummVM | 2026.3.0 -> 2026.4.0 | Day of the Tentacle, now with FluidSynth |
+| openMSX | 17.0 -> 19.1 | C-BIOS (no MSX game on the card) |
+| XRoar | 1.11 -> 1.12.1 | the Dragon 32's BASIC (no game on the card) |
+| gl4es | 2037865 -> 1891af3 | not run: Don't Starve brings its own |
+| retrorun | pinned at 0784f21, what 1.3.1 ships | — |
+| christianhaitian's recipes | merged to ef273c8 | of the image only ScummVM |
+
+* **ARMSX2's profile.** With a7ad453's profile 2.9 was 3% slower on Jak's
+  intro and 4% on God of War: the GS code 2.9 changed (GSRendererHW::Draw,
+  the texture cache) had no profile data, and the Vulkan changes were not it
+  (2.9 without them measured the same). An instrumented 2.9 was run on the
+  console (Jak from boot to its title, Jak and God of War from the owner's
+  savestates, God of War on the ship; one Jak run gave an "invalid profile",
+  probably counters racing between threads, and was run again) and merged
+  with the old profile, each about the same total count: clang takes for a
+  function the record that fits its code, so unchanged functions keep the
+  owner's play and changed ones get 2.9's. The God of War savestate of the
+  owner stops in its pause menu; the run presses Cross 15 s in. The amd64
+  clang of xtool has no aarch64 profile runtime: an instrumented build
+  passes `-resource-dir=/usr/lib/llvm-19/lib/clang/19`, the chroot's.
+* **ARMSX2's AutoTune** is off by default in 2.9 and was on in 1.3 (our
+  template had no key): Jak's intro 32.2 without it, 33.2 with it. Kept on;
+  the launcher adds the key once to an ini without it.
+* **Dolphin 2609a** turned AccurateFmadds and PrecisionFrameTiming on; off
+  again in our Dolphin.ini and, once, in a user's (dolphin.sh).
+* **Not tried yet:** Dolphin on malisx2 (it starts there since 1.3.1),
+  flycast on its other renderers, gl4es 1891af3 with a port that uses the
+  system's, openMSX and XRoar with real games.
+
+Left, and why:
+
+* **DuckStation** (0.1-10495 -> 12083): upstream removed the frontend that
+  runs without a display server (the "mini" one we ship) in March 2026; 12083
+  is Qt only and needs Wayland or X. Its licence (CC BY-NC-ND 4.0, README:
+  pre-configured settings and packages count as modifications) is a question
+  for the owner, also for the build shipped now.
+* **UZDoom** (GZDoom's continuation, 4.14.3 / 5.0.3; GZDoom has had no
+  release since g4.14.2): a migration, not an update (binary, config and save
+  paths renamed; 5.x reworks controller input and dynamic lights). The
+  owner's decision. Also to check: the RG52's gzdoom.ini is the rk3566 one,
+  and its axis 2 (L2 here) may turn the player.
+* **openMSX 20 and later**: OpenGL 2.1 only (gl4es), an ImGui GUI, scale
+  factor 2 at least. A project of its own.
+* **Hypseus-Singe 3.x**: SDL3 with SDL3_ttf, _image and _mixer; the sdl2 line
+  stopped at v2.12.1, which we have.
+* **OpenBOR**: the 2022 pin is deliberate (christianhaitian went back to it
+  for 3.x paks); master dropped its Makefile.
+* **Azahar 2127.0** (alpha: new save state fields, every shader cache
+  rebuilt) and azahar-nano's e62a0042457 (the right-eye disabler by
+  framebuffer), which as it is would switch off our stereo_skip (patches
+  013/014): it needs adapting and a check on Castlevania.
+* **ARMSX2 after 2.9**: the VU program cache rewritten as one pack per game
+  in RAM (a day old, up to 128 MB here) and a COP2 clamp change in the JIT.
+* **Dolphin after 2609a**: #14388 and #14853 (JIT) apply with offsets; worth
+  a measurement.
+
 ## Check on the device what the upstream sync of 2026-10-05 brought
 
 The sync with christianhaitian/dArkOS and rk3566_core_builds (see the commits
@@ -136,9 +206,9 @@ with the next change there:
 - **Kodi**: its key is a constant bumped by hand, and `build_kodi.sh` has no
   `verify_action`; kodi-install's "There was an issue applying" is not one of
   the messages `scripts/audit-components.sh` looks for.
-- **ScummVM**: `build_scummvmsa.sh` keys on christianhaitian's network copy of
-  the recipe (v2026.4.0) while our fork builds v2026.3.0, so the key names
-  the wrong version.
+- **ScummVM**: `build_scummvmsa.sh` keyed on christianhaitian's network copy
+  of the recipe (v2026.4.0) while our fork built v2026.3.0 — fixed on
+  2026-10-28 for it and seven more recipes (KNOWN-ISSUES, the build cache).
 - **Patches without a header** (what and why): `azahar-patch-001`,
   `retrorun-patch-0002`, `ppsspp-patch-010`, `dolphinsa-patch-011`, the core
   builds' `sdl2-patch-0005-drm-connector`, this repo's `sdl2-patch-0004` and
@@ -148,18 +218,17 @@ with the next change there:
   upstream's code under "From: dArkOS RG52 Mini port", where 015 names
   GammaOS. A header changes the patch and so the key: add one when the patch
   is next touched.
-- **Rotation patches the rotate layer made idle**: `flycastsa-patch-004`
-  (Rotate90 stays off), `ppsspp-patch-010` and `dolphinsa-patch-011` (the
-  layer gives them a landscape swapchain; KNOWN-ISSUES.md, VK_LAYER_DARKOS_rotate).
-  Candidates for removal once checked on the device.
+- **Rotation patches the rotate layer made idle**: `ppsspp-patch-010` (the
+  layer gives PPSSPP a landscape swapchain; KNOWN-ISSUES.md,
+  VK_LAYER_DARKOS_rotate), a candidate for removal once checked on the
+  device. `flycastsa-patch-004` and `dolphinsa-patch-011` went with flycast
+  2.7 and Dolphin 2609a.
 
 ## Found while testing 1.2 (2026-10-18)
 
-* **ScummVM's MIDI device.** Its ini asks for `fluidsynth`, which this
-  ScummVM build does not have, so MIDI games open on a "device not found"
-  dialog (KNOWN-ISSUES, smaller things). Either build ScummVM with
-  libfluidsynth and ship a SoundFont, or set `gm_device`/`mt32_device` to
-  something it has.
+* **ScummVM's MIDI device** — done for 1.4: ScummVM is built with
+  FluidSynth and the config names Debian's FluidR3_GM soundfont
+  (KNOWN-ISSUES, "ScummVM opened every game on a dialog").
 * **Speaker volume.** The DAC stays at −20 dB, which is what keeps the
   low-battery reset away (KNOWN-ISSUES). If the speaker is to get louder,
   take the battery-dependent limit the GammaOS port is writing for the rk817

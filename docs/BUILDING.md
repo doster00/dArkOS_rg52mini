@@ -211,7 +211,6 @@ PERFORMANCE.md, TODO.md). These are not:
 | `retroarch-patch-0016-rk3562-oga-rotation-90` | the oga video driver turned by another 180 degrees: with `video_driver = "oga"` everything was upside down |
 | `retroarch-patches/retroarch-patch-0020-libgo2-rgba-format` | libgo2 maps XRGB8888 to `RK_FORMAT_RGBA_8888`, not BGRA: red and blue were swapped in the oga driver's RGA blits |
 | `sdl2-patch-0004-odroidgoa-kmsdrm`, `sdl2-patch-0005-odroidgoa-rotate-cursor` (this repo) | SDL2 makes landscape GBM surfaces and RGA turns each frame onto the portrait panel, and the cursor with it; `build_sdl2.sh` copies them in as 0005 and 0006 for the RG52 Mini |
-| `flycastsa-patch-004-rotate-270` | flycast's `rend.Rotate90` turns the other way, 270 degrees; it only acts with `Rotate90=yes`, which the image no longer sets since the rotate layer turns Vulkan |
 
 Dropped from upstream in the merge of 2026-10-05 (core builds' c82b722),
 because every patch that matches a recipe's glob applies on every device:

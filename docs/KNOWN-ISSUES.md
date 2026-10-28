@@ -266,6 +266,53 @@ OPP table starts at 300; the NPU list is untouched. `drivers/rknpu/` also parks
 at 200 MHz — fine with this BL31, but needs the same check if a future table
 drops the NPU's lowest step.
 
+## ScummVM opened every game on a dialog — fixed in 1.4
+
+Up to 1.3.1 every ScummVM game started on "The preferred audio device
+'fluidsynth' was not found (...) Attempting to fall back to the next available
+device", a dialog the pad does not close (Enter on a keyboard does). Our
+scummvm.ini sends MIDI to FluidSynth, but ScummVM was built without it: the
+recipe never installed FluidSynth's headers (gzdoom.sh lists them, and a
+cached GZDoom never runs), and the soundfont the config names, RetroArch's
+scummvm `extra/Roland_SC-55.sf2`, is not in this image either. 1.4 builds
+ScummVM with FluidSynth (libjack-jackd2-dev first: libfluidsynth-dev alone
+pulls JACK 1 and apt swaps out the image's libjack-jackd2-0), the configs of
+the RG52 Mini and the RG43H name Debian's `/usr/share/sounds/sf2/FluidR3_GM.sf2`
+(fluid-soundfont-gm is installed), and `scummvm.sh` puts that one into a
+user's config that names a soundfont that is not there. Day of the Tentacle
+starts straight into its intro, the music through FluidSynth (about half a
+core of the A53).
+
+## XRoar and openMSX did not start — fixed in 1.4
+
+Both link `libGL.so.1`: their OpenGL output is built because the chroot has
+GL headers, and neither configure can be told to leave it out. The image has
+no desktop GL (only Mali's GLES), so they ended at once with "libGL.so.1:
+cannot open shared object file", in 1.3.1 and before. Their launchers
+(`coco.sh`, `openmsx`) now put `/usr/lib/gl4es` first in the library path, so
+gl4es stands in; XRoar shows the Dragon 32's BASIC prompt, openMSX C-BIOS.
+Nothing else in /opt or /usr/local misses a library, apart from Kodi's
+visualisation add-ons, which want desktop GL and are not for this build.
+
+openMSX copies its data (Tcl scripts, machines, extensions) to
+`/roms/bios/openmsx` on its first start and reads it from there. A card that
+ran 17.0 would keep 17.0's scripts under 19.1, so build_openmsxsa.sh stamps
+the data with the recipe's cache key and the launcher puts a newer copy over
+an older one, keeping the user's `settings.xml` and system ROMs.
+
+## Dolphin: a held hotkey moved the stick's centre, no Sys folder — fixed in 1.4
+
+* The hotkey patches gave the Hotkey button bit 0x2000 of the GameCube pad
+  word, which is PAD_GET_ORIGIN: while it was held, the SI device took the
+  sticks' position as their origin and the game was told to re-read it, so
+  pressing the hotkey with a stick pushed could leave the stick drifting.
+  2609a's patch 008 moves the bit into a field of its own.
+* The package had Dolphin's binary only; `Data/Sys` was copied into the user
+  folder, where it counts as the user's own overrides, and the places Dolphin
+  reads its own data from were empty: no `codehandler.bin` (Gecko codes) and
+  no IPL fonts. 1.4 installs it as `/opt/dolphin/Sys`; an update deletes the
+  user-folder copies the user did not change.
+
 ## DSperate stopped at start on an ext4 /roms — fixed in 1.3.1
 
 On the dual-boot card, whose /roms is GammaOS's ext4 storage, every game in
@@ -409,7 +456,7 @@ Tested on the device:
     so the picture is right way up.
   - **Dolphin** (GameCube demo): it takes the 1280x720 mode, and
     `dolphinsa-patch-011` sees a landscape swapchain and does not turn, so the
-    picture is right way up.
+    picture is right way up. 2609a (1.4) has no rotation patch at all.
   - **PCSX2** (Vulkan by default) turned the picture by itself
     (`DisplayRotation = 90`), so with the layer it lay on its side. The
     rg52mini template now has 0, and `standalone-pcsx2sa` changes 90 to 0 in
@@ -918,9 +965,11 @@ Each component caches to `Arkbuild_package_cache/<chipset>/<name>.tar.gz` with a
 `.commit` file holding its key. For most components that is the upstream tag
 or commit alone: change a compiler flag, a patch, or anything else on our side
 and the key does not move, so the cache is restored and the change does not
-happen. Fourteen recipes add a hash to the key, so a change there rebuilds:
-of the recipe and its patches (dolphinsa, dsperate, ecwolfsa, flycastsa,
-gametank, malisx2, pcsx2sa, ppssppsa, retrorun, yabasanshirosa), of the
+happen. Most recipes add a hash to the key, so a change there rebuilds:
+of the recipe and its patches (dolphinsa, dsperate, easyrpg, ecwolfsa,
+flycastsa, gametank, gzdoom, hypseus-singe, malisx2, mednafen, openbor,
+openmsx, pcsx2sa, ppssppsa, retrorun, scummvm, solarus, xroar,
+yabasanshirosa), of the
 recipe alone (fake08, whose two patches are upstream's and not in its key)
 or of the patches alone (emulationstation-rk3562, ogage, and retroarch,
 whose `retroarch.sh` is not in it; RetroArch32's also hashes SDL2's recipe
@@ -938,6 +987,11 @@ Two consequences worth knowing:
   editing the tag here left the key unchanged and a stale tarball was restored
   over the new build. It reads our recipe's `TAG=` now, and since 2026-10-24
   adds a hash of the recipe and its patches, so a new patch rebuilds it.
+* Eight more did the same until 2026-10-28 (scummvm, gzdoom, mednafen,
+  openbor, openmsx, solarus, xroar, easyrpg): christianhaitian moved ScummVM
+  to v2026.4.0 on 2026-10-22, ours had not, and that day's build compiled
+  2026.3.0 and cached it as v2026.4.0, which 1.3 and 1.3.1 ship. They read
+  our recipe and hash it with its patches now.
 
 A failed build used to be cached the same way — see below.
 
@@ -1771,7 +1825,8 @@ Where to start is in TODO.
   Disabled for all users by `finishing_touches-rk3562.sh` in 1.2
   (`systemctl --global disable fluidsynth`); a port that needs it can start
   it with `systemctl --user start fluidsynth`.
-* **ScummVM asks about "fluidsynth" in MIDI games.** Day of the Tentacle, for
+* **ScummVM asks about "fluidsynth" in MIDI games** (fixed in 1.4, see "ScummVM
+  opened every game on a dialog" above). Day of the Tentacle, for
   one, opens on "The preferred audio device 'fluidsynth' was not found ...
   Attempting to fall back to the next available device"; after OK the game
   runs on the fallback. `~/.config/scummvm/scummvm.ini` sets
