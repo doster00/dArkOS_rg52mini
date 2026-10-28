@@ -104,9 +104,7 @@ Left, and why:
   release since g4.14.2): a migration, not an update (binary, config and save
   paths renamed; 5.x reworks controller input and dynamic lights). The owner
   decided on 2026-10-28: not until users ask for it, or the work may be for
-  nothing; the upstream check lists it as kept on purpose. Still to check:
-  the RG52's gzdoom.ini is the rk3566 one, and its axis 2 (L2 here) may turn
-  the player.
+  nothing; the upstream check lists it as kept on purpose.
 * **openMSX 20 and later**: OpenGL 2.1 only (gl4es), an ImGui GUI, scale
   factor 2 at least. A project of its own.
 * **Hypseus-Singe 3.x**: SDL3 with SDL3_ttf, _image and _mixer; the sdl2 line
@@ -130,8 +128,8 @@ Left, and why:
   standalone DuckStation brings no speed the image would miss without it.
   Side note: pcsx_rearmed shows Final Fantasy IX (the RGR Russian disc,
   SLUS-01251) at 50 fps with the region at auto, the others at 60.
-* **GZDoom on the RG52** (axis 2 may turn the player, D-pad up opens the
-  menu): to check with a WAD, e.g. Freedoom; there is none on the card.
+* **GZDoom on the RG52**: checked with Freedoom, and fixed for LZDoom too
+  (KNOWN-ISSUES, "Doom: the player turned by himself").
 * **Dolphin after 2609a**: #14388 and #14853 (JIT) apply with offsets; worth
   a measurement.
 

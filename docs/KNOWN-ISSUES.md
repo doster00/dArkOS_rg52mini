@@ -285,6 +285,29 @@ chose this on 2026-10-28, knowing it is a grey zone, and wrote to
 DuckStation's author about it. Newer DuckStation (0.1-12083) is Qt only,
 needs Wayland or X, and is not taken (TODO.md, upstream updates for 1.4).
 
+## Doom: the player turned by himself — fixed in 1.4
+
+In LZDoom (ES's default for Doom) and GZDoom on the RG52 Mini the player
+turned all the time, without a key pressed. Both inis came from the rk3566
+one, whose pad has its right stick on axes 2 and 3; the rk3562-joystick has
+L2 on axis 2 (an axis that rests at one end of its range), the right stick on
+3 and 4 and R2 on 5, so `Axis2map=0` turned the player at full tilt and the
+right stick's X looked up and down. The buttons were the rk3566's too: D-pad
+up opened the main menu, Home (ogage's) and L3 (which closes by itself here)
+changed weapon, and Start, Select and B did nothing. Found with Freedoom on
+the console.
+
+`gzdoom/scripts/doompad.py` puts the RG52's layout into an ini: L2 and R2
+drive nothing, the right stick turns and looks (the old right stick's scale
+and dead zone), the main menu on Start, the automap also on Select, and in
+Doom B jumps, D-pad up and down change weapon, D-pad right crouches, nothing
+on Home or L3. The RG52 Mini's and RG43H's inis and their backups (which the
+Restore Default tools now pick for these consoles; they took the RG503's
+before) are made with it, and doom.sh runs it once on a user's inis, which
+the engines write back on every exit; it only moves an ini still on the
+rk3566 layout. Checked on the console with Freedoom in both engines: the
+player stands still, D-pad up changes weapon, Start opens the menu.
+
 ## ScummVM opened every game on a dialog — fixed in 1.4
 
 Up to 1.3.1 every ScummVM game started on "The preferred audio device
