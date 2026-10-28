@@ -39,7 +39,7 @@ PCSX2_BUILD="/home/ark/armsx2/build-${UNIT}"
 # their source, so it is made for this tree at /home/ark/armsx2, where the
 # chroot builds it.
 PGO="pcsx2/pgo/armsx2-20261028.profdata.gz"
-PGO_1e7b2022a71682cd852710dae380400061c9b1302df08401b36432928dfd1b63256="1e7b2022a71682cd852710dae380400061c9b1302df08401b36432928dfd1b63"
+PGO_SHA256="1e7b2022a71682cd852710dae380400061c9b1302df08401b36432928dfd1b63"
 
 if [ ! -d "Arkbuild_package_cache/${CHIPSET}" ]; then
   mkdir -p "Arkbuild_package_cache/${CHIPSET}"
