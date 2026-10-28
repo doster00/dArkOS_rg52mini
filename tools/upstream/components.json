@@ -36,7 +36,7 @@
     {"name": "GammaOS azahar-nano", "mode": "path", "repo": "TheGammaSqueeze/GammaOSNextDistribution-14", "branch": "develop", "path": "frameworks/base/cmds/azahar-nano", "pin": {"file": "rk3562_core_builds/scripts/azahar.sh", "regex": "^NANO=\"([0-9a-f]+)\""}, "note": "our patches 000- come from these"},
     {"name": "freej2me-plus", "mode": "follow", "repo": "TASEmulators/freej2me-plus", "branch": "devel"},
     {"name": "freej2me", "mode": "follow", "repo": "hex007/freej2me", "cache": {"file": "Arkbuild_package_cache/rk3562/freej2me.commit", "regex": "^([0-9a-f]{40})"}},
-    {"name": "retrorun", "mode": "follow", "repo": "navy1978/retrorun", "cache": {"file": "Arkbuild_package_cache/rk3562/retrorun.commit", "regex": "^([0-9a-f]{40})"}, "tag_regex": "^\\d+\\.\\d+\\.\\d+$", "note": "built from master's head; recipe's commit= is unused"},
+    {"name": "retrorun", "mode": "commit", "repo": "navy1978/retrorun", "pin": {"file": "rk3562_core_builds/scripts/retrorun.sh", "regex": "^commit=\"([0-9a-f]+)\""}, "tag_regex": "^\\d+\\.\\d+\\.\\d+$", "note": "pinned since 2026-10-28 (retrorun.sh checks the commit out; before, master's head was built)"},
     {"name": "mupen64plus-core (standalone)", "mode": "follow", "repo": "mupen64plus/mupen64plus-core", "cache": {"file": "Arkbuild_package_cache/rk3562/mupen64plussa.commit", "regex": "^([0-9a-f]{40})"}},
     {"name": "mupen64plus-ui-console", "mode": "follow", "repo": "mupen64plus/mupen64plus-ui-console"},
     {"name": "mupen64plus-rsp-hle", "mode": "follow", "repo": "mupen64plus/mupen64plus-rsp-hle"},
