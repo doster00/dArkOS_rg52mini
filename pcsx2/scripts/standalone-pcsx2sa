@@ -86,6 +86,22 @@ if [ ! -e "$spu2buf_flag" ] && [ -f "$ini" ]; then
     touch "$spu2buf_flag"
 fi
 
+# ARMSX2 2.9 starts with AutoTune off when PCSX2.ini has no key for it (upstream's
+# d279a660); up to 1.3.x it was on, and the template had no key. Here it stays on: with
+# it, Jak and Daxter's intro ran 3% faster on 2.9 (docs/TODO.md). An ini without the key
+# gets AutoTune = true once; the flag next to it keeps a value set by hand afterwards.
+autotune_flag="/$directory/ps2/pcsx2/inis/.autotune-on"
+if [ ! -e "$autotune_flag" ] && [ -f "$ini" ]; then
+    if ! sed -n '/^\[EmuCore\]$/,/^\[/p' "$ini" | grep -q '^AutoTune'; then
+        if grep -q '^\[EmuCore\]$' "$ini"; then
+            sed -i '/^\[EmuCore\]$/a AutoTune = true' "$ini"
+        else
+            printf '\n[EmuCore]\nAutoTune = true\n' >> "$ini"
+        fi
+    fi
+    touch "$autotune_flag"
+fi
+
 # Tell the killer daemon how to terminate us on hotkey
 echo "VAR=armsx2-sdl" > /home/ark/.config/KILLIT
 sudo systemctl restart killer_daemon.service

@@ -23,18 +23,23 @@ fi
 ARMSX2_REMOTE="https://github.com/ARMSX2/ARMSX2"
 # Pinned: upstream moves every day; a newer commit is a deliberate update
 # (patches checked, profile retrained).
-ARMSX2_COMMIT="a7ad4534dcf82f2ff5da0cb24024bc4278be175a"
+# 2.9 (2026-10-26).
+ARMSX2_COMMIT="023224576867a3846faedc7640911772c7783529"
 PCSX2_SRC="Arkbuild/home/ark/armsx2"
 PCSX2_BUILD="/home/ark/armsx2/build-${UNIT}"
-# Profile for clang's profile-guided optimisation: ARMSX2 at the commit above
-# with our patches, instrumented, on an RG52 Mini: Jak and Daxter's intro,
-# its menus and the BIOS screens (2026-10-20), and the owner playing Jak, God
-# of War's demo and Burnout 3's (2026-10-21), merged with weights that give
-# each of the four about the same total count (docs/TODO.md).  Its file-local
-# functions are named by the path of their source, so it is made for this
-# tree at /home/ark/armsx2, where the chroot builds it.
-PGO="pcsx2/pgo/armsx2-20261021.profdata.gz"
-PGO_SHA256="3db83b503d541293f9a3d9e92243b1f984eddd2b5847126825b2560b512ecffb"
+# Profile for clang's profile-guided optimisation, two merged with about the
+# same total count each: a7ad453's with our patches, instrumented on an RG52
+# Mini (Jak and Daxter's intro, its menus and the BIOS screens, 2026-10-20;
+# the owner playing Jak, God of War's demo and Burnout 3's, 2026-10-21), and
+# 2.9's (2026-10-28: Jak from boot to its title, Jak and God of War from the
+# owner's savestates, God of War on the ship). clang takes for each function
+# the records that fit its code: with a7ad453's alone, 2.9's changed GS code
+# (GSRendererHW::Draw and the texture cache) had none, and Jak's intro ran 3%
+# slower (docs/TODO.md).  Its file-local functions are named by the path of
+# their source, so it is made for this tree at /home/ark/armsx2, where the
+# chroot builds it.
+PGO="pcsx2/pgo/armsx2-20261028.profdata.gz"
+PGO_1e7b2022a71682cd852710dae380400061c9b1302df08401b36432928dfd1b63256="1e7b2022a71682cd852710dae380400061c9b1302df08401b36432928dfd1b63"
 
 if [ ! -d "Arkbuild_package_cache/${CHIPSET}" ]; then
   mkdir -p "Arkbuild_package_cache/${CHIPSET}"
