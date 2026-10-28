@@ -10,13 +10,21 @@ st=$(cat /sys/class/drm/card0-HDMI-A-1/status 2>/dev/null)
 want=0; [ "$st" = connected ] && want=1
 cur=$(cat /var/run/drmConn 2>/dev/null || echo 0)
 [ "$want" = "$cur" ] && exit 0
+es=$(pgrep -f '^/usr/bin/emulationstation/emulationstation' | head -1)
+# EmulationStation stays alive while a game runs (it starts the game as a child
+# and waits for it), and restarting the service would kill the game. So with a
+# game running leave drmConn alone, wait for the game to end, then run again:
+# the cable state is checked afresh and the switch happens then.
+if [ -n "$es" ] && pgrep -P "$es" > /dev/null; then
+  logger -t hdmi-hotplug "HDMI $st during a game: EmulationStation not restarted, will switch when the game ends"
+  flock -u 9
+  while pgrep -P "$es" > /dev/null; do sleep 3; done
+  sleep 3
+  exec /usr/local/bin/hdmi-hotplug.sh
+fi
 echo "$want" > /var/run/drmConn
 logger -t hdmi-hotplug "HDMI $st: drmConn $cur -> $want"
-# Only restart the frontend when it is what is on screen; during a game just
-# remember the choice for the next frontend start.
-if pgrep -f '^/usr/bin/emulationstation/emulationstation' > /dev/null; then
-  systemctl restart emulationstation
-fi
+[ -n "$es" ] && systemctl restart emulationstation
 # Back on the internal screen: switching the panel off for HDMI also left the
 # backlight at 0, so restore the last brightness (kept in /run/darkos-brightness).
 if [ "$want" = 0 ]; then
