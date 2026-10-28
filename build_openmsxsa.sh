@@ -33,6 +33,8 @@ fi
 
 sudo cp openmsx/configs/openmsx.gptk Arkbuild/opt/openmsx/backupconfig/openmsx/
 sudo cp openmsx/configs/commands.txt Arkbuild/opt/openmsx/backupconfig/openmsx/
+# The launcher puts this data over a card's older copy when the stamp differs
+echo "${OPENMSX_KEY}" | sudo tee Arkbuild/opt/openmsx/backupconfig/openmsx/share/.darkos-version > /dev/null
 sudo cp openmsx/configs/gamecontrollerdb.txt Arkbuild/opt/openmsx/
 sudo cp openmsx/scripts/openmsx Arkbuild/usr/local/bin/
 call_chroot "chown -R ark:ark /opt/"

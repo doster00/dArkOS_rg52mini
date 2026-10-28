@@ -108,7 +108,10 @@ if [[ $EMULATOR == "standalone" ]]; then
     type=""
   fi
 
-  # Now run the game
+  # Now run the game. The build links libGL.so.1 (its OpenGL output, which the chroot's GL
+  # headers turn on and its configure cannot turn off); the image has no desktop GL, so
+  # gl4es's library stands in for it, or xroar does not start at all (1.3.1 and before).
+  [ -f /usr/lib/gl4es/libGL.so.1 ] && export LD_LIBRARY_PATH=/usr/lib/gl4es${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
   /opt/xroar/xroar -vo-picture title -rompath /$directory/bios -machine $CORE -tv-input cmp-br -ram 2048 ${cmd} "$GAME" ${params} ${type}
   #/opt/xroar/xroar -ccr partial -vo-picture title -rompath /$directory/bios -machine $CORE -tv-input cmp-br -ram 2048 ${cmd} "$GAME" ${params} ${type}
 
