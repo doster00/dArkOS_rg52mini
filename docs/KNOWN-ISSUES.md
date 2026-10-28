@@ -527,7 +527,13 @@ pipelines about six times faster (a game's first run stutters less), but draws
 Castlevania: Lords of Shadow – Mirror of Fate a quarter slower and God of War 5%
 slower, implements Vulkan 1.1 with 24 device extensions against libmali's 1.3
 with 135, and in 1.3 Dolphin did not start on it (it does since 1.3.1, below). So
-libmali stays the default.
+libmali stays the default, except for ARMSX2 since 1.4: malisx2 1c45a6e (IDVS,
+index ranges on the GPU) draws God of War and Jak and Daxter in game 10-12%
+faster than libmali there, its pictures the same, and vulkan.conf names it for
+`armsx2-sdl` (an OTA hook adds the line to a user's own copy that names no
+driver for it; MALI in a PS2 game's EMULATOR SETTINGS still takes Arm's).
+Azahar and Dolphin stay on libmali: Castlevania 13-20% slower on malisx2, the
+ND Demo 41.4 fps against 45.7.
 
 The choice below replaces the old "Vulkan Driver Toggle" tool, which is no
 longer in the image.

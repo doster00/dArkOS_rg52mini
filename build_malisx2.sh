@@ -16,8 +16,12 @@
 # for textures too; d2afec5: the tiler's lowest hierarchy levels on the G52,
 # bins of 32 and 128 px as libmali uses, and AFBC for D32 depth attachments;
 # 98a8fdf: Index-Driven Vertex Shading on v7, one Indexed Vertex job per draw
-# as libmali does, MALISX2_V7_IDVS=0 for the old Vertex + Tiler pair), and the
-# work on the driver itself has its own notes and session
+# as libmali does, MALISX2_V7_IDVS=0 for the old Vertex + Tiler pair;
+# f56aa78-ca3352b: those draws' index ranges scanned by the GPU, compute jobs
+# batched per pass as libmali does, not by the CPU through uncached memory,
+# MALISX2_V7_GPU_INDEX_RANGE=0 for the CPU scan; 796ca04:
+# MALISX2_NO_PIPELINE_CACHE=1, for shader dumps), and the work on the driver
+# itself has its own notes and session
 # (T:\Dump\RG52Mini\dArkOS\malisx2\README.md on the owner's PC).
 #
 # malisx2 is a Vulkan driver for Arm's Mali GPUs on Arm's own kernel driver
@@ -42,31 +46,27 @@ fi
 MALISX2_REMOTE="https://github.com/mamaich/malisx2-rg52mini"
 # Pinned: a newer commit is a deliberate update (profile retrained, or the
 # functions it changed lose their profile data).
-MALISX2_COMMIT="262ad73d363aaccf323580ff6d0ce5db19294c38"
+MALISX2_COMMIT="1c45a6e6b7a6ac17d3b7738d088c8287d69c5d21"
 MALISX2_SRC="Arkbuild/home/ark/malisx2"
 MALISX2_LIB="/usr/lib/aarch64-linux-gnu/malisx2/libvulkan_malisx2.so"
-# Profile for clang's profile-guided optimisation: trained on b74141a on an
-# RG52 Mini (2026-10-27). Azahar: Super Mario 3D Land and Luigi's Mansion.
-# ARMSX2 started as ES does: God of War from a savestate on the ship, Jak and
-# Daxter's intro, and Jak and Daxter in game from the owner's save.
-# Castlevania is left out of it, to measure with (docs/TODO.md). After
-# b74141a, d2afec5 (mali_image.c, mali_jm_cmd_render.c) and 98a8fdf (IDVS:
-# mali_jm_cmd_draw_v7.c, mali_shader.c) change code; those functions lose
-# their profile data, and clang's out-of-date warnings for them are expected.
-# Not retrained: the malisx2 session measured these builds on this profile.
-# Against f35bacc on 2026-10-26's profile, three rounds: Castlevania 1.4-2.3%
-# faster, God of War on the ship 1.7%, Jak and Daxter in game 0.8%; d2afec5
-# then God of War on the ship 1.7-2.7% more; 98a8fdf then Castlevania 1.9 and
-# 5.6% more (two rounds), the PS2 games within the spread (malisx2's
-# docs/changes.md). A profile of older code loses the functions changed
-# since: 2026-10-25's, of 077e853, had no data for fa1831a's draw path, and
-# God of War on fa1831a against b1c114a was 0.7% faster with neither
-# profiled, 4.5% with each on its own profile. Its file-local functions are
-# named by the path of their source (Mesa's reach the compiler by absolute
-# paths), so it is made for this tree at /home/ark/malisx2, where the chroot
-# builds it, with the build directory in it (malisx2's docs/building.md).
-PGO="malisx2/pgo/malisx2-20261027.profdata.gz"
-PGO_SHA256="d16c9630153621a2bf322fc9c7e744b054d7161b896e789edf42e30d91dd5bb7"
+# Profile for clang's profile-guided optimisation: trained on 796ca04 on an
+# RG52 Mini (2026-10-28): Azahar's Super Mario 3D Land (60 s) and Luigi's
+# Mansion (90 s); ARMSX2 started as ES does, 90 s each of God of War from a
+# savestate on the ship, Jak and Daxter's intro and Jak and Daxter in game
+# from the owner's save. Castlevania is left out of it, to measure with
+# (docs/TODO.md). The index range paths that came after it (f56aa78, ca3352b:
+# mali_jm_cmd_draw_v7.c, mali_jm_irange_v7.c) are not in it, and clang's
+# out-of-date warnings for them are expected. Against the profile of
+# 2026-10-27 (of b74141a) on the same code: within the spread. A profile of
+# older code loses the functions changed since: 2026-10-25's, of 077e853,
+# had no data for fa1831a's draw path, and God of War on fa1831a against
+# b1c114a was 0.7% faster with neither profiled, 4.5% with each on its own
+# profile. Its file-local functions are named by the path of their source
+# (Mesa's reach the compiler by absolute paths), so it is made for this tree
+# at /home/ark/malisx2, where the chroot builds it, with the build directory
+# in it (malisx2's docs/building.md).
+PGO="malisx2/pgo/malisx2-20261028.profdata.gz"
+PGO_SHA256="6ccef7c8f2c7e545035cf6f67415f7148b041a0547129acea332e127c8112ef9"
 # Meson from its release, run from the tree: Debian trixie's 1.7.0 fails to
 # write the build of the Rust crate Mesa makes of structured sources
 # ("'CustomTargetIndex' object has no attribute 'subdir'"); 1.12.1 builds it.
