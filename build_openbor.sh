@@ -1,7 +1,13 @@
 #!/bin/bash
 
 # Build and install OpenBOR standalone emulator
-if [ -f "Arkbuild_package_cache/${CHIPSET}/openbor.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/openbor.commit)" == "$(curl -s https://raw.githubusercontent.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds/refs/heads/master/scripts/openbor.sh | grep -oP '(?<=git checkout )[[:alnum:]]+')" ]; then
+# Cache key as in build_scummvmsa.sh: our recipe's pin and a hash of it and its patches.
+if [ "$CHIPSET" == "rk3562" ]; then
+  OPENBOR_KEY="$(grep -oP '(?<=git checkout )[[:alnum:]]+' rk3562_core_builds/scripts/openbor.sh | head -1)-$(cat rk3562_core_builds/scripts/openbor.sh rk3562_core_builds/patches/openbor-patch* 2>/dev/null | sha1sum | cut -c1-12)"
+else
+  OPENBOR_KEY="$(curl -s https://raw.githubusercontent.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds/refs/heads/master/scripts/openbor.sh | grep -oP '(?<=git checkout )[[:alnum:]]+')"
+fi
+if [ -f "Arkbuild_package_cache/${CHIPSET}/openbor.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/openbor.commit)" == "${OPENBOR_KEY}" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/openbor.tar.gz
 else
 	call_chroot "cd /home/ark &&
@@ -21,7 +27,7 @@ else
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/openbor.commit
 	fi
 	sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/openbor.tar.gz Arkbuild/opt/OpenBor/ 
-	sudo git --git-dir=Arkbuild/home/ark/${CHIPSET}_core_builds/openbor/.git --work-tree=Arkbuild/home/ark/${CHIPSET}_core_builds/openbor rev-parse HEAD > Arkbuild_package_cache/${CHIPSET}/openbor.commit
+	echo "${OPENBOR_KEY}" > Arkbuild_package_cache/${CHIPSET}/openbor.commit
 fi
 sudo cp openbor/configs/master.cfg.${UNIT} Arkbuild/opt/OpenBor/Saves/master.cfg
 sudo cp openbor/OpenBor.sh Arkbuild/opt/OpenBor/OpenBor.sh

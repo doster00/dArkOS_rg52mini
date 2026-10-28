@@ -178,7 +178,13 @@ sudo mv Arkbuild/home/ark/.config/retroarch/shaders/shaders_glsl/Sharp-Shimmerle
 sudo rm -rf Arkbuild/home/ark/.config/retroarch/shaders/shaders_glsl/Sharp-Shimmerless/shaders_glsl/
 
 # Build libretro easyrpg from scratch since there is usually a need for a matching liblcf file for a new build
-if [ -f "Arkbuild_package_cache/${CHIPSET}/easyrpg.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/easyrpg.commit)" = "$(curl -s https://raw.githubusercontent.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds/refs/heads/master/scripts/easyrpg.sh | grep -oP '(?<=tag=").*?(?=")')" ]; then
+# Cache key as in build_scummvmsa.sh: our recipe's pin and a hash of it and its patches.
+if [ "$CHIPSET" == "rk3562" ]; then
+  EASYRPG_KEY="$(grep -oP '(?<=tag=").*?(?=")' rk3562_core_builds/scripts/easyrpg.sh | head -1)-$(cat rk3562_core_builds/scripts/easyrpg.sh rk3562_core_builds/patches/easyrpg-patch* 2>/dev/null | sha1sum | cut -c1-12)"
+else
+  EASYRPG_KEY="$(curl -s https://raw.githubusercontent.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds/refs/heads/master/scripts/easyrpg.sh | grep -oP '(?<=tag=").*?(?=")')"
+fi
+if [ -f "Arkbuild_package_cache/${CHIPSET}/easyrpg.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/easyrpg.commit)" = "${EASYRPG_KEY}" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/easyrpg.tar.gz
 else
 	RA_TRIES=0
@@ -211,7 +217,7 @@ else
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/easyrpg.commit
 	fi
 	sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/easyrpg.tar.gz Arkbuild/home/ark/.config/retroarch/cores/easyrpg_libretro.so Arkbuild/usr/lib/aarch64-linux-gnu/liblcf.so.0
-	sudo curl -s https://raw.githubusercontent.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds/refs/heads/master/scripts/easyrpg.sh | grep -oP '(?<=tag=").*?(?=")' > Arkbuild_package_cache/${CHIPSET}/easyrpg.commit
+	echo "${EASYRPG_KEY}" > Arkbuild_package_cache/${CHIPSET}/easyrpg.commit
 fi
 
 # RK3562: build here the cores whose rg503 builds are for the RK3566's

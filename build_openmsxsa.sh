@@ -1,7 +1,13 @@
 #!/bin/bash
 
 # Build and install openmsx standalone emulator
-if [ -f "Arkbuild_package_cache/${CHIPSET}/openmsx.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/openmsx.commit)" == "$(curl -s https://raw.githubusercontent.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds/refs/heads/master/scripts/openmsx.sh | grep -oP '(?<=TAG=").*?(?=")')" ]; then
+# Cache key as in build_scummvmsa.sh: our recipe's pin and a hash of it and its patches.
+if [ "$CHIPSET" == "rk3562" ]; then
+  OPENMSX_KEY="$(grep -oP '(?<=TAG=").*?(?=")' rk3562_core_builds/scripts/openmsx.sh | head -1)-$(cat rk3562_core_builds/scripts/openmsx.sh rk3562_core_builds/patches/openmsx-patch* 2>/dev/null | sha1sum | cut -c1-12)"
+else
+  OPENMSX_KEY="$(curl -s https://raw.githubusercontent.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds/refs/heads/master/scripts/openmsx.sh | grep -oP '(?<=TAG=").*?(?=")')"
+fi
+if [ -f "Arkbuild_package_cache/${CHIPSET}/openmsx.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/openmsx.commit)" == "${OPENMSX_KEY}" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/openmsx.tar.gz
 else
 	call_chroot "cd /home/ark &&
@@ -22,7 +28,7 @@ else
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/openmsx.commit
 	fi
 	sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/openmsx.tar.gz Arkbuild/opt/openmsx/ 
-	sudo curl -s https://raw.githubusercontent.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds/refs/heads/master/scripts/openmsx.sh | grep -oP '(?<=TAG=").*?(?=")' > Arkbuild_package_cache/${CHIPSET}/openmsx.commit
+	echo "${OPENMSX_KEY}" > Arkbuild_package_cache/${CHIPSET}/openmsx.commit
 fi
 
 sudo cp openmsx/configs/openmsx.gptk Arkbuild/opt/openmsx/backupconfig/openmsx/
