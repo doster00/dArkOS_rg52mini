@@ -17,6 +17,16 @@ fi
 
 directory="$(dirname "$2" | cut -d "/" -f2)"
 
+# MIDI goes through FluidSynth (gm_device and mt32_device), whose soundfont the config names.
+# Up to 1.3.1 that was RetroArch's scummvm extra/Roland_SC-55.sf2, which this image does not
+# have (and ScummVM was built without FluidSynth): a config naming a soundfont that is not
+# there gets the General MIDI one Debian's fluidsynth brings.
+cfg=/home/ark/.config/scummvm/scummvm.ini
+sf=$(sed -n 's/^soundfont=//p' "$cfg" 2>/dev/null | head -1)
+if [ -n "$sf" ] && [ ! -f "$sf" ] && [ -f /usr/share/sounds/sf2/FluidR3_GM.sf2 ]; then
+  sed -i 's#^soundfont=.*#soundfont=/usr/share/sounds/sf2/FluidR3_GM.sf2#' "$cfg"
+fi
+
 if [[ $2 == *"Scan_for_new_games.scummvm"* ]]
 then
   printf "\033c" >> /dev/tty1

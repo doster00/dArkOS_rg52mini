@@ -6,6 +6,7 @@ DoubleClickTogglesFullscreen = false
 
 
 [EmuCore]
+AutoTune = true
 CdvdVerboseReads = false
 CdvdDumpBlocks = false
 CdvdShareWrite = false

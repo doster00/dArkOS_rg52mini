@@ -10,7 +10,7 @@
 #
 # The AppImage self-mounts a squashfs via FUSE (CONFIG_FUSE_FS=y in our kernel,
 # libfuse2 in needed_packages.txt). Config lives at the XDG path
-# ~/.local/share/duckstation/. Portrait rotation for the RG52 Mini is handled by
+# ~/.local/share/duckstation/, made there on the first start (below). Portrait rotation for the RG52 Mini is handled by
 # [Display] Rotation = Rotate90 in settings.ini.rg52mini (no source patch, unlike
 # flycast) — the AppImage bundles its own SDL3, so our SDL2 RGA rotation does not
 # apply to it. Its SDL3 asks Vulkan for a 720x1280 mode, and VK_LAYER_DARKOS_rotate
@@ -19,18 +19,24 @@
 DUCKSTATION_APPIMAGE="duckstation/duckstation-sa-0.1-10495.AppImage"
 
 sudo mkdir -p Arkbuild/opt/duckstation
-sudo mkdir -p Arkbuild/home/ark/.local/share/duckstation
 sudo cp "${DUCKSTATION_APPIMAGE}" Arkbuild/opt/duckstation/duckstationsa
 sudo cp duckstation/scripts/standalone-duckstation Arkbuild/usr/local/bin/
-sudo cp duckstation/configs/settings.ini.${UNIT} Arkbuild/home/ark/.local/share/duckstation/settings.ini
-# Install our controller DB to DuckStation's data root (EmuFolders::DataRoot,
+# DuckStation's licence (CC BY-NC-ND 4.0) allows its releases to be passed on unmodified
+# and counts pre-configured settings and packages as modifications, so its folder in the
+# image holds no settings of ours. dArkOS's settings for the console wait in
+# /usr/local/share/darkos/duckstation, and standalone-duckstation makes the user's
+# settings.ini and controller DB from them on the first start, as the user would set
+# them; from then on they are the user's (docs/KNOWN-ISSUES.md, DuckStation).
+sudo mkdir -p Arkbuild/usr/local/share/darkos/duckstation
+sudo cp duckstation/configs/settings.ini.${UNIT} Arkbuild/usr/local/share/darkos/duckstation/settings.ini
+# Our controller DB goes to DuckStation's data root (EmuFolders::DataRoot,
 # read in preference to the AppImage's bundled gamecontrollerdb.txt) so SDL3
 # recognizes the built-in rk3562-joystick as a gamepad. vendor/product=0 means
 # SDL derives a name-based GUID. NOTE: DuckStation bundles SDL3, which enumerates this pad's
 # raw buttons differently than SDL2, so it needs the SDL3-order entry (a:b0,b:b1). Use the
 # DuckStation-specific db -- NOT inttools/ (which carries the SDL2 order for gptokeyb et al,
 # and would swap A/B here).
-sudo cp duckstation/configs/gamecontrollerdb.txt Arkbuild/home/ark/.local/share/duckstation/gamecontrollerdb.txt
+sudo cp duckstation/configs/gamecontrollerdb.txt Arkbuild/usr/local/share/darkos/duckstation/gamecontrollerdb.txt
 call_chroot "chown -R ark:ark /opt/"
 call_chroot "chown -R ark:ark /home/ark/"
 sudo chmod 777 Arkbuild/opt/duckstation/duckstationsa

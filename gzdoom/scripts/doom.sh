@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# RG52 Mini, RG43H (rk3562-joystick): up to 1.3.1 the GZDoom and LZDoom inis had the rk3566
+# pad's layout, on which L2 (an axis at one end when let go) turned the player all the time
+# and D-pad up opened the menu. doompad.py moves an ini still on that layout to this pad's,
+# once; a layout the user made is left as it is.
+if [ -e /dev/input/by-path/platform-play_joystick-event-joystick ] && [ ! -e /home/ark/.config/.doompad-rk3562 ]; then
+  python3 /usr/local/bin/doompad.py /home/ark/.config/gzdoom/gzdoom.ini /home/ark/.config/lzdoom/lzdoom.ini
+  touch /home/ark/.config/.doompad-rk3562
+fi
+
 if [[ $1 == "standalone" ]]; then
     directory=$(dirname "$2" | cut -d "/" -f2)
     echo "VAR=lzdoom" > /home/ark/.config/KILLIT

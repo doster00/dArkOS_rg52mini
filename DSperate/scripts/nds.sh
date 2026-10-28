@@ -128,6 +128,12 @@ elif [[ "$1" == "dsperate" ]]; then
   sed -i "/saves =/c\saves = /${directory}/nds" /${directory}/nds/dsperate/dsperate.ini
   sed -i "/states =/c\states = /${directory}/nds/savestates" /${directory}/nds/dsperate/dsperate.ini
   sed -i "/cheats =/c\cheats = /${directory}/nds/cheats" /${directory}/nds/dsperate/dsperate.ini
+  # The screens side by side unless the file says otherwise: DSperate's own
+  # default stacks them, and an ini copied before 1.3.1 has no layout line.
+  # A layout picked with the hotkey is kept per game in games/<rom>.ini.
+  if ! grep -q "^[[:space:]]*layout[[:space:]]*=" /${directory}/nds/dsperate/dsperate.ini; then
+    sed -i "/^\[video\]/a layout = horizontal" /${directory}/nds/dsperate/dsperate.ini
+  fi
 
   SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig" /opt/DSperate/dsperate "$game" --bios9 /${directory}/bios/nds_bios9.bin --bios7 /${directory}/bios/nds_bios7.bin --firmware /${directory}/bios/nds_firmware.bin
 

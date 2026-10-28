@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # Build and install the DSperate standalone NDS emulator (upstream
-# christianhaitian/dArkOS 0850604). The cache key carries the recipe as well as
-# DSperate's commit, so a change to rk3562_core_builds/scripts/dsperate.sh
-# rebuilds it instead of restoring the old binary.
+# christianhaitian/dArkOS 0850604). The cache key carries DSperate's commit,
+# pinned in rk3562_core_builds/scripts/dsperate.sh, and a hash of that recipe
+# and its patches, so a change to either rebuilds it instead of restoring the
+# old binary.
 #
 # The Vulkan presenter and GPU 3D raster (video.gpu3d) are built only when
 # vulkan/vulkan.h is there at build time - libvulkan itself is dlopened on the
@@ -11,8 +12,9 @@
 # DSperate logs "gpu3d: unavailable (built without Vulkan)" and draws all 3D on
 # the CPU. The "_vk" in the key keeps a cached binary from before this out.
 install_package 64 libvulkan-dev
-DSPERATE_RECIPE_SHA=$(sha1sum ${CHIPSET}_core_builds/scripts/dsperate.sh 2>/dev/null | cut -c1-12)
-DSPERATE_KEY="$(curl -s https://api.github.com/repos/beebono/DSperate/commits/main | jq -r '.sha')_${DSPERATE_RECIPE_SHA}_vk"
+DSPERATE_COMMIT=$(grep -oP '(?<=^commit=")[0-9a-f]+' ${CHIPSET}_core_builds/scripts/dsperate.sh 2>/dev/null)
+DSPERATE_RECIPE_SHA=$(cat ${CHIPSET}_core_builds/scripts/dsperate.sh ${CHIPSET}_core_builds/patches/dsperate-patch* 2>/dev/null | sha1sum | cut -c1-12)
+DSPERATE_KEY="${DSPERATE_COMMIT}_${DSPERATE_RECIPE_SHA}_vk"
 if [ -f "Arkbuild_package_cache/${CHIPSET}/dsperate.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/dsperate.commit 2>/dev/null)" == "${DSPERATE_KEY}" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/dsperate.tar.gz
     if [ ! -f "Arkbuild/opt/DSperate/dsperate" ]; then
@@ -32,8 +34,7 @@ if [ ! -f "Arkbuild/opt/DSperate/dsperate" ]; then
 	if [ -f "Arkbuild/opt/DSperate/dsperate" ]; then
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/dsperate.tar.gz Arkbuild_package_cache/${CHIPSET}/dsperate.commit
 	  sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/dsperate.tar.gz Arkbuild/opt/DSperate/
-	  SHA=$(sudo git --git-dir=Arkbuild/home/ark/${CHIPSET}_core_builds/DSperate/.git rev-parse HEAD)
-	  echo "${SHA}_${DSPERATE_RECIPE_SHA}_vk" | sudo tee Arkbuild_package_cache/${CHIPSET}/dsperate.commit > /dev/null
+	  echo "${DSPERATE_KEY}" | sudo tee Arkbuild_package_cache/${CHIPSET}/dsperate.commit > /dev/null
 	else
 	  echo "WARNING: DSperate did not build; the nds system will offer it but it will not start"
 	fi

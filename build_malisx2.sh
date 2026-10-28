@@ -9,8 +9,19 @@
 # query pools accepted, every result 0 samples; 80994d9: storage-buffer reads
 # in v7 vertex shaders bounds-checked, so Dolphin runs on it; 4c73962-fa1831a:
 # fewer compute copy jobs per draw on v7, a stage's tables and FAU block kept
-# across pipelines that would build them the same), and the work on the
-# driver itself has its own notes and session
+# across pipelines that would build them the same; 9ca29fd-b74141a: v7
+# descriptor tables without images and the uniform words filled on the CPU,
+# the words copied in runs; bc3a6d1: forward pixel kill kept for draws that
+# read no colour attachment under rasterization order access; b511c07: AFBC
+# for textures too; d2afec5: the tiler's lowest hierarchy levels on the G52,
+# bins of 32 and 128 px as libmali uses, and AFBC for D32 depth attachments;
+# 98a8fdf: Index-Driven Vertex Shading on v7, one Indexed Vertex job per draw
+# as libmali does, MALISX2_V7_IDVS=0 for the old Vertex + Tiler pair;
+# f56aa78-ca3352b: those draws' index ranges scanned by the GPU, compute jobs
+# batched per pass as libmali does, not by the CPU through uncached memory,
+# MALISX2_V7_GPU_INDEX_RANGE=0 for the CPU scan; 796ca04:
+# MALISX2_NO_PIPELINE_CACHE=1, for shader dumps), and the work on the driver
+# itself has its own notes and session
 # (T:\Dump\RG52Mini\dArkOS\malisx2\README.md on the owner's PC).
 #
 # malisx2 is a Vulkan driver for Arm's Mali GPUs on Arm's own kernel driver
@@ -35,27 +46,27 @@ fi
 MALISX2_REMOTE="https://github.com/mamaich/malisx2-rg52mini"
 # Pinned: a newer commit is a deliberate update (profile retrained, or the
 # functions it changed lose their profile data).
-MALISX2_COMMIT="f35bacc831730835ac2971e55c7242fde5039045"
+MALISX2_COMMIT="1c45a6e6b7a6ac17d3b7738d088c8287d69c5d21"
 MALISX2_SRC="Arkbuild/home/ark/malisx2"
 MALISX2_LIB="/usr/lib/aarch64-linux-gnu/malisx2/libvulkan_malisx2.so"
-# Profile for clang's profile-guided optimisation: the driver at the commit
-# (trained on fa1831a, the same sources: after it only documentation),
-# instrumented with -fprofile-update=atomic (emulators compile pipelines on
-# several threads), on an RG52 Mini (2026-10-26).  The compiler: Super Mario
-# 3D Land and Luigi's Mansion started with empty pipeline caches, so that they
-# compile every pipeline, then running.  The draw path: ARMSX2 started as ES
-# does, Jak and Daxter from its intro and from a save, God of War from a
-# savestate on the ship, the Burnout 3 demo, 75-90 s each.  Castlevania, left
-# out of it, measures the compiler (docs/TODO.md).  A profile of older code
-# loses the functions changed since: 2026-10-25's, of 077e853, has no data for
-# fa1831a's draw path.  God of War on fa1831a against b1c114a: 0.7% faster
-# with neither profiled, 4.5% with each on its own profile.  Its file-local
-# functions are named by the path of their source (Mesa's reach the compiler
-# by absolute paths), so it is made for this tree at /home/ark/malisx2, where
-# the chroot builds it, with the build directory in it (malisx2's
-# docs/building.md).
-PGO="malisx2/pgo/malisx2-20261026.profdata.gz"
-PGO_SHA256="bc846f65c39299c0345980d723056b0e9fb20176ff91e50ba67d6f94bb1332d8"
+# Profile for clang's profile-guided optimisation: trained on 796ca04 on an
+# RG52 Mini (2026-10-28): Azahar's Super Mario 3D Land (60 s) and Luigi's
+# Mansion (90 s); ARMSX2 started as ES does, 90 s each of God of War from a
+# savestate on the ship, Jak and Daxter's intro and Jak and Daxter in game
+# from the owner's save. Castlevania is left out of it, to measure with
+# (docs/TODO.md). The index range paths that came after it (f56aa78, ca3352b:
+# mali_jm_cmd_draw_v7.c, mali_jm_irange_v7.c) are not in it, and clang's
+# out-of-date warnings for them are expected. Against the profile of
+# 2026-10-27 (of b74141a) on the same code: within the spread. A profile of
+# older code loses the functions changed since: 2026-10-25's, of 077e853,
+# had no data for fa1831a's draw path, and God of War on fa1831a against
+# b1c114a was 0.7% faster with neither profiled, 4.5% with each on its own
+# profile. Its file-local functions are named by the path of their source
+# (Mesa's reach the compiler by absolute paths), so it is made for this tree
+# at /home/ark/malisx2, where the chroot builds it, with the build directory
+# in it (malisx2's docs/building.md).
+PGO="malisx2/pgo/malisx2-20261028.profdata.gz"
+PGO_SHA256="6ccef7c8f2c7e545035cf6f67415f7148b041a0547129acea332e127c8112ef9"
 # Meson from its release, run from the tree: Debian trixie's 1.7.0 fails to
 # write the build of the Rust crate Mesa makes of structured sources
 # ("'CustomTargetIndex' object has no attribute 'subdir'"); 1.12.1 builds it.

@@ -1,7 +1,13 @@
 #!/bin/bash
 
 # Build and install gzdoom standalone emulator
-if [ -f "Arkbuild_package_cache/${CHIPSET}/gzdoom.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/gzdoom.commit)" == "$(curl -s https://raw.githubusercontent.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds/refs/heads/master/scripts/gzdoom.sh | grep -oP '(?<=TAG=").*?(?=")')" ]; then
+# Cache key as in build_scummvmsa.sh: our recipe's pin and a hash of it and its patches.
+if [ "$CHIPSET" == "rk3562" ]; then
+  GZDOOM_KEY="$(grep -oP '(?<=TAG=").*?(?=")' rk3562_core_builds/scripts/gzdoom.sh | head -1)-$(cat rk3562_core_builds/scripts/gzdoom.sh rk3562_core_builds/patches/gzdoomsa-patch* 2>/dev/null | sha1sum | cut -c1-12)"
+else
+  GZDOOM_KEY="$(curl -s https://raw.githubusercontent.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds/refs/heads/master/scripts/gzdoom.sh | grep -oP '(?<=TAG=").*?(?=")')"
+fi
+if [ -f "Arkbuild_package_cache/${CHIPSET}/gzdoom.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/gzdoom.commit)" == "${GZDOOM_KEY}" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/gzdoom.tar.gz
 else
 	call_chroot "cd /home/ark &&
@@ -25,7 +31,7 @@ else
 	if [ -f "Arkbuild_package_cache/${CHIPSET}/gzdoom.commit" ]; then
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/gzdoom.commit
 	fi
-	sudo curl -s https://raw.githubusercontent.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds/refs/heads/master/scripts/gzdoom.sh | grep -oP '(?<=TAG=").*?(?=")' > Arkbuild_package_cache/${CHIPSET}/gzdoom.commit
+	echo "${GZDOOM_KEY}" > Arkbuild_package_cache/${CHIPSET}/gzdoom.commit
 	sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/gzdoom.tar.gz Arkbuild/opt/gzdoom/ Arkbuild/home/ark/.config/gzdoom/
 fi
 sudo cp gzdoom/configs/${UNIT}/gzdoom.ini Arkbuild/home/ark/.config/gzdoom/

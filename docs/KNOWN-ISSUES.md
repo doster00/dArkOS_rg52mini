@@ -266,6 +266,119 @@ OPP table starts at 300; the NPU list is untouched. `drivers/rknpu/` also parks
 at 200 MHz — fine with this BL31, but needs the same check if a future table
 drops the NPU's lowest step.
 
+## DuckStation: its licence, and settings made on the first start (1.4)
+
+DuckStation is CC BY-NC-ND 4.0. Its README allows "unmodified releases and
+code" to be passed on and says "pre-configured settings and packages are
+considered modifications"; newer READMEs also forbid publishing modified
+versions, patches included. The image carries upstream's AppImage
+(0.1-10495, the "mini" frontend, the last that runs without a display
+server) unmodified, renamed `/opt/duckstation/duckstationsa`. Up to 1.3.1
+it also put our settings.ini and controller DB into DuckStation's folder.
+Since 1.4 those wait in `/usr/local/share/darkos/duckstation`, and
+`standalone-duckstation` copies them into `~/.local/share/duckstation` on the
+first start when they are not there, as a user would set them; afterwards
+they are the user's and the launcher leaves them alone. An update from
+1.3.1 keeps a settings.ini DuckStation has written (it does on every exit)
+and deletes an untouched one, which the next start makes again. The owner
+chose this on 2026-10-28, knowing it is a grey zone, and wrote to
+DuckStation's author about it. Newer DuckStation (0.1-12083) is Qt only,
+needs Wayland or X, and is not taken (TODO.md, upstream updates for 1.4).
+
+## Doom: the player turned by himself — fixed in 1.4
+
+In LZDoom (ES's default for Doom) and GZDoom on the RG52 Mini the player
+turned all the time, without a key pressed. Both inis came from the rk3566
+one, whose pad has its right stick on axes 2 and 3; the rk3562-joystick has
+L2 on axis 2 (an axis that rests at one end of its range), the right stick on
+3 and 4 and R2 on 5, so `Axis2map=0` turned the player at full tilt and the
+right stick's X looked up and down. The buttons were the rk3566's too: D-pad
+up opened the main menu, Home (ogage's) and L3 (which closes by itself here)
+changed weapon, and Start, Select and B did nothing. Found with Freedoom on
+the console.
+
+`gzdoom/scripts/doompad.py` puts the RG52's layout into an ini: L2 and R2
+drive nothing, the right stick turns and looks (the old right stick's scale
+and dead zone), the main menu on Start, the automap also on Select, and in
+Doom B jumps, D-pad up and down change weapon, D-pad right crouches, nothing
+on Home or L3. The RG52 Mini's and RG43H's inis and their backups (which the
+Restore Default tools now pick for these consoles; they took the RG503's
+before) are made with it, and doom.sh runs it once on a user's inis, which
+the engines write back on every exit; it only moves an ini still on the
+rk3566 layout. Checked on the console with Freedoom in both engines: the
+player stands still, D-pad up changes weapon, Start opens the menu.
+
+## ScummVM opened every game on a dialog — fixed in 1.4
+
+Up to 1.3.1 every ScummVM game started on "The preferred audio device
+'fluidsynth' was not found (...) Attempting to fall back to the next available
+device", a dialog the pad does not close (Enter on a keyboard does). Our
+scummvm.ini sends MIDI to FluidSynth, but ScummVM was built without it: the
+recipe never installed FluidSynth's headers (gzdoom.sh lists them, and a
+cached GZDoom never runs), and the soundfont the config names, RetroArch's
+scummvm `extra/Roland_SC-55.sf2`, is not in this image either. 1.4 builds
+ScummVM with FluidSynth (libjack-jackd2-dev first: libfluidsynth-dev alone
+pulls JACK 1 and apt swaps out the image's libjack-jackd2-0), the configs of
+the RG52 Mini and the RG43H name Debian's `/usr/share/sounds/sf2/FluidR3_GM.sf2`
+(fluid-soundfont-gm is installed), and `scummvm.sh` puts that one into a
+user's config that names a soundfont that is not there. Day of the Tentacle
+starts straight into its intro, the music through FluidSynth (about half a
+core of the A53).
+
+## XRoar and openMSX did not start — fixed in 1.4
+
+Both link `libGL.so.1`: their OpenGL output is built because the chroot has
+GL headers, and neither configure can be told to leave it out. The image has
+no desktop GL (only Mali's GLES), so they ended at once with "libGL.so.1:
+cannot open shared object file", in 1.3.1 and before. Their launchers
+(`coco.sh`, `openmsx`) now put `/usr/lib/gl4es` first in the library path, so
+gl4es stands in; XRoar shows the Dragon 32's BASIC prompt, openMSX C-BIOS.
+Nothing else in /opt or /usr/local misses a library, apart from Kodi's
+visualisation add-ons, which want desktop GL and are not for this build.
+
+openMSX copies its data (Tcl scripts, machines, extensions) to
+`/roms/bios/openmsx` on its first start and reads it from there. A card that
+ran 17.0 would keep 17.0's scripts under 19.1, so build_openmsxsa.sh stamps
+the data with the recipe's cache key and the launcher puts a newer copy over
+an older one, keeping the user's `settings.xml` and system ROMs.
+
+## Dolphin: a held hotkey moved the stick's centre, no Sys folder — fixed in 1.4
+
+* The hotkey patches gave the Hotkey button bit 0x2000 of the GameCube pad
+  word, which is PAD_GET_ORIGIN: while it was held, the SI device took the
+  sticks' position as their origin and the game was told to re-read it, so
+  pressing the hotkey with a stick pushed could leave the stick drifting.
+  2609a's patch 008 moves the bit into a field of its own.
+* The package had Dolphin's binary only; `Data/Sys` was copied into the user
+  folder, where it counts as the user's own overrides, and the places Dolphin
+  reads its own data from were empty: no `codehandler.bin` (Gecko codes) and
+  no IPL fonts. 1.4 installs it as `/opt/dolphin/Sys`; an update deletes the
+  user-folder copies the user did not change.
+
+## DSperate stopped at start on an ext4 /roms — fixed in 1.3.1
+
+On the dual-boot card, whose /roms is GammaOS's ext4 storage, every game in
+DSperate ended a moment after its window opened: "terminate called after
+throwing an instance of 'std::bad_alloc'". nds.sh sets `cheats =
+/roms/nds/cheats`, a directory; with no usrcheat.dat in it, DSperate (e04b806)
+kept the directory as the database's path and read it as a file. fopen takes
+a directory, and on ext4 a directory's end is INT64_MAX (the htree EOF), so
+`ftell` gave 2^63-1 and the vector resize asked for that much. On exFAT a
+directory reports a small size and the read just fails, which is why the
+EASYROMS card never showed it. Found with an LD_PRELOAD hook printing a
+backtrace at an `operator new` of more than 1 GB.
+
+`dsperate-patch-0001-cheats-directory` (rk3562_core_builds 6978c9e): a
+directory without usrcheat.dat means no database, and the reader takes
+regular files only. The recipe also pins DSperate at e04b806 now (it built
+main's head of the day), and its patches had never applied: they were copied
+into `dsperate/` while the clone is `DSperate/`. Checked on the device:
+Diddy Kong Racing DS and the Pokemon demo at 60 fps, START and A work.
+
+Since then the screens are side by side by default (`layout = horizontal` in
+the shipped ini; nds.sh adds the line to an ini that has no layout line). A
+layout picked with the hotkey is still kept per game in games/<rom>.ini.
+
 ## DSperate (NDS) is slow unless the governor is performance — fixed in 1.3
 
 `perfmax` now sets `performance` when no governor was chosen ("Games ran on the
@@ -385,7 +498,7 @@ Tested on the device:
     so the picture is right way up.
   - **Dolphin** (GameCube demo): it takes the 1280x720 mode, and
     `dolphinsa-patch-011` sees a landscape swapchain and does not turn, so the
-    picture is right way up.
+    picture is right way up. 2609a (1.4) has no rotation patch at all.
   - **PCSX2** (Vulkan by default) turned the picture by itself
     (`DisplayRotation = 90`), so with the layer it lay on its side. The
     rg52mini template now has 0, and `standalone-pcsx2sa` changes 90 to 0 in
@@ -436,8 +549,14 @@ azahar-nano on the G52. Measured here (TODO.md, "malisx2"): it compiles
 pipelines about six times faster (a game's first run stutters less), but draws
 Castlevania: Lords of Shadow – Mirror of Fate a quarter slower and God of War 5%
 slower, implements Vulkan 1.1 with 24 device extensions against libmali's 1.3
-with 135, and in 1.3 Dolphin did not start on it (it does since 1.4, below). So
-libmali stays the default.
+with 135, and in 1.3 Dolphin did not start on it (it does since 1.3.1, below). So
+libmali stays the default, except for ARMSX2 since 1.4: malisx2 1c45a6e (IDVS,
+index ranges on the GPU) draws God of War and Jak and Daxter in game 10-12%
+faster than libmali there, its pictures the same, and vulkan.conf names it for
+`armsx2-sdl` (an OTA hook adds the line to a user's own copy that names no
+driver for it; MALI in a PS2 game's EMULATOR SETTINGS still takes Arm's).
+Azahar and Dolphin stay on libmali: Castlevania 13-20% slower on malisx2, the
+ND Demo 41.4 fps against 45.7.
 
 The choice below replaces the old "Vulkan Driver Toggle" tool, which is no
 longer in the image.
@@ -462,14 +581,14 @@ an emulator's adapter list would not work, so:
   choice; AUTO leaves it unset, so vulkan.conf decides. The choice is offered
   for the systems the file's `es_systems` line names, comma-separated and
   editable on the device: now 3ds, n3ds, ps2, ppsspp, pspminis, psx,
-  dreamcast, naomi, Sega Atomiswave, ports and, since 1.4, Gamecube: the
+  dreamcast, naomi, Sega Atomiswave, ports and, since 1.3.1, Gamecube: the
   systems whose emulators draw with Vulkan (1.3 left Gamecube out, as
   Dolphin did not start on malisx2). A system ES shows under an alias is
   named by the alias (n3ds is the 3DS folder of a GammaOS card,
   es-aliases.py). The update keeps a user's
   vulkan.conf and adds the line if it has none
-  (`ota/hooks/1.3-vulkan-es-systems.sh`), and from 1.4 Gamecube to a line
-  that has not got it (`ota/hooks/1.4-vulkan-gamecube.sh`). Like the other rows of that menu, a
+  (`ota/hooks/1.3-vulkan-es-systems.sh`), and from 1.3.1 Gamecube to a line
+  that has not got it (`ota/hooks/1.3.1-vulkan-gamecube.sh`). Like the other rows of that menu, a
   change is saved when the menu is left with B; START closes all menus without
   saving.
 - **PortMaster:** a port that runs its game with `$ESUDO` (sudo with a
@@ -485,17 +604,28 @@ change of the device name to "Mali-G52 (malisx2)" (then
 (`malisx2/pgo/`), installed at `/usr/lib/aarch64-linux-gnu/malisx2/`. After
 1.3 the source is our fork, github.com/mamaich/malisx2-rg52mini (077e853:
 eae9663 and the device name as a commit), where the driver work goes on.
-1.4 takes its f35bacc: occlusion query pools accepted, every result 0
+1.3.1 takes its 5eccf34: occlusion query pools accepted, every result 0
 samples (0488ddb); storage-buffer reads in v7 vertex shaders bounds-checked
-(80994d9), which costs ARMSX2 nothing measurable (TODO.md); and fewer compute
+(80994d9), which costs ARMSX2 nothing measurable (TODO.md); fewer compute
 copy jobs per draw on v7 (4c73962-fa1831a: a stage's tables and FAU block
 kept across pipelines that would build them the same), with the profile
-retrained on it and on ARMSX2's drawing as well (2026-10-26). ARMSX2 on it
-against b1c114a, each with its own profile: God of War 4.5% faster (frames
-100-1500), Jak and Daxter 1.3%. With LTO and the profile it compiles
-Castlevania's 368 pipelines in 7.4 s instead of 8.1.
+retrained on it and on ARMSX2's drawing as well (2026-10-26); then
+descriptor tables and uniform words filled on the CPU, forward pixel kill
+kept under rasterization order access and AFBC for textures (9ca29fd-b74141a),
+with the profile retrained again (2026-10-27); and the G52 tiler's lowest
+hierarchy levels with AFBC for D32 depth attachments (d2afec5). ARMSX2 on fa1831a against
+b1c114a, each with its own profile: God of War 4.5% faster (frames
+100-1500), Jak and Daxter 1.3%; on b74141a against f35bacc: God of War on
+the ship 1.7% more, Jak and Daxter in game 0.8%, and Castlevania in Azahar
+1.4-2.3%; d2afec5 then God of War on the ship 1.7-2.7% more. 1.4 takes
+262ad73: Index-Driven Vertex Shading on v7 (98a8fdf), one Indexed Vertex job
+per draw instead of a Vertex and a Tiler job, as libmali does
+(`MALISX2_V7_IDVS=0` for the old pair); Castlevania 1.9 and 5.6% faster, the
+PS2 games within the spread. It changes malisx2's pipelineCacheUUID, so after
+the update every game compiles its pipelines once more on malisx2. With LTO and a profile it compiled Castlevania's 368 pipelines in
+7.4 s instead of 8.1 (2026-10-25).
 
-**Dolphin on malisx2 (1.4).** Two things kept Dolphin off malisx2 in 1.3.
+**Dolphin on malisx2 (1.3.1).** Two things kept Dolphin off malisx2 in 1.3.
 Its Vulkan backend makes a pool of 512 occlusion queries at start and gave
 up the whole backend when malisx2, which had timestamp pools only on the job
 manager, refused it ("Failed to create query pool"). And without geometry
@@ -883,13 +1013,15 @@ Each component caches to `Arkbuild_package_cache/<chipset>/<name>.tar.gz` with a
 `.commit` file holding its key. For most components that is the upstream tag
 or commit alone: change a compiler flag, a patch, or anything else on our side
 and the key does not move, so the cache is restored and the change does not
-happen. Fourteen recipes add a hash to the key, so a change there rebuilds:
-of the recipe and its patches (dolphinsa, ecwolfsa, flycastsa, gametank,
-malisx2, pcsx2sa, ppssppsa, retrorun, yabasanshirosa), of the recipe alone
-(dsperate, which has no patches, and fake08, whose two patches are
-upstream's and not in its key) or of the patches alone
-(emulationstation-rk3562, ogage, and retroarch, whose `retroarch.sh` is not
-in it); `git grep -l sha1sum -- 'build_*.sh'`. Kodi's key is a constant in
+happen. Most recipes add a hash to the key, so a change there rebuilds:
+of the recipe and its patches (dolphinsa, dsperate, easyrpg, ecwolfsa,
+flycastsa, gametank, gzdoom, hypseus-singe, malisx2, mednafen, openbor,
+openmsx, pcsx2sa, ppssppsa, retrorun, scummvm, solarus, xroar,
+yabasanshirosa), of the
+recipe alone (fake08, whose two patches are upstream's and not in its key)
+or of the patches alone (emulationstation-rk3562, ogage, and retroarch,
+whose `retroarch.sh` is not in it; RetroArch32's also hashes SDL2's recipe
+and patches, because its tarball carries the armhf libSDL2); `git grep -l sha1sum -- 'build_*.sh'`. Kodi's key is a constant in
 `build_kodi.sh`, bumped by hand.
 
 Two consequences worth knowing:
@@ -903,6 +1035,11 @@ Two consequences worth knowing:
   editing the tag here left the key unchanged and a stale tarball was restored
   over the new build. It reads our recipe's `TAG=` now, and since 2026-10-24
   adds a hash of the recipe and its patches, so a new patch rebuilds it.
+* Eight more did the same until 2026-10-28 (scummvm, gzdoom, mednafen,
+  openbor, openmsx, solarus, xroar, easyrpg): christianhaitian moved ScummVM
+  to v2026.4.0 on 2026-10-22, ours had not, and that day's build compiled
+  2026.3.0 and cached it as v2026.4.0, which 1.3 and 1.3.1 ship. They read
+  our recipe and hash it with its patches now.
 
 A failed build used to be cached the same way — see below.
 
@@ -1238,6 +1375,23 @@ ES also shows the full name in its menus (systems to show, emulator settings,
 scraper). Nothing else in the image reads it; ES keys its settings, gamelists
 and collections on `<name>`, which did not change.
 
+## PICO-8 three times in EMULATOR SETTINGS — fixed in 1.3.1
+
+On a dual-boot card with games in both `/roms/pico-8/carts` and GammaOS's
+`/roms/pico8`, EMULATOR SETTINGS listed PICO-8 three times. ES lists every
+system there, and with two of the aliases above holding games there were
+three: the group, which has no emulators of its own (the first entry, nothing
+to choose in it), `pico-8` and the alias `pico8`, which had the same full name.
+TurboGrafx-16, TurboGrafx-CD, Nintendo 3DS, ColecoVision, Pokemon Mini and
+Macintosh had the same full name for their aliases too; Arcade and its
+FinalBurn Neo showed one entry more.
+
+`es-0001-groups-for-alias-folders.patch` now leaves the group out of EMULATOR
+SETTINGS, and `es-aliases.py` gives an alias whose full name is its main
+system's the folder after it: "PICO-8 (pico8)", "TurboGrafx-16 (tg16)". The
+group's folders show the same names. Checked on the device on 2026-10-26:
+PICO-8 and PICO-8 (pico8), Arcade and FinalBurn Neo, nothing else twice.
+
 ## PS2: the pause menu closed the game — fixed in 1.3
 
 Select+X (PCSX2's `OpenPauseMenu`) showed the pause menu for half a second,
@@ -1289,7 +1443,7 @@ core alike. Without the extension all 72 convert pipelines build.
 for the fp16 extension next to it. LSFG is off by default and nothing in
 the image turns it on.
 
-## PS2: the sound broke up in heavy games — fixed after 1.3
+## PS2: the sound broke up in heavy games — fixed in 1.3.1
 
 ARMSX2 ran on a 50 ms audio buffer: `PCSX2.ini.rg52mini` set its output with
 the old SPU2-X keys (`OutputModule`, `Latency = 100`, `SynchMode`), which
@@ -1614,6 +1768,34 @@ caught it down for 0.7 s and for 3 s (2026-10-24).
   `ogage/patches/0001` removes it. Bluetooth is switched in Options >
   Bluetooth.
 
+## GTA San Andreas: the camera turned by itself — fixed in 1.3.1
+
+The GTA San Andreas port (folder `gtasa`, a wrapper around the Android game;
+seen in its builds v15 and v30) reads the pad through evdev itself and grabs
+it before SDL starts. It picks a layout by the pad's name, does not know
+`rk3562-joystick` ("unknown device — using R36S layout as fallback" in
+`gtasa.log`), and in that layout writes ABS_Z into the right stick's X and
+ABS_RZ into its Y, where some R36S kernels report the right stick, taking
+every axis's rest as (min + max) / 2. Here ABS_Z/ABS_RZ are L2/R2, 0..32767
+and 0 at rest: after any event of L2 the right stick sits at full left (0
+against 16383) and the camera turns until the right stick is moved; R2 does
+it to the vertical. A press does it, and so does the trigger's noise: L2 rose
+to 1000-1300, past the kernel's dead zone of 800, a few times in 30 s with
+nobody pressing it. The vendor's kernel reports the triggers on the same axes
+(`play_joystick`, 0..9, 0 at rest), and by the port's code it takes the same
+branch there.
+
+`trigaxes-off` (`trigaxes-off/`, built by `build_trigaxesoff.sh`), which
+`runport.sh` preloads for a port script naming a `gtasa` folder, drops
+ABS_Z/ABS_RZ from the process's reads of the pad; L2/R2 still reach the port
+as BTN_TL2/BTN_TR2, which it binds them to. On the console with v30: the
+camera stays, L2/R2 work (2026-10-26).
+
+GTA III and Vice City (re3/reVC from PortMaster) read the pad through SDL's
+game controller, which keeps the triggers apart from the right stick; a
+camera turning there has another cause, not looked into (their stick dead
+zones are 0 in `re3.ini`/`reVC.ini`).
+
 ## HDMI output does nothing
 
 Reported from the device on 2026-10-01: plugging a cable produces no reaction
@@ -1736,7 +1918,8 @@ running when the cable is moved keeps the output it started on until it exits.
   Disabled for all users by `finishing_touches-rk3562.sh` in 1.2
   (`systemctl --global disable fluidsynth`); a port that needs it can start
   it with `systemctl --user start fluidsynth`.
-* **ScummVM asks about "fluidsynth" in MIDI games.** Day of the Tentacle, for
+* **ScummVM asks about "fluidsynth" in MIDI games** (fixed in 1.4, see "ScummVM
+  opened every game on a dialog" above). Day of the Tentacle, for
   one, opens on "The preferred audio device 'fluidsynth' was not found ...
   Attempting to fall back to the next available device"; after OK the game
   runs on the fallback. `~/.config/scummvm/scummvm.ini` sets

@@ -105,8 +105,14 @@ def main(cfg):
         new_main[i] = add_group(main_blk, group)
         name = alias if alias not in names else alias + "_esde"
         names.add(name)
+        # Both are listed side by side (EMULATOR SETTINGS, the group's
+        # folders): a full name the same as the main system's gets the
+        # folder, "PICO-8 (pico8)".
+        shown = xml_text(fullname)
+        if shown == tag(main_blk, "fullname"):
+            shown += " (%s)" % alias
         blk = set_tag(new_main[i], "name", name)
-        blk = set_tag(blk, "fullname", xml_text(fullname))
+        blk = set_tag(blk, "fullname", shown)
         blk = set_tag(blk, "path", path + "/")
         extra.setdefault(i, []).append(blk)
         added.append("%s -> %s" % (path, group))

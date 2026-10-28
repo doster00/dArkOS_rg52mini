@@ -13,6 +13,25 @@ alone. Only `make clean_complete` throws them away.
 note in KNOWN-ISSUES first, because Kodi's dependency resolution has broken
 other components before.
 
+## Before a build: what is new upstream
+
+    tools/upstream/check.py            # at most once a day; --force to repeat
+    tools/upstream/check.py --only ARMSX2 Dolphin
+
+It lists, for every component the image builds or downloads, what upstream has
+past the version we use: newer releases of what we pin, commits after a pinned
+commit, upstream commits our forks lack, and what changed on the branches the
+build follows by itself. Our versions are read from the recipes;
+`tools/upstream/components.json` says where each pin is written, and needs a
+new row when a recipe gets a new component or moves its pin to another file.
+State and the reports are kept in `~/.cache/darkos-upstream/`.
+
+The owner's rule (2026-10-27): run it before a full build, at most once a day,
+and bring what is new to the owner rather than moving a pin. A pin is there
+because something was checked on the device at that version; DSperate was
+pinned that day after upstream's head broke on the dual-boot card. The list is
+what to decide about, not a to-do list.
+
 ## Compilers that run natively in the chroot
 
 Everything in `Arkbuild` runs under qemu, and a compiler under qemu is slow:
@@ -192,7 +211,6 @@ PERFORMANCE.md, TODO.md). These are not:
 | `retroarch-patch-0016-rk3562-oga-rotation-90` | the oga video driver turned by another 180 degrees: with `video_driver = "oga"` everything was upside down |
 | `retroarch-patches/retroarch-patch-0020-libgo2-rgba-format` | libgo2 maps XRGB8888 to `RK_FORMAT_RGBA_8888`, not BGRA: red and blue were swapped in the oga driver's RGA blits |
 | `sdl2-patch-0004-odroidgoa-kmsdrm`, `sdl2-patch-0005-odroidgoa-rotate-cursor` (this repo) | SDL2 makes landscape GBM surfaces and RGA turns each frame onto the portrait panel, and the cursor with it; `build_sdl2.sh` copies them in as 0005 and 0006 for the RG52 Mini |
-| `flycastsa-patch-004-rotate-270` | flycast's `rend.Rotate90` turns the other way, 270 degrees; it only acts with `Rotate90=yes`, which the image no longer sets since the rotate layer turns Vulkan |
 
 Dropped from upstream in the merge of 2026-10-05 (core builds' c82b722),
 because every patch that matches a recipe's glob applies on every device:

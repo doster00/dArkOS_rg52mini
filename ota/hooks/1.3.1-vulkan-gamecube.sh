@@ -1,5 +1,5 @@
 #!/bin/bash
-# 1.4: Gamecube offers the VULKAN DRIVER choice too (Dolphin starts on malisx2 since malisx2
+# 1.3.1: Gamecube offers the VULKAN DRIVER choice too (Dolphin starts on malisx2 since malisx2
 # 80994d9 and dolphinsa-patch-014). A device whose /etc/darkos/vulkan.conf is the user's own copy
 # (kept by the update, the image's beside it as vulkan.conf.ota-new) and has an es_systems line
 # without Gamecube gets it added to that line; the rest of the file stays. An untouched file is

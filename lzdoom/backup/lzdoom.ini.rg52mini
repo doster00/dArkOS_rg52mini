@@ -728,6 +728,20 @@ sv_smartaim=0
 [Doom.ConsoleAliases]
 
 [Doom.Bindings]
+Joy1=+use
+Joy2=+jump
+Joy3=turn180
+Joy4=+reload
+Joy5=+speed
+Joy6=+attack
+Joy9=togglemap
+Joy10=menu_main
+Joy13=togglemap
+Joy14=weapnext
+Joy15=weapprev
+Joy16=centerview
+Joy17=+crouch
+0=slot 0
 1=slot 1
 2=slot 2
 3=slot 3
@@ -737,20 +751,7 @@ sv_smartaim=0
 7=slot 7
 8=slot 8
 9=slot 9
-0=slot 0
 `=toggleconsole
-Joy1=+use
-Joy5=+speed
-Joy6=+attack
-Joy7=+crouch
-Joy8=+jump
-Joy11=weapprev
-Joy12=weapnext
-Joy13=togglemap
-Joy14=menu_main
-Joy16=centerview
-Joy3=turn180
-Joy4=+reload
 
 [Doom.DoubleBindings]
 
@@ -775,10 +776,12 @@ MWheelDown=am_zoom -1.2
 [Joy:JS:0]
 Axis0deadzone=0.100001
 Axis1deadzone=0.100001
-Axis2deadzone=0.100001
-Axis2map=0
+Axis2map=-1
 Axis3deadzone=0.100001
-Axis3map=1
+Axis3map=0
+Axis4deadzone=0.100001
+Axis4map=1
+Axis5map=-1
 
 [Strife.Player]
 autoaim=35
@@ -1049,6 +1052,20 @@ sv_smartaim=0
 [Strife.ConsoleAliases]
 
 [Strife.Bindings]
+Joy1=+use
+Joy3=turn180
+Joy4=+reload
+Joy5=+speed
+Joy6=+attack
+Joy7=+crouch
+Joy8=+jump
+Joy9=togglemap
+Joy10=menu_main
+Joy11=weapprev
+Joy12=weapnext
+Joy13=togglemap
+Joy16=centerview
+0=slot 0
 1=slot 1
 2=slot 2
 3=slot 3
@@ -1058,21 +1075,8 @@ sv_smartaim=0
 7=slot 7
 8=slot 8
 9=slot 9
-0=slot 0
 T=messagemode
 `=toggleconsole
-Joy1=+use
-Joy5=+speed
-Joy6=+attack
-Joy7=+crouch
-Joy8=+jump
-Joy11=weapprev
-Joy12=weapnext
-Joy13=togglemap
-Joy14=menu_main
-Joy16=centerview
-Joy3=turn180
-Joy4=+reload
 
 [Strife.DoubleBindings]
 
@@ -1363,26 +1367,27 @@ sv_smartaim=0
 [Hexen.ConsoleAliases]
 
 [Hexen.Bindings]
+Joy1=+use
+Joy3=turn180
+Joy4=+reload
+Joy5=+speed
+Joy6=+attack
+Joy7=+crouch
+Joy8=+jump
+Joy9=togglemap
+Joy10=menu_main
+Joy11=weapprev
+Joy12=weapnext
+Joy13=togglemap
+Joy16=centerview
+0=useflechette
 5=use ArtiInvulnerability2
 6=use ArtiPork
 7=use ArtiTeleportOther
 8=use ArtiTeleport
 9=use ArtiBlastRadius
-0=useflechette
 T=messagemode
 \=use ArtiHealth
-Joy1=+use
-Joy5=+speed
-Joy6=+attack
-Joy7=+crouch
-Joy8=+jump
-Joy11=weapprev
-Joy12=weapnext
-Joy13=togglemap
-Joy14=menu_main
-Joy16=centerview
-Joy3=turn180
-Joy4=+reload
 
 [Hexen.DoubleBindings]
 
@@ -1693,6 +1698,8 @@ Z=ad2_drop
 [UrbanBrawl.spdivk_keysection.DoubleBindings]
 
 [UrbanBrawl.Bindings]
+-=sizedown
+0=slot 0
 1=slot 1
 2=slot 2
 3=slot 3
@@ -1702,25 +1709,21 @@ Z=ad2_drop
 7=slot 7
 8=slot 8
 9=slot 9
-0=slot 0
--=sizedown
-Equals=sizeup
-Tab=togglemap
-W=+forward
-E=+jump
-T=messagemode
-LeftBracket=invprev
-RightBracket=invnext
 A=+moveleft
-S=+back
-D=+moveright
-`=toggleconsole
-Shift=+speed
-\=+showscores
-X=crouch
-Space=+use
 CapsLock=toggle cl_run
+D=+moveright
+DPadDown=invuse
+DPadLeft=invprev
+DPadRight=invnext
+DPadUp=togglemap
+Del=+lookdown
+E=+jump
+End=centerview
+Equals=sizeup
 F1=menu_help
+F10=menu_quit
+F11=bumpgamma
+F12=spynext
 F2=menu_save
 F3=menu_load
 F4=menu_options
@@ -1729,37 +1732,39 @@ F6=quicksave
 F7=menu_endgame
 F8=togglemessages
 F9=quickload
-F10=menu_quit
-F11=bumpgamma
-F12=spynext
-SysRq=screenshot
-Pause=pause
 Home=land
-PgUp=+moveup
-End=centerview
-PgDn=+lookup
 Ins=+movedown
-Del=+lookdown
+LShoulder=weapprev
+LThumb=crouch
+LTrigger=+altattack
+LeftBracket=invprev
+MWheelDown=weapnext
+MWheelLeft=invprev
+MWheelRight=invnext
+MWheelUp=weapprev
 Mouse1=+attack
 Mouse2=+altattack
 Mouse3=invuse
-MWheelUp=weapprev
-MWheelDown=weapnext
-MWheelRight=invnext
-MWheelLeft=invprev
-DPadUp=togglemap
-DPadDown=invuse
-DPadLeft=invprev
-DPadRight=invnext
-Pad_Start=pause
-Pad_Back=menu_main
-LThumb=crouch
-LShoulder=weapprev
-RShoulder=weapnext
-LTrigger=+altattack
-RTrigger=+attack
 Pad_A=+use
+Pad_Back=menu_main
+Pad_Start=pause
 Pad_Y=+jump
+Pause=pause
+PgDn=+lookup
+PgUp=+moveup
+RShoulder=weapnext
+RTrigger=+attack
+RightBracket=invnext
+S=+back
+Shift=+speed
+Space=+use
+SysRq=screenshot
+T=messagemode
+Tab=togglemap
+W=+forward
+X=crouch
+\=+showscores
+`=toggleconsole
 
 [UrbanBrawl.DoubleBindings]
 
@@ -2050,18 +2055,6 @@ sv_smartaim=0
 [Chex.ConsoleAliases]
 
 [Chex.Bindings]
-1=slot 1
-2=slot 2
-3=slot 3
-4=slot 4
-5=slot 5
-6=slot 6
-7=slot 7
-8=slot 8
-9=slot 9
-0=slot 0
-T=messagemode
-`=toggleconsole
 Joy1=invuse
 Joy2=+use
 Joy3=+jump
@@ -2077,10 +2070,22 @@ Joy12=weapnext
 Joy14=showpop 3
 Joy15=showpop 2
 Joy16=showpop 1
-POV1Up=+forward
-POV1Right=+moveright
+0=slot 0
+1=slot 1
+2=slot 2
+3=slot 3
+4=slot 4
+5=slot 5
+6=slot 6
+7=slot 7
+8=slot 8
+9=slot 9
 POV1Down=+back
 POV1Left=+moveleft
+POV1Right=+moveright
+POV1Up=+forward
+T=messagemode
+`=toggleconsole
 
 [Chex.DoubleBindings]
 
@@ -2152,11 +2157,11 @@ WoC_WeaponStart=false
 [Hexen.ConfigOnlyVariables.Mod]
 
 [Hexen.WOCKeysection.Bindings]
-Joy16=viewStats
 Joy2=abil1
 Joy13=abil2
 Joy14=abil3
 Joy15=abil4
+Joy16=viewStats
 
 [Hexen.WOCKeysection.DoubleBindings]
 
@@ -2441,19 +2446,6 @@ sv_smartaim=0
 [Heretic.ConsoleAliases]
 
 [Heretic.Bindings]
-1=slot 1
-2=slot 2
-3=slot 3
-4=slot 4
-5=slot 5
-6=slot 6
-7=slot 7
-8=slot 8
-9=slot 9
-0=slot 0
-Backspace=use ArtiTomeOfPower
-T=messagemode
-`=toggleconsole
 Joy1=invuse
 Joy2=+use
 Joy3=+jump
@@ -2469,10 +2461,23 @@ Joy12=weapnext
 Joy14=showpop 3
 Joy15=showpop 2
 Joy16=showpop 1
-POV1Up=+forward
-POV1Right=+moveright
+0=slot 0
+1=slot 1
+2=slot 2
+3=slot 3
+4=slot 4
+5=slot 5
+6=slot 6
+7=slot 7
+8=slot 8
+9=slot 9
+Backspace=use ArtiTomeOfPower
 POV1Down=+back
 POV1Left=+moveleft
+POV1Right=+moveright
+POV1Up=+forward
+T=messagemode
+`=toggleconsole
 
 [Heretic.DoubleBindings]
 

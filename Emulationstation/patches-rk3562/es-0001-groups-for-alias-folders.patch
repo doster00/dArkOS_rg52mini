@@ -12,7 +12,10 @@ listed at the end under the bare group name. Here:
 - the group takes the metadata (full name, theme, manufacturer ...) and the
   place in the list of the system named like it;
 - its folders are named after their systems ("FinalBurn Neo"), not after the
-  directories.
+  directories;
+- EMULATOR SETTINGS leaves the group out: it has no emulators of its own, and
+  with the main system's name it was a second entry that looked like that one
+  and did nothing.
 
 diff --git a/es-app/src/SystemData.cpp b/es-app/src/SystemData.cpp
 index e407754..ff3c190 100644
@@ -77,3 +80,18 @@ index e407754..ff3c190 100644
  		}
  	}
  }
+diff --git a/es-app/src/guis/GuiMenu.cpp b/es-app/src/guis/GuiMenu.cpp
+--- a/es-app/src/guis/GuiMenu.cpp
++++ b/es-app/src/guis/GuiMenu.cpp
+@@ -1893,6 +1893,11 @@
+ 		if (system->getName() == "options")
+ 			continue;
+ 
++		// dArkOS: a group has no emulators of its own (its envData is empty);
++		// each of its systems has an entry here, under its own name.
++		if (system->isGroupSystem())
++			continue;
++
+ 		/*if (system->getSystemEnvData()->mEmulators.size() == 0)
+ 			continue;*/
+ 

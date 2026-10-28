@@ -48,6 +48,91 @@ it. Confirmed on the device.
   found on revision B; confirmed working on a revision A unit by its owner.
   KNOWN-ISSUES has the evidence.
 
+## Upstream updates for 1.4 (2026-10-28)
+
+`tools/upstream/check.py` on 2026-10-27 found newer releases of ten components
+and twelve commits in christianhaitian's recipes. Each was read (what changed,
+whether our patches apply, what the recipe needs), built in a chroot of the
+cached rootfs as the image build does, and tried on the console against
+1.3.1's build, with the new files bound over the image's for the run.
+
+| Component | Taken | On the console (fps, against 1.3.1) |
+|---|---|---|
+| Azahar | 2126.1.2 -> 2126.2, GammaOS's 1feeb9c2d16 as patch 019 | Super Mario 3D Land 58.8 / 59.1 (seven runs each, within the spread), Castlevania 21.5 / 21.5; 1.3 states and pipeline caches load |
+| ARMSX2 | a7ad453 -> 2.9, the profile retrained | Jak's intro 34.1 / 34.2, God of War on the ship 20.7 / 21.1 |
+| Dolphin | e6583f8 (2023) -> 2609a | ND Demo 45.7 / 45.6, 46.3 with AccurateFmadds and PrecisionFrameTiming off (the image's setting); Metroid Prime starts, Hotkey+Start quits |
+| flycast | v2.6 -> v2.7 and four fixes from master | Crazy Taxi 59.9; kov7sprt keeps its NVRAM |
+| ScummVM | 2026.3.0 -> 2026.4.0 | Day of the Tentacle, now with FluidSynth |
+| openMSX | 17.0 -> 19.1 | C-BIOS (no MSX game on the card) |
+| XRoar | 1.11 -> 1.12.1 | the Dragon 32's BASIC (no game on the card) |
+| gl4es | 2037865 -> 1891af3 | not run: Don't Starve brings its own |
+| retrorun | pinned at 0784f21, what 1.3.1 ships | — |
+| christianhaitian's recipes | merged to ef273c8 | of the image only ScummVM |
+
+* **ARMSX2's profile.** With a7ad453's profile 2.9 was 3% slower on Jak's
+  intro and 4% on God of War: the GS code 2.9 changed (GSRendererHW::Draw,
+  the texture cache) had no profile data, and the Vulkan changes were not it
+  (2.9 without them measured the same). An instrumented 2.9 was run on the
+  console (Jak from boot to its title, Jak and God of War from the owner's
+  savestates, God of War on the ship; one Jak run gave an "invalid profile",
+  probably counters racing between threads, and was run again) and merged
+  with the old profile, each about the same total count: clang takes for a
+  function the record that fits its code, so unchanged functions keep the
+  owner's play and changed ones get 2.9's. The God of War savestate of the
+  owner stops in its pause menu; the run presses Cross 15 s in. The amd64
+  clang of xtool has no aarch64 profile runtime: an instrumented build
+  passes `-resource-dir=/usr/lib/llvm-19/lib/clang/19`, the chroot's.
+* **ARMSX2's AutoTune** is off by default in 2.9 and was on in 1.3 (our
+  template had no key): Jak's intro 32.2 without it, 33.2 with it. Kept on;
+  the launcher adds the key once to an ini without it.
+* **Dolphin 2609a** turned AccurateFmadds and PrecisionFrameTiming on; off
+  again in our Dolphin.ini and, once, in a user's (dolphin.sh).
+* **Not tried yet:** Dolphin on malisx2 (it starts there since 1.3.1),
+  flycast on its other renderers, gl4es 1891af3 with a port that uses the
+  system's, openMSX and XRoar with real games.
+
+Left, and why:
+
+* **DuckStation** (0.1-10495 -> 12083): upstream removed the frontend that
+  runs without a display server (the "mini" one we ship) in March 2026; 12083
+  is Qt only and needs Wayland or X. Its licence (CC BY-NC-ND 4.0, README:
+  pre-configured settings and packages count as modifications): since 1.4
+  the image carries no settings in DuckStation's folder, the launcher makes
+  them on the first start (KNOWN-ISSUES, DuckStation), and the owner wrote to
+  its author.
+* **UZDoom** (GZDoom's continuation, 4.14.3 / 5.0.3; GZDoom has had no
+  release since g4.14.2): a migration, not an update (binary, config and save
+  paths renamed; 5.x reworks controller input and dynamic lights). The owner
+  decided on 2026-10-28: not until users ask for it, or the work may be for
+  nothing; the upstream check lists it as kept on purpose.
+* **openMSX 20 and later**: OpenGL 2.1 only (gl4es), an ImGui GUI, scale
+  factor 2 at least. A project of its own.
+* **Hypseus-Singe 3.x**: SDL3 with SDL3_ttf, _image and _mixer; the sdl2 line
+  stopped at v2.12.1, which we have.
+* **OpenBOR**: the 2022 pin is deliberate (christianhaitian went back to it
+  for 3.x paks); master dropped its Makefile.
+* **Azahar 2127.0** (alpha: new save state fields, every shader cache
+  rebuilt) and azahar-nano's e62a0042457 (the right-eye disabler by
+  framebuffer), which as it is would switch off our stereo_skip (patches
+  013/014): it needs adapting and a check on Castlevania.
+* **ARMSX2 after 2.9**: the VU program cache rewritten as one pack per game
+  in RAM (a day old, up to 128 MB here) and a COP2 clamp change in the JIT.
+  master e3c7d21 tried once with 2.9's profile (2026-10-28): Jak's intro 30.2
+  fps against 33.9, God of War on the ship 21.6 against 20.7; the first run
+  may have been rebuilding its new cache. Measure it again before taking it.
+* **The PlayStation emulators compared** (2026-10-28, as ES starts them, 15 s
+  after the warm-up, CPU of the whole system): Hover Racing, Double Dragon and
+  Final Fantasy IX run at full speed on all four. CPU: RetroArch32
+  pcsx_rearmed (ES's default) 9 / 6 / 7%, standalone DuckStation 6 / 7 / 10%,
+  the RetroArch duckstation and swanstation cores 15-17 / 10-11 / 17%. So
+  standalone DuckStation brings no speed the image would miss without it.
+  Side note: pcsx_rearmed shows Final Fantasy IX (the RGR Russian disc,
+  SLUS-01251) at 50 fps with the region at auto, the others at 60.
+* **GZDoom on the RG52**: checked with Freedoom, and fixed for LZDoom too
+  (KNOWN-ISSUES, "Doom: the player turned by himself").
+* **Dolphin after 2609a**: #14388 and #14853 (JIT) apply with offsets; worth
+  a measurement.
+
 ## Check on the device what the upstream sync of 2026-10-05 brought
 
 The sync with christianhaitian/dArkOS and rk3566_core_builds (see the commits
@@ -136,9 +221,9 @@ with the next change there:
 - **Kodi**: its key is a constant bumped by hand, and `build_kodi.sh` has no
   `verify_action`; kodi-install's "There was an issue applying" is not one of
   the messages `scripts/audit-components.sh` looks for.
-- **ScummVM**: `build_scummvmsa.sh` keys on christianhaitian's network copy of
-  the recipe (v2026.4.0) while our fork builds v2026.3.0, so the key names
-  the wrong version.
+- **ScummVM**: `build_scummvmsa.sh` keyed on christianhaitian's network copy
+  of the recipe (v2026.4.0) while our fork built v2026.3.0 — fixed on
+  2026-10-28 for it and seven more recipes (KNOWN-ISSUES, the build cache).
 - **Patches without a header** (what and why): `azahar-patch-001`,
   `retrorun-patch-0002`, `ppsspp-patch-010`, `dolphinsa-patch-011`, the core
   builds' `sdl2-patch-0005-drm-connector`, this repo's `sdl2-patch-0004` and
@@ -148,18 +233,17 @@ with the next change there:
   upstream's code under "From: dArkOS RG52 Mini port", where 015 names
   GammaOS. A header changes the patch and so the key: add one when the patch
   is next touched.
-- **Rotation patches the rotate layer made idle**: `flycastsa-patch-004`
-  (Rotate90 stays off), `ppsspp-patch-010` and `dolphinsa-patch-011` (the
-  layer gives them a landscape swapchain; KNOWN-ISSUES.md, VK_LAYER_DARKOS_rotate).
-  Candidates for removal once checked on the device.
+- **Rotation patches the rotate layer made idle**: `ppsspp-patch-010` (the
+  layer gives PPSSPP a landscape swapchain; KNOWN-ISSUES.md,
+  VK_LAYER_DARKOS_rotate), a candidate for removal once checked on the
+  device. `flycastsa-patch-004` and `dolphinsa-patch-011` went with flycast
+  2.7 and Dolphin 2609a.
 
 ## Found while testing 1.2 (2026-10-18)
 
-* **ScummVM's MIDI device.** Its ini asks for `fluidsynth`, which this
-  ScummVM build does not have, so MIDI games open on a "device not found"
-  dialog (KNOWN-ISSUES, smaller things). Either build ScummVM with
-  libfluidsynth and ship a SoundFont, or set `gm_device`/`mt32_device` to
-  something it has.
+* **ScummVM's MIDI device** — done for 1.4: ScummVM is built with
+  FluidSynth and the config names Debian's FluidR3_GM soundfont
+  (KNOWN-ISSUES, "ScummVM opened every game on a dialog").
 * **Speaker volume.** The DAC stays at −20 dB, which is what keeps the
   low-battery reset away (KNOWN-ISSUES). If the speaker is to get louder,
   take the battery-dependent limit the GammaOS port is writing for the rk817
@@ -267,7 +351,7 @@ first, with the times of the 2026-10-19 build:
   Kodi's 71 addons spent most of a 43-hour build there (KNOWN-ISSUES); it is
   cached, so this matters only when it has to be built again.
 
-## Dolphin on malisx2: why it did not start (found 2026-10-26, fixed for 1.4)
+## Dolphin on malisx2: why it did not start (found 2026-10-26, fixed for 1.3.1)
 
 1.3 left Gamecube out of the systems that offer MALISX2: Dolphin did not
 start on malisx2. Two causes, both fixed (KNOWN-ISSUES.md, "Dolphin on
@@ -844,7 +928,8 @@ the image).
 * **N64 in RetroArch:** its GLideN64 builds without NEON; the makefile change
   is about 5 lines.
 * **Left alone.**
-  * DuckStation: its licence forbids shipping a patched build.
+  * DuckStation: its licence forbids shipping a patched build (and
+    pre-configured settings: KNOWN-ISSUES, DuckStation).
   * PPSSPP: wait for 1.21.
   * The libretro flycast is 4c293f3, from 2022.
 
@@ -1051,7 +1136,7 @@ Done since:
   dArkOS root mounted as the chroot: 33 minutes from nothing, cached by commit,
   recipe, patches and profile after that.
 * Its compiler on the CPU, see "malisx2's compiler: LTO and a profile" below.
-* ARMSX2's draw path on v7 (the fork's f35bacc, in 1.4; the malisx2 session,
+* ARMSX2's draw path on v7 (the fork's f35bacc, in 1.3.1; the malisx2 session,
   its docs/changes.md): fewer compute copy jobs per draw, a stage's tables and
   FAU block kept when a new pipeline would build them the same (copies per
   draw: God of War 2.53 to 2.12, Jak and Daxter 1.97 to 1.82), the same
@@ -1059,6 +1144,38 @@ Done since:
   100-1500; 7.1% over 800-1500), Jak 1.3%, each on its own profile; 0.7% and
   1.4% with neither profiled. Luigi's Mansion's 269 pipelines compile in
   2.93 s against 2.92.
+* On top of it the fork's 38e50a5 (b74141a's code, 2026-10-27; in 1.3.1): v7
+  descriptor tables without images and the uniform words filled on the CPU,
+  the words read from uncached memory in runs by memcpy
+  (`mali_v7_host_ubo_run` 0.95% of Jak and Daxter's samples before, under
+  0.3% after); forward pixel kill kept for draws that read no colour
+  attachment under rasterization order access (`MALISX2_V7_FPK_ROA=0` for
+  the old way); AFBC for textures too (`MALISX2_V7_AFBC_TEX=0`; God of War
+  reads 8-9% less texture data from memory). With the profile retrained on
+  it, against f35bacc on its own, three rounds: Castlevania 16.39 to 16.77
+  fps (frames 60-360) and 15.68 to 15.90 (360-660), God of War on the ship
+  21.71 to 22.09 (100-1500), Jak and Daxter in game 15.46 to 15.59
+  (100-800), each faster in every round; Jak's intro and God of War from the
+  owner's save within the spread. The same picture. Pipelines compile as
+  fast as before (compbench, malisx2's cache deleted, builds in turn):
+  Castlevania's 415 in 8674 ms against 8650 (+0.3%, four runs each), Luigi's
+  Mansion's 288 in 2991 against 2970 (+0.7%, two runs), within the spread.
+* Then 5eccf34 (d2afec5's code, 2026-10-27; in 1.3.1): the tiler's hierarchy
+  mask on the G52 is 0x0a, bins of 32 and 128 px as libmali uses, instead of
+  0x82 (`MALISX2_JM_HIER_MASK=130` for the old one), and D32 depth
+  attachments are AFBC (`MALISX2_V7_AFBC_DEPTH=0` to turn it off). Three
+  rounds, both together: God of War on the ship 1.7-2.7% faster, from the
+  owner's save (100-800) 1.9%; Jak and Daxter and Castlevania within the
+  spread. Tiler work 16% less, tile writes to memory 20% less, texture reads
+  14-17% less. The profile stays the one trained on b74141a.
+* Then 262ad73 (98a8fdf's code, 2026-10-28; for 1.4): IDVS on v7, the
+  compiler splits a vertex shader into its position and varying parts and a
+  draw is one Indexed Vertex job instead of Vertex + Tiler (1.2 jobs a draw
+  in God of War instead of 2, GPU per quad 1-2% less). Castlevania 1.9 and
+  5.6% faster (two rounds), God of War and Jak and Daxter within the spread
+  (-0.9 to +1.3%), the same picture. `MALISX2_V7_IDVS=0` turns it off and has
+  its own pipeline cache; the pipelineCacheUUID changes, so games compile
+  their pipelines again once. Not tried yet with PPSSPP, flycast or ports.
 * Where Castlevania's time goes on it, see below. The vertex side is the work:
   IDVS and descriptors/uniforms written by the CPU, in malisx2 (upstream's to
   do).
@@ -1142,6 +1259,10 @@ the push descriptors, `mali_v7_desc_refresh`, `mali_v7_ubo_copy` and
 does, 75-90 s each of Jak and Daxter (its intro and a save), God of War (a
 savestate on the ship) and the Burnout 3 demo, as on the A53 ARMSX2 waits on
 the driver's CPU side too. How to make one: malisx2's docs/building.md.
+Retrained 2026-10-27 on b74141a (the image's 38e50a5, same sources) after
+the CPU-side copies and AFBC for textures: the two 3DS games, God of War on
+the ship, Jak and Daxter's intro and Jak and Daxter in game from the owner's
+save (no Burnout 3 this time).
 
 perf over the preload: 79% in the driver, 11% libc (malloc/free and their
 internals), 7% kernel. In the driver no hot spot: Bifrost register allocation
@@ -1270,6 +1391,16 @@ and rk628 probe order before concluding anything about the hardware.
 
 ## Open questions on the device
 
+* **L2's noise passes the kernel's dead zone** (2026-10-26). With a game
+  running and nobody pressing it, ABS_Z rose to 1073 and 1272 a few times in
+  30 s (`TRIG_DZ_OUTPUT` 800 in `rk3562-joystick.c`, whose comment has the
+  noise peaking at 536); R2 stayed 0. Harmless to programs that read the
+  trigger as a trigger, and the GTA San Andreas port, which did not, has
+  `trigaxes-off` (KNOWN-ISSUES.md). The vendor's driver starts its 0..9 at
+  about 125 mV of a trigger resting near 11 mV. If a game is found to react,
+  widen the dead zone (and scale the rest of the travel to the full range),
+  after a measurement with the console lying untouched; the right stick's Y
+  showed one jump to -4793 in the same run, which also wants that.
 * **Is the speaker click gone?** `spk-mute-delay-ms = <100>` is in the device
   tree and the GPIO reads `out lo` in silence, which is necessary but does not
   prove the click went away. Needs an ear.

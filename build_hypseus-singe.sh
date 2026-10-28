@@ -1,7 +1,12 @@
 #!/bin/bash
 
 # Build and install Hypseus-singe standalone emulator
-if [ -f "Arkbuild_package_cache/${CHIPSET}/hypseus-singe.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/hypseus-singe.commit)" == "$(curl -s https://api.github.com/repos/DirtBagXon/hypseus-singe/commits/sdl2 | jq -r '.sha')" ]; then
+# Cache key: the head of the sdl2 branch and a hash of our recipe and the
+# patches it copies, as in build_fake08.sh. The branch stopped at v2.12.1,
+# "the last sdl2 version", so with its head alone a change of ours never
+# rebuilt.
+HYPSEUS_KEY="$(curl -s https://api.github.com/repos/DirtBagXon/hypseus-singe/commits/sdl2 | jq -r '.sha')-$(cat ${CHIPSET}_core_builds/scripts/hypseus-singe.sh ${CHIPSET}_core_builds/patches/hypseussinge-patch* 2>/dev/null | sha1sum | cut -c1-12)"
+if [ -f "Arkbuild_package_cache/${CHIPSET}/hypseus-singe.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/hypseus-singe.commit)" == "${HYPSEUS_KEY}" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/hypseus-singe.tar.gz
 else
 	call_chroot "source /root/.bashrc && cd /home/ark &&
@@ -28,7 +33,7 @@ else
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/hypseus-singe.commit
 	fi
 	sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/hypseus-singe.tar.gz Arkbuild/opt/hypseus-singe/ 
-	sudo git --git-dir=Arkbuild/home/ark/${CHIPSET}_core_builds/hypseus-singe/.git --work-tree=Arkbuild/home/ark/${CHIPSET}_core_builds/hypseus-singe rev-parse HEAD > Arkbuild_package_cache/${CHIPSET}/hypseus-singe.commit
+	echo "${HYPSEUS_KEY}" > Arkbuild_package_cache/${CHIPSET}/hypseus-singe.commit
 fi
 sudo cp hypseus-singe/configs/hypinput_gamepad.ini.${UNIT} Arkbuild/opt/hypseus-singe/hypinput_gamepad.ini
 sudo cp hypseus-singe/configs/gamecontrollerdb.txt Arkbuild/opt/hypseus-singe/gamecontrollerdb.txt

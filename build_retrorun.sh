@@ -12,8 +12,10 @@ fi
 # alone would keep restoring a binary built without it.
 RR_RECIPE_SHA=$(cat ${CHIPSET}_core_builds/scripts/retrorun.sh ${CHIPSET}_core_builds/patches/retrorun-patch* 2>/dev/null | sha1sum | cut -c1-12)
 # The key stored after a build is this one: the clone's HEAD is the miniloong
-# branch by then (retrorun.sh checks it out last), so it never matched.
-RR_KEY="$(curl -s https://api.github.com/repos/navy1978/retrorun/commits/master | jq -r '.sha')-${RR_RECIPE_SHA}"
+# branch by then (retrorun.sh checks it out last), so it never matched. Its
+# first part is the commit our recipe pins and checks out; master's head, used
+# before, rebuilt the same code after every push upstream.
+RR_KEY="$(grep -oP '(?<=^commit=")[0-9a-f]+' ${CHIPSET}_core_builds/scripts/retrorun.sh)-${RR_RECIPE_SHA}"
 
 if [ -f "Arkbuild_package_cache/${CHIPSET}/retrorun.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/retrorun.commit)" == "$RR_KEY" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/retrorun.tar.gz

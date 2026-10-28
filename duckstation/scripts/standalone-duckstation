@@ -10,6 +10,15 @@ filename="${filename%.*}"
 
 directory=$(dirname "$3" | cut -d "/" -f2)
 
+# First start: DuckStation's settings are made from dArkOS's (build_duckstationsa.sh says
+# why the image does not put them in DuckStation's folder); from then on they are the
+# user's, changed in DuckStation's menus, and left alone here.
+ds="$HOME/.local/share/duckstation"
+mkdir -p "$ds"
+for f in settings.ini gamecontrollerdb.txt; do
+  [ -f "$ds/$f" ] || cp "/usr/local/share/darkos/duckstation/$f" "$ds/$f"
+done
+
 if [ ! -d "/$directory/psx/savestates" ]; then
     mkdir -p "/$directory/psx/savestates"
 fi

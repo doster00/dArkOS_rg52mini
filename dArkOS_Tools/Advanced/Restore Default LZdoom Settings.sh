@@ -3,7 +3,13 @@
 DEVICE=""
 CONFIG=""
 
-if [ -f "/boot/rk3326-rg351v-linux.dtb" ]; then
+if [ "$(cat ~/.config/.DEVICE 2>/dev/null)" == "RG52MINI" ]; then
+  DEVICE="RG52 Mini"
+  CONFIG="lzdoom.ini.rg52mini"
+elif [ "$(cat ~/.config/.DEVICE 2>/dev/null)" == "RG43H" ]; then
+  DEVICE="RG43H"
+  CONFIG="lzdoom.ini.rg43h"
+elif [ -f "/boot/rk3326-rg351v-linux.dtb" ]; then
   DEVICE="RG351V"
   CONFIG="lzdoom.ini.351v"
 elif [ -f "/boot/rk3326-rg351mp-linux.dtb" ] || [ -f "/boot/rk3326-g350-linux.dtb" ]; then

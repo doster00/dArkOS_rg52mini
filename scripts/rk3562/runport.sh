@@ -74,6 +74,16 @@ if grep -q "control\.txt" "$port" 2>/dev/null; then
 	install_portmaster
 fi
 
+# The GTA San Andreas port (folder gtasa) reads the pad through evdev itself
+# and takes L2/R2's analog axes for the right stick: after a touch of a
+# trigger, or its noise, the camera turned until the right stick was moved.
+# trigaxes-off hides those two axes from it; L2/R2 still reach it as buttons
+# (trigaxes-off/trigaxes-off.c).
+trigaxes_off=/usr/lib/aarch64-linux-gnu/trigaxes-off/libtrigaxes-off.so
+if [ -f "$trigaxes_off" ] && grep -qE "/gtasa([\"'/ }]|\$)" "$port" 2>/dev/null; then
+	export LD_PRELOAD="$trigaxes_off${LD_PRELOAD:+:$LD_PRELOAD}"
+fi
+
 # A script without the execute bit still runs, through bash.
 
 if grep -q "control\.txt" "$port" 2>/dev/null || [ "$(id -u)" -eq 0 ]; then

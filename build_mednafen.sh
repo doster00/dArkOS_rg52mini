@@ -1,7 +1,13 @@
 #!/bin/bash
 
 # Build and install Mednafen
-if [ -f "Arkbuild_package_cache/${CHIPSET}/mednafen.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/mednafen.commit)" == "$(curl -s https://raw.githubusercontent.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds/refs/heads/master/scripts/mednafen.sh | grep -oP '(?<=tarname=").*?(?=")')" ]; then
+# Cache key as in build_scummvmsa.sh: our recipe's pin and a hash of it and its patches.
+if [ "$CHIPSET" == "rk3562" ]; then
+  MEDNAFEN_KEY="$(grep -oP '(?<=tarname=").*?(?=")' rk3562_core_builds/scripts/mednafen.sh | head -1)-$(cat rk3562_core_builds/scripts/mednafen.sh rk3562_core_builds/patches/mednafen-patch* 2>/dev/null | sha1sum | cut -c1-12)"
+else
+  MEDNAFEN_KEY="$(curl -s https://raw.githubusercontent.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds/refs/heads/master/scripts/mednafen.sh | grep -oP '(?<=tarname=").*?(?=")')"
+fi
+if [ -f "Arkbuild_package_cache/${CHIPSET}/mednafen.tar.gz" ] && [ "$(cat Arkbuild_package_cache/${CHIPSET}/mednafen.commit)" == "${MEDNAFEN_KEY}" ]; then
     sudo tar -xvzpf Arkbuild_package_cache/${CHIPSET}/mednafen.tar.gz
 else
 	call_chroot "cd /home/ark &&
@@ -19,7 +25,7 @@ else
 	  sudo rm -f Arkbuild_package_cache/${CHIPSET}/mednafen.commit
 	fi
 	sudo tar -czpf Arkbuild_package_cache/${CHIPSET}/mednafen.tar.gz Arkbuild/opt/mednafen/
-	sudo curl -s https://raw.githubusercontent.com/christianhaitian/${CORE_BUILDS_CHIPSET}_core_builds/refs/heads/master/scripts/mednafen.sh | grep -oP '(?<=tarname=").*?(?=")' > Arkbuild_package_cache/${CHIPSET}/mednafen.commit
+	echo "${MEDNAFEN_KEY}" > Arkbuild_package_cache/${CHIPSET}/mednafen.commit
 fi
 sudo mkdir -p Arkbuild/home/ark/.mednafen
 sudo cp mednafen/configs/mednafen.cfg.${UNIT} Arkbuild/home/ark/.mednafen/mednafen.cfg
