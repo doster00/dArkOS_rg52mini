@@ -119,6 +119,19 @@ Left, and why:
   013/014): it needs adapting and a check on Castlevania.
 * **ARMSX2 after 2.9**: the VU program cache rewritten as one pack per game
   in RAM (a day old, up to 128 MB here) and a COP2 clamp change in the JIT.
+  master e3c7d21 tried once with 2.9's profile (2026-10-28): Jak's intro 30.2
+  fps against 33.9, God of War on the ship 21.6 against 20.7; the first run
+  may have been rebuilding its new cache. Measure it again before taking it.
+* **The PlayStation emulators compared** (2026-10-28, as ES starts them, 15 s
+  after the warm-up, CPU of the whole system): Hover Racing, Double Dragon and
+  Final Fantasy IX run at full speed on all four. CPU: RetroArch32
+  pcsx_rearmed (ES's default) 9 / 6 / 7%, standalone DuckStation 6 / 7 / 10%,
+  the RetroArch duckstation and swanstation cores 15-17 / 10-11 / 17%. So
+  standalone DuckStation brings no speed the image would miss without it.
+  Side note: pcsx_rearmed shows Final Fantasy IX (the RGR Russian disc,
+  SLUS-01251) at 50 fps with the region at auto, the others at 60.
+* **GZDoom on the RG52** (axis 2 may turn the player, D-pad up opens the
+  menu): to check with a WAD, e.g. Freedoom; there is none on the card.
 * **Dolphin after 2609a**: #14388 and #14853 (JIT) apply with offsets; worth
   a measurement.
 
