@@ -1083,6 +1083,14 @@ Done since:
   owner's save (100-800) 1.9%; Jak and Daxter and Castlevania within the
   spread. Tiler work 16% less, tile writes to memory 20% less, texture reads
   14-17% less. The profile stays the one trained on b74141a.
+* Then 262ad73 (98a8fdf's code, 2026-10-28; for 1.4): IDVS on v7, the
+  compiler splits a vertex shader into its position and varying parts and a
+  draw is one Indexed Vertex job instead of Vertex + Tiler (1.2 jobs a draw
+  in God of War instead of 2, GPU per quad 1-2% less). Castlevania 1.9 and
+  5.6% faster (two rounds), God of War and Jak and Daxter within the spread
+  (-0.9 to +1.3%), the same picture. `MALISX2_V7_IDVS=0` turns it off and has
+  its own pipeline cache; the pipelineCacheUUID changes, so games compile
+  their pipelines again once. Not tried yet with PPSSPP, flycast or ports.
 * Where Castlevania's time goes on it, see below. The vertex side is the work:
   IDVS and descriptors/uniforms written by the CPU, in malisx2 (upstream's to
   do).

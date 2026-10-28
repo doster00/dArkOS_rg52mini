@@ -522,7 +522,12 @@ hierarchy levels with AFBC for D32 depth attachments (d2afec5). ARMSX2 on fa1831
 b1c114a, each with its own profile: God of War 4.5% faster (frames
 100-1500), Jak and Daxter 1.3%; on b74141a against f35bacc: God of War on
 the ship 1.7% more, Jak and Daxter in game 0.8%, and Castlevania in Azahar
-1.4-2.3%; d2afec5 then God of War on the ship 1.7-2.7% more. With LTO and a profile it compiled Castlevania's 368 pipelines in
+1.4-2.3%; d2afec5 then God of War on the ship 1.7-2.7% more. 1.4 takes
+262ad73: Index-Driven Vertex Shading on v7 (98a8fdf), one Indexed Vertex job
+per draw instead of a Vertex and a Tiler job, as libmali does
+(`MALISX2_V7_IDVS=0` for the old pair); Castlevania 1.9 and 5.6% faster, the
+PS2 games within the spread. It changes malisx2's pipelineCacheUUID, so after
+the update every game compiles its pipelines once more on malisx2. With LTO and a profile it compiled Castlevania's 368 pipelines in
 7.4 s instead of 8.1 (2026-10-25).
 
 **Dolphin on malisx2 (1.3.1).** Two things kept Dolphin off malisx2 in 1.3.
