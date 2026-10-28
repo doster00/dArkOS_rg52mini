@@ -1727,6 +1727,19 @@ dual-boot card GammaOS's `n3ds` is an alias of it. Encrypted dumps do not run.
   Castlevania's intro: 50.1 ms of GPU a frame before, 48.7 after on libmali;
   64.0 and 63.1 on malisx2 (TODO.md, "Where Castlevania's GPU time goes on
   malisx2").
+- **A progress bar while the shader cache loads** (`azahar-patch-027`,
+  2026-10-28). A game whose cache another build made compiles all its
+  pipelines again at start (Castlevania 626, about a minute), and the core did
+  it in `context_reset`, where RetroArch presents nothing: a black screen that
+  looked like a hang. The load now runs on a thread from the first
+  `retro_run`, which meanwhile presents RetroArch's progress message
+  ("Compiling shaders: n / m"), shown only once the load has taken a second.
+  A savestate RetroArch loads meanwhile (the entry state from ES's "-e") is
+  kept and loaded when the cache is done: a first build waited for the cache
+  in RetroArch's undo copy before it, on RetroArch's thread, and the screen
+  was black again. Checked on the console with Castlevania and an empty
+  pipeline cache, without a savestate and from slot 0: the bar went 17, 147,
+  325 of 626 at 8, 25 and 45 s, the game ran at 75 s.
 - **RetroArch's FPS counter costs about 20%** on the vulkan driver (29.7 fps
   without it, 24.3 with it, same savestate, 2126.2). Measure without it.
 - **RGA scaling** (`video_ctx_scaling`) changes nothing on the vulkan driver
