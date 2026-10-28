@@ -96,8 +96,10 @@ Left, and why:
 * **DuckStation** (0.1-10495 -> 12083): upstream removed the frontend that
   runs without a display server (the "mini" one we ship) in March 2026; 12083
   is Qt only and needs Wayland or X. Its licence (CC BY-NC-ND 4.0, README:
-  pre-configured settings and packages count as modifications) is a question
-  for the owner, also for the build shipped now.
+  pre-configured settings and packages count as modifications): since 1.4
+  the image carries no settings in DuckStation's folder, the launcher makes
+  them on the first start (KNOWN-ISSUES, DuckStation), and the owner wrote to
+  its author.
 * **UZDoom** (GZDoom's continuation, 4.14.3 / 5.0.3; GZDoom has had no
   release since g4.14.2): a migration, not an update (binary, config and save
   paths renamed; 5.x reworks controller input and dynamic lights). The owner
@@ -915,7 +917,8 @@ the image).
 * **N64 in RetroArch:** its GLideN64 builds without NEON; the makefile change
   is about 5 lines.
 * **Left alone.**
-  * DuckStation: its licence forbids shipping a patched build.
+  * DuckStation: its licence forbids shipping a patched build (and
+    pre-configured settings: KNOWN-ISSUES, DuckStation).
   * PPSSPP: wait for 1.21.
   * The libretro flycast is 4c293f3, from 2022.
 

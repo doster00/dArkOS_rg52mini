@@ -266,6 +266,25 @@ OPP table starts at 300; the NPU list is untouched. `drivers/rknpu/` also parks
 at 200 MHz — fine with this BL31, but needs the same check if a future table
 drops the NPU's lowest step.
 
+## DuckStation: its licence, and settings made on the first start (1.4)
+
+DuckStation is CC BY-NC-ND 4.0. Its README allows "unmodified releases and
+code" to be passed on and says "pre-configured settings and packages are
+considered modifications"; newer READMEs also forbid publishing modified
+versions, patches included. The image carries upstream's AppImage
+(0.1-10495, the "mini" frontend, the last that runs without a display
+server) unmodified, renamed `/opt/duckstation/duckstationsa`. Up to 1.3.1
+it also put our settings.ini and controller DB into DuckStation's folder.
+Since 1.4 those wait in `/usr/local/share/darkos/duckstation`, and
+`standalone-duckstation` copies them into `~/.local/share/duckstation` on the
+first start when they are not there, as a user would set them; afterwards
+they are the user's and the launcher leaves them alone. An update from
+1.3.1 keeps a settings.ini DuckStation has written (it does on every exit)
+and deletes an untouched one, which the next start makes again. The owner
+chose this on 2026-10-28, knowing it is a grey zone, and wrote to
+DuckStation's author about it. Newer DuckStation (0.1-12083) is Qt only,
+needs Wayland or X, and is not taken (TODO.md, upstream updates for 1.4).
+
 ## ScummVM opened every game on a dialog — fixed in 1.4
 
 Up to 1.3.1 every ScummVM game started on "The preferred audio device
