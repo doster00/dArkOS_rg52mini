@@ -1848,6 +1848,51 @@ possibly non-existent connector.
 
 Where to start is in TODO.
 
+### Measured on the device, 2026-10-28: HDMI works, nothing follows the cable
+
+Checked on a running rg52mini (kernel 5.10.226, dArkOS 1.3.1) with a cable
+connected, over ssh. This corrects two of the three reasons above and confirms
+the third.
+
+* **The connector name is right.** `card0-HDMI-A-1` exists, reads `connected`,
+  has a 256-byte EDID and a mode list starting at 1920x1080; extcon `4-0050`
+  (the RK628) reports `HDMI=1`. So the hardcoded name, and with it
+  `video=HDMI-A-1:1280x720@60` on the kernel command line, are fine (reason 1).
+* **`drmConn=1` is the right index** (reason 3): EmulationStation started with
+  it comes up on `HDMI-A-1`.
+* **There is one CRTC.** VOP2 exposes only `video_port0`, shared by `DSI-1` and
+  `HDMI-A-1`, so the panel and HDMI are never on at the same time, and the kernel
+  logs `drm_client: HDMI connected, disabling internal panel` on a plug. Which
+  one EmulationStation drives is decided only when it **starts**, from
+  `/var/run/drmConn`.
+* **The actual defect is reason 2.** With the cable connected: `drmConn=0` and
+  an EmulationStation restart stays on the panel; `drmConn=1` and a restart gives
+  a 1920x1080p60 picture through the RK628 (`rk628 4-0050: src 1920x1080
+  clock:148500`). A cable present at boot works because `hdmi-test.sh` writes
+  `1`. A cable plugged in later does nothing, and unplugging leaves
+  EmulationStation on an output that no longer exists, so the panel does not come
+  back. (Cable present at boot working, and the unplug behaviour, are the
+  owner's observations; the two restarts above are what was run on the device.)
+
+**Fix:** `scripts/rk3562/hdmi-hotplug.sh`, run by
+`scripts/rk3562/99-hdmi-hotplug.rules` on every DRM change event (the same event
+that already drives `audio-switch.sh`). It waits 2 s for the bridge, compares the
+HDMI status with `drmConn`, and on a difference rewrites `drmConn` and restarts
+EmulationStation, but only when EmulationStation is the thing on screen; during
+a game it just records the choice for the next start. `finishing_touches-rk3562.sh`
+installs both.
+
+**Found while testing the unplug:** switching to HDMI also leaves the internal
+backlight at 0 (`/sys/class/backlight/backlight/brightness`), and nothing puts it
+back, so after the switch to the panel the screen was black although
+EmulationStation and the DSI link were up. The last non-zero value is kept by
+`99-darkos-brightness.rules` in `/run/darkos-brightness`; `hdmi-hotplug.sh`
+restores it when it switches back to the panel.
+
+Not covered: the picture stays 1920x1080, so a port or emulator that wants the
+panel's 720x1280 gets whatever it asks of the HDMI mode list; and a game that is
+running when the cable is moved keeps the output it started on until it exits.
+
 ## Smaller things
 
 * **No plymouth.** The command line carries `quiet splash` and
