@@ -1878,8 +1878,10 @@ the third.
 `scripts/rk3562/99-hdmi-hotplug.rules` on every DRM change event (the same event
 that already drives `audio-switch.sh`). It waits 2 s for the bridge, compares the
 HDMI status with `drmConn`, and on a difference rewrites `drmConn` and restarts
-EmulationStation, but only when EmulationStation is the thing on screen; during
-a game it just records the choice for the next start. `finishing_touches-rk3562.sh`
+EmulationStation. EmulationStation stays alive while a game runs (the game is its
+child), so this also ends a game that is running when the cable is moved; waiting
+for the game to end instead was tried and leaves a black screen, because a game
+drawing on HDMI cannot move to the panel. `finishing_touches-rk3562.sh`
 installs both.
 
 **Found while testing the unplug:** switching to HDMI also leaves the internal
@@ -1891,7 +1893,7 @@ restores it when it switches back to the panel.
 
 Not covered: the picture stays 1920x1080, so a port or emulator that wants the
 panel's 720x1280 gets whatever it asks of the HDMI mode list; and a game that is
-running when the cable is moved keeps the output it started on until it exits.
+running when the cable is moved is ended by the restart, so its unsaved progress is lost.
 
 ## Smaller things
 
