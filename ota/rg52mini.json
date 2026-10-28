@@ -35,6 +35,42 @@
    "size": 150620160,
    "sha256": "7c7d23274593daa7ecd8ecda2a511176e9beb49301d48a0243d02f62b33a2a22",
    "url": "https://github.com/mamaich/dArkOS_rg52mini/releases/download/v1.3/dArkOS_rg52mini_ota_1.1_20261014145009-to-1.3_20261025224049.tar"
+  },
+  {
+   "device": "rg52mini",
+   "version": "1.3.1",
+   "build_id": "20261027181937",
+   "from_version": "1.3",
+   "from_build_id": "20261025224049",
+   "datetime": 1793157023,
+   "filename": "dArkOS_rg52mini_ota_1.3_20261025224049-to-1.3.1_20261027181937.tar",
+   "size": 54517760,
+   "sha256": "fa29034a5bbe5abde4bc5a31a499b9f587ea15a540699bb73e4f0342af0f86fc",
+   "url": "https://github.com/mamaich/dArkOS_rg52mini/releases/download/v1.3.1/dArkOS_rg52mini_ota_1.3_20261025224049-to-1.3.1_20261027181937.tar"
+  },
+  {
+   "device": "rg52mini",
+   "version": "1.3.1",
+   "build_id": "20261027181937",
+   "from_version": "1.2",
+   "from_build_id": "20261018052939",
+   "datetime": 1793157238,
+   "filename": "dArkOS_rg52mini_ota_1.2_20261018052939-to-1.3.1_20261027181937.tar",
+   "size": 157696000,
+   "sha256": "ae1dccf05171a48240fedfb32dbcfcffea2c0394704e9443506977de453ce695",
+   "url": "https://github.com/mamaich/dArkOS_rg52mini/releases/download/v1.3.1/dArkOS_rg52mini_ota_1.2_20261018052939-to-1.3.1_20261027181937.tar"
+  },
+  {
+   "device": "rg52mini",
+   "version": "1.3.1",
+   "build_id": "20261027181937",
+   "from_version": "1.1",
+   "from_build_id": "20261014145009",
+   "datetime": 1793157479,
+   "filename": "dArkOS_rg52mini_ota_1.1_20261014145009-to-1.3.1_20261027181937.tar",
+   "size": 167915520,
+   "sha256": "65216bcf278c535eb1c65df8125abdd51964beb73ed2e3224dfb52aad8079df5",
+   "url": "https://github.com/mamaich/dArkOS_rg52mini/releases/download/v1.3.1/dArkOS_rg52mini_ota_1.1_20261014145009-to-1.3.1_20261027181937.tar"
   }
  ]
 }
