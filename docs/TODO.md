@@ -100,9 +100,11 @@ Left, and why:
   for the owner, also for the build shipped now.
 * **UZDoom** (GZDoom's continuation, 4.14.3 / 5.0.3; GZDoom has had no
   release since g4.14.2): a migration, not an update (binary, config and save
-  paths renamed; 5.x reworks controller input and dynamic lights). The
-  owner's decision. Also to check: the RG52's gzdoom.ini is the rk3566 one,
-  and its axis 2 (L2 here) may turn the player.
+  paths renamed; 5.x reworks controller input and dynamic lights). The owner
+  decided on 2026-10-28: not until users ask for it, or the work may be for
+  nothing; the upstream check lists it as kept on purpose. Still to check:
+  the RG52's gzdoom.ini is the rk3566 one, and its axis 2 (L2 here) may turn
+  the player.
 * **openMSX 20 and later**: OpenGL 2.1 only (gl4es), an ImGui GUI, scale
   factor 2 at least. A project of its own.
 * **Hypseus-Singe 3.x**: SDL3 with SDL3_ttf, _image and _mixer; the sdl2 line

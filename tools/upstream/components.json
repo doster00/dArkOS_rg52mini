@@ -15,7 +15,7 @@
     {"name": "DuckStation (AppImage)", "mode": "tag", "repo": "stenzek/duckstation", "pin": {"file": "build_duckstationsa.sh", "regex": "duckstation-sa-(0\\.1-\\d+)\\.AppImage", "format": "v{}"}, "tag_regex": "^v0\\.1-\\d+$", "note": "the AppImage is committed in the repo (duckstation/)"},
     {"name": "ARMSX2", "mode": "commit", "repo": "ARMSX2/ARMSX2", "pin": {"file": "build_pcsx2sa.sh", "regex": "^ARMSX2_COMMIT=\"([0-9a-f]+)\""}, "tag_regex": "^\\d+\\.\\d+(\\.\\d+)?$", "note": "a new commit needs the PGO profile retrained"},
     {"name": "GZDoom", "mode": "tag", "repo": "ZDoom/gzdoom", "pin": {"file": "rk3562_core_builds/scripts/gzdoom.sh", "regex": "^TAG=\"([^\"]+)\""}, "tag_regex": "^g\\d+\\.\\d+\\.\\d+$", "note": "GZDoom goes on as UZDoom (UZDoom/UZDoom)"},
-    {"name": "UZDoom (GZDoom's continuation)", "mode": "tag", "repo": "UZDoom/UZDoom", "pin": {"file": "rk3562_core_builds/scripts/gzdoom.sh", "regex": "^TAG=\"g([^\"]+)\"", "format": "{}"}, "tag_regex": "^\\d+\\.\\d+\\.\\d+$", "note": "compared with our GZDoom tag's version number"},
+    {"name": "UZDoom (GZDoom's continuation)", "mode": "frozen", "repo": "UZDoom/UZDoom", "note": "not moved to until users ask for it (owner, 2026-10-28): a migration of names, paths and saves, docs/TODO.md"},
     {"name": "ZMusic", "mode": "follow", "repo": "ZDoom/ZMusic"},
     {"name": "LZDoom (christianhaitian)", "mode": "follow", "repo": "christianhaitian/lzdoom", "cache": {"file": "Arkbuild_package_cache/rk3562/lzdoom.commit", "regex": "^([0-9a-f]{40})"}},
     {"name": "Yaba Sanshiro (standalone)", "mode": "commit", "repo": "Mechafatnick/YabaSanshiroPi", "pin": {"file": "rk3562_core_builds/scripts/yabasanshirosa.sh", "regex": "^TAG=\"mechafatnick-([0-9a-f]+)\""}},
