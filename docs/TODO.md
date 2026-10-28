@@ -1227,6 +1227,12 @@ is in the v09292026 assets. What is left is whether panel-kick is still needed:
 
 ## HDMI: find the real connector name, then make detection follow the cable
 
+**Status 2026-10-28.** Steps 1-3 were checked on the device (see KNOWN-ISSUES,
+"Measured on the device"): the connector is `HDMI-A-1`, index 1 is right, and
+hotplug is now handled by `scripts/rk3562/hdmi-hotplug.sh` + its udev rule. Step 4
+stands as advice. What is left is verifying the unplug event on hardware and
+deciding what resolution a plugged display should get.
+
 HDMI does nothing on the device. KNOWN-ISSUES has the evidence that the kernel
 side matches the Android image where HDMI works, so this is dArkOS-side work.
 In order, and the first step is one command:

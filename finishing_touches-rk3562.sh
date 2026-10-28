@@ -74,6 +74,11 @@ sudo cp audio/.asoundrchdmi Arkbuild/home/ark/.asoundrchdmi
 sudo cp audio/audio-switch.sh Arkbuild/usr/local/bin/audio-switch.sh
 sudo chmod +x Arkbuild/usr/local/bin/audio-switch.sh
 sudo cp audio/99-hdmi-audio.rules Arkbuild/etc/udev/rules.d/99-hdmi-audio.rules
+# HDMI hotplug: hdmi-test.sh looks at the cable once, at boot, so a cable plugged
+# in later did nothing and unplugging left EmulationStation on a dead HDMI
+# output. This re-evaluates drmConn on every DRM connector change.
+sudo install -m 755 scripts/rk3562/hdmi-hotplug.sh Arkbuild/usr/local/bin/hdmi-hotplug.sh
+sudo install -m 644 scripts/rk3562/99-hdmi-hotplug.rules Arkbuild/etc/udev/rules.d/99-hdmi-hotplug.rules
 sudo chroot Arkbuild/ bash -c "chown ark:ark /home/ark/.asoundrc*"
 sudo chroot Arkbuild/ bash -c "ln -sfv /home/ark/.asoundrc /etc/asound.conf"
 sudo chroot Arkbuild/ bash -c "cp -fv /usr/share/alsa/alsa.conf /usr/share/alsa/alsa.conf.mednafen"
