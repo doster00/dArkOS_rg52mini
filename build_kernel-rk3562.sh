@@ -192,8 +192,10 @@ echo "Creating uInitrd..."
 call_chroot "depmod ${KERNEL_VERSION}; update-initramfs -c -k ${KERNEL_VERSION}"
 sudo cp Arkbuild/boot/initrd.img-${KERNEL_VERSION} ${mountpoint}/initrd.img
 
+# install_host_package was never defined here, so a host without mkimage
+# stopped at "command not found"; install it as cpio and zstd are below.
 if ! command -v mkimage &> /dev/null; then
-  install_host_package u-boot-tools uboot-tools
+  sudo apt-get install -y u-boot-tools
 fi
 
 # The uInitrd below is unpacked with zstd and repacked with cpio. If either is
