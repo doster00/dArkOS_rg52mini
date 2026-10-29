@@ -1758,6 +1758,9 @@ dual-boot card GammaOS's `n3ds` is an alias of it. Encrypted dumps do not run.
   games (Castlevania at 21 fps, Luigi's Mansion at 49) are bound by the GPU
   already at x1, so x2 is not a default for all; a light game can be set to
   x2 in its own core options (RetroArch's Quick Menu > Core Options > Game).
+  No per-title x2 in the core, as Castlevania's stereo has (patch 013): the
+  owner's call of 2026-10-29. x2 runs close to the limit, so heat and the
+  scene decide whether it holds 60, and that is the user's choice to make.
 - **RetroArch's FPS counter costs about 20%** on the vulkan driver (29.7 fps
   without it, 24.3 with it, same savestate, 2126.2). Measure without it.
 - **RGA scaling** (`video_ctx_scaling`) changes nothing on the vulkan driver
