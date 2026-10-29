@@ -1358,7 +1358,11 @@ is in the v09292026 assets. What is left is whether panel-kick is still needed:
 "Measured on the device"): the connector is `HDMI-A-1`, index 1 is right, and
 hotplug is now handled by `scripts/rk3562/hdmi-hotplug.sh` + its udev rule. Step 4
 stands as advice. What is left is verifying the unplug event on hardware and
-deciding what resolution a plugged display should get.
+deciding what resolution a plugged display should get. Since 2026-10-29 the
+handler debounces and defers a plug-in during a game to its end (KNOWN-ISSUES);
+to check with a cable: wiggle it in the menu (one restart, not several), plug
+it in during a game (the game goes on, HDMI after quitting), pull it during a
+game on HDMI (the game ends, the panel comes back lit).
 
 HDMI does nothing on the device. KNOWN-ISSUES has the evidence that the kernel
 side matches the Android image where HDMI works, so this is dArkOS-side work.

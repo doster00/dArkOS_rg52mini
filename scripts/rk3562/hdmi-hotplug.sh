@@ -3,18 +3,51 @@
 # hdmi-test.sh decides this only once at boot, so a cable plugged in later did
 # nothing and unplugging left the console pointing at a dead HDMI output.
 # Triggered by 99-hdmi-hotplug.rules on every DRM connector change.
+#
+# A cable that is wiggled or half in sends a burst of changes, so the events are
+# coalesced (one handler runs, at most one more waits and reads the cable afresh
+# when it gets its turn) and a state is acted on only when it holds for a second.
+exec 8>/run/hdmi-hotplug.queue
+flock -n 8 || exit 0             # one is already waiting: it will see this change
 exec 9>/run/hdmi-hotplug.lock
-flock -w 30 9 || exit 0          # events are handled one at a time
+flock -w 60 9 || exit 0
+exec 8>&-                        # running now: the next event may queue
+
+hdmi() { [ "$(cat /sys/class/drm/card0-HDMI-A-1/status 2>/dev/null)" = connected ] && echo 1 || echo 0; }
 sleep 2                          # let the bridge/EDID settle
-st=$(cat /sys/class/drm/card0-HDMI-A-1/status 2>/dev/null)
-want=0; [ "$st" = connected ] && want=1
+want=$(hdmi)
 cur=$(cat /var/run/drmConn 2>/dev/null || echo 0)
 [ "$want" = "$cur" ] && exit 0
+# Debounce: the new state has to hold for a second, read five times.
+for i in 1 2 3 4 5; do
+  sleep 0.2
+  [ "$(hdmi)" = "$want" ] || exit 0
+done
+
+# EmulationStation stays alive while a game runs: the game is its child, and a
+# restart ends it with its unsaved progress.
+es=$(pgrep -f '^/usr/bin/emulationstation/emulationstation' | head -1)
+if [ -n "$es" ] && pgrep -P "$es" > /dev/null; then
+  if [ "$want" = 1 ]; then
+    # Plugged in during a game, which goes on on the panel: switch when it ends.
+    # One waiter at a time; it lets the lock go and runs this script again, which
+    # reads the cable afresh.
+    exec 9>&-
+    exec 7>/run/hdmi-hotplug.wait
+    flock -n 7 || exit 0
+    logger -t hdmi-hotplug "HDMI connected during a game: switching when it ends"
+    while kill -0 "$es" 2>/dev/null && pgrep -P "$es" > /dev/null; do sleep 2; done
+    exec 7>&-
+    exec "$0"
+  fi
+  # Unplugged during a game on HDMI: its picture is gone, and a game drawing on
+  # HDMI cannot move to the panel, so it is ended with EmulationStation.
+  logger -t hdmi-hotplug "HDMI disconnected during a game: the game is ended"
+fi
+
 echo "$want" > /var/run/drmConn
-logger -t hdmi-hotplug "HDMI $st: drmConn $cur -> $want"
-# Only restart the frontend when it is what is on screen; during a game just
-# remember the choice for the next frontend start.
-if pgrep -f '^/usr/bin/emulationstation/emulationstation' > /dev/null; then
+logger -t hdmi-hotplug "HDMI $([ $want = 1 ] && echo connected || echo disconnected): drmConn $cur -> $want"
+if [ -n "$es" ]; then
   systemctl restart emulationstation
 fi
 # Back on the internal screen: switching the panel off for HDMI also left the

@@ -1891,11 +1891,20 @@ the third.
 `scripts/rk3562/99-hdmi-hotplug.rules` on every DRM change event (the same event
 that already drives `audio-switch.sh`). It waits 2 s for the bridge, compares the
 HDMI status with `drmConn`, and on a difference rewrites `drmConn` and restarts
-EmulationStation. EmulationStation stays alive while a game runs (the game is its
-child), so this also ends a game that is running when the cable is moved; waiting
-for the game to end instead was tried and leaves a black screen, because a game
-drawing on HDMI cannot move to the panel. `finishing_touches-rk3562.sh`
-installs both.
+EmulationStation. `finishing_touches-rk3562.sh` installs both. (doster00's pull
+request #2, merged 2026-10-29.)
+
+On top of it (2026-10-29, the owner had seen the cable bounce): a burst of events
+from a wiggled cable is coalesced (one handler runs, at most one more waits and
+reads the cable afresh), and a new state is acted on only when it holds for a
+second more (read five times). EmulationStation stays alive while a game runs
+(the game is its child), so a restart ends the game with its unsaved progress:
+- **Plugged in during a game:** the game goes on on the panel, and the switch to
+  HDMI waits until it ends (one waiter, which runs the handler again).
+- **Unplugged during a game on HDMI:** the game is ended with the restart, after
+  the debounce. Waiting instead was tried in the pull request and leaves a black
+  screen until the game is quit, because a game drawing on HDMI cannot move to
+  the panel.
 
 **Found while testing the unplug:** switching to HDMI also leaves the internal
 backlight at 0 (`/sys/class/backlight/backlight/brightness`), and nothing puts it
@@ -1905,8 +1914,10 @@ EmulationStation and the DSI link were up. The last non-zero value is kept by
 restores it when it switches back to the panel.
 
 Not covered: the picture stays 1920x1080, so a port or emulator that wants the
-panel's 720x1280 gets whatever it asks of the HDMI mode list; and a game that is
-running when the cable is moved is ended by the restart, so its unsaved progress is lost.
+panel's 720x1280 gets whatever it asks of the HDMI mode list; and a game on HDMI
+is ended when the cable comes out, so its unsaved progress is lost. Not yet tried
+on the device: the debounce and the switch after a game (they need a cable moved
+by hand).
 
 ## Smaller things
 
