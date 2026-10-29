@@ -1472,9 +1472,21 @@ and rk628 probe order before concluding anything about the hardware.
   five), 18.64 against 18.74 over 800-1500; Jak and Daxter's intro 35.98
   against 35.89 (five rounds), Jak in game from the owner's save 16.47
   against 16.41 (two). The pictures are the same. The malisx2 session saw
-  +4.1% on God of War with 1.3.1's ARMSX2. To take it: the commit pushed to
-  the fork, `MALISX2_COMMIT` moved, and the variable exported for ARMSX2 only
-  (its launcher); Azahar and Dolphin are on libmali.
+  +4.1% on God of War with 1.3.1's ARMSX2.
+  7732b3a (e09815b on ce57011) picks FP16 by counting the shader's
+  operations instead of compiling it twice (Castlevania's preload 10.3 s
+  against 16.9; 9.5 without FP16; `MALISX2_V7_FP16=3` is the old choice).
+  Measured the same way, four rounds, two in each order: God of War on the
+  ship 22.97 against 22.82 over 100-1500 (-0.7%), 28.03 against 29.08 over
+  100-800 (+3.7%, ahead in all four) but 19.46 against 18.77 over 800-1500
+  (-3.5%, behind in all four); from the owner's save (left by pressing
+  Cross 12 s in, as the malisx2 session's drv-ab.sh does) 24.98 against 25.53
+  (+2.2%, ahead in all four); Jak's intro 36.01 against 35.63 (-1.1%, behind
+  in all four, in both orders). So the count takes FP16 for shaders the two
+  compiles kept at 32 bits, and loses where ce57011 did not; told to the
+  malisx2 session. To take either: the commit pushed to the fork,
+  `MALISX2_COMMIT` moved, and the variable exported for ARMSX2 only (its
+  launcher); Azahar and Dolphin are on libmali.
 
 ## Repairs, each its own small job
 
