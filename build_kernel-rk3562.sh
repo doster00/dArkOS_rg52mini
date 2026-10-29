@@ -196,6 +196,14 @@ if ! command -v mkimage &> /dev/null; then
   install_host_package u-boot-tools uboot-tools
 fi
 
+# The uInitrd below is unpacked with zstd and repacked with cpio. If either is
+# missing on the host the pipeline fails without a word and uInitrd ends up as
+# an empty gzip (20 bytes): the kernel then panics with "VFS: Unable to mount
+# root fs on unknown-block(0,0)". Minimal Ubuntu/WSL images may lack them.
+for tool in cpio zstd; do
+  command -v ${tool} &> /dev/null || sudo apt-get install -y ${tool}
+done
+
 # Update uInitrd to force booting from mmcblk1p4 (SD card rootfs)
 # Use subshell to preserve cwd
 (
@@ -231,6 +239,13 @@ fi
   cd ..
   rm -rf initrd
 )
+# A real initramfs is several MB. Stop here rather than ship an image that
+# cannot boot.
+UINITRD_SIZE=$(stat -c %s ${mountpoint}/uInitrd 2>/dev/null || echo 0)
+if [ "${UINITRD_SIZE}" -lt 1000000 ]; then
+  echo "ERROR: uInitrd is only ${UINITRD_SIZE} bytes - the initramfs repack failed (cpio/zstd missing?)"
+  exit 1
+fi
 sudo rm -f ${mountpoint}/initrd.img
 
 # Flash bootloader components

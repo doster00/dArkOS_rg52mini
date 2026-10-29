@@ -31,7 +31,12 @@ KCMD_BASE="root=/dev/mmcblk1p4 rootfstype=btrfs initrd=/uInitrd rootwait rw fsck
 if [ "$UNIT" == "rg52mini" ]; then
   KCMD_VIDEO="video=HDMI-A-1:1280x720@60 fbcon=rotate:1"
 else
-  KCMD_VIDEO=""
+  # RG43 Pro: the vendor U-Boot draws no splash, so there is no logo for kernel
+  # messages to spoil. console=tty1 gives the first-boot dialogs (expandtoexfat:
+  # RG43H/V model choice) and any panic a visible console; this is what the
+  # bmdhacks image boots with on the RG43V Pro. loglevel=0 (last one wins)
+  # keeps kernel messages off the panel.
+  KCMD_VIDEO="console=tty1 loglevel=0"
 fi
 cat <<EOF | sudo tee ${mountpoint}/extlinux/extlinux.conf
 LABEL dArkOS
