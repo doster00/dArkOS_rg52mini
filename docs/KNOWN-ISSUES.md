@@ -1740,6 +1740,24 @@ dual-boot card GammaOS's `n3ds` is an alias of it. Encrypted dumps do not run.
   was black again. Checked on the console with Castlevania and an empty
   pipeline cache, without a savestate and from slot 0: the bar went 17, 147,
   325 of 626 at 8, 25 and 45 s, the game ran at 75 s.
+- **Internal resolution x2 (2026-10-29).** Users of GammaOS's azahar-nano
+  said Super Mario 3D Land plays well at x2. Measured here from one savestate
+  (Boom Boom's room, the 1.4 core, two rounds of 30 s; 60 is full speed):
+
+  | `citra_resolution_factor` | libmali | malisx2 7732b3a |
+  |---|---|---|
+  | 1 (the default) | 60.2 | 60.2 |
+  | 2 | 59.8 (11 frames of 1800 late) | 40.2 |
+  | 3 | 30.1 | 25.6 |
+
+  At x1 malisx2 takes less CPU for the same 60 (RetroArch's process 69%
+  against 82%); at x2 the GPU decides, and Arm's driver draws it faster.
+  Screenshots of the same emulated frames (RetroArch's `--max-frames-ss`) at
+  x1, x2 and x3 show the same scene, only smoother: the dark shape under a
+  shadow that falls across the platform's edge is there at x1 too. Heavier
+  games (Castlevania at 21 fps, Luigi's Mansion at 49) are bound by the GPU
+  already at x1, so x2 is not a default for all; a light game can be set to
+  x2 in its own core options (RetroArch's Quick Menu > Core Options > Game).
 - **RetroArch's FPS counter costs about 20%** on the vulkan driver (29.7 fps
   without it, 24.3 with it, same savestate, 2126.2). Measure without it.
 - **RGA scaling** (`video_ctx_scaling`) changes nothing on the vulkan driver
