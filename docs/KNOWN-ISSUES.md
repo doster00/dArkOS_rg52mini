@@ -1881,7 +1881,12 @@ HDMI status with `drmConn`, and on a difference rewrites `drmConn` and restarts
 EmulationStation. EmulationStation stays alive while a game runs (the game is its
 child), so this also ends a game that is running when the cable is moved; waiting
 for the game to end instead was tried and leaves a black screen, because a game
-drawing on HDMI cannot move to the panel. `finishing_touches-rk3562.sh`
+drawing on HDMI cannot move to the panel. The games started from Ports run in a
+systemd unit of their own (`NAME-port-UID`, from `systemd-run`), outside
+EmulationStation, so restarting it does not end them: left alone, such a game
+kept drawing to the output that was gone and held the display lock, and the next
+launch closed at once. The hook stops those units first.
+`finishing_touches-rk3562.sh`
 installs both.
 
 **Found while testing the unplug:** switching to HDMI also leaves the internal
