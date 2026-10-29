@@ -3,7 +3,7 @@
 # DRM connector setup and HDMI detection for RK3562 (RG52 Mini)
 # Creates /var/run/drmConn (required by EmulationStation for Display Settings menu)
 # and /var/run/drmMode (used by RetroArch for display mode selection).
-# Runs at boot via @reboot crontab.
+# Runs at boot via @reboot crontab; hdmi-hotplug.sh (udev) handles the cable after boot.
 #
 
 # Default: internal DSI panel (connector 0, mode 0)
