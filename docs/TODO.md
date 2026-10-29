@@ -469,6 +469,49 @@ nominal rate). What it would do:
 It would be an option (`[SPU2/Output] RealtimeAudio`), time stretching
 staying for the jitter.
 
+## PS2: EE cycle rate below -3 (2026-10-29, measured, not decided)
+
+ARMSX2 says at start that the cycle rate is not at its default and may cause
+slowdown: our `PCSX2.ini` sets `EECycleRate = -3`, `EECycleSkip = 1` (from
+bmdhacks 067a27d). The warning stays (the owner). -3 is the lowest the build
+takes: `MIN_EE_CYCLE_RATE` in `pcsx2/Config.h`, `kMinSelector` in
+`EECycleRateController.cpp`; upstream PCSX2 stops there too (50%). The arm64
+recompiler counts `(5 - 2*(rate+1))/32` of a block's cycles where the default
+counts 4/32 (`scaleblockcycles_calculation_for`), so the EE runs at 44% of its
+clock at -3, 36% at -4, 31% at -5, 27% at -6.
+
+Measured with a7ad453 and its profile, built with both limits at -6
+(`armsx2-cyclerate-min6.patch`, the session's scratchpad), malisx2 7732b3a
+with FP16 off, as ES starts it, two rounds in opposite orders, 75 s each.
+fps is frames the game drew a second (SkipDuplicateFrames is on); speed is
+ARMSX2's PerfLog "fps", emulated vsyncs a second, from its second line
+(about 30-60 s in, after the state is loaded); 50 is full speed for these PAL
+games:
+
+| rate/skip | 0/0 (ARMSX2's default) | 0/1 | -1/1 | -2/1 | -3/1 (ours) | -4/1 | -5/1 |
+|---|---|---|---|---|---|---|---|
+| God of War, ship, fps 100-1500 | 22.04 | 24.53 | 24.12 | 23.49 | 22.77 | 22.50 | 23.86 |
+| speed | 19.4 | 22.2 | 22.9 | 24.2 | 25.7 | 29.0 | 35.7 |
+| God of War, owner's save, fps | 24.35 | 26.88 | 27.24 | 25.55 | 24.29 | 25.81 | 24.90 |
+| speed | 18.5 | 21.8 | 23.0 | 24.1 | 25.0 | 30.8 | 33.4 |
+| Jak's intro, fps 300-1850 | 32.21 | 32.50 | 35.11 | 36.94 | 35.35 | 37.30 | 43.52 |
+| speed | 21.1 | 25.5 | 26.4 | 26.4 | 34.4 | 36.2 | 40.1 |
+
+God of War: the lower the rate, the faster the game's own time runs (35.7
+against 25.7 at -5, +39%; from the owner's save +34%) at the same frames a
+second: the game draws a frame every more vsyncs, so it moves faster but no
+smoother. Higher rates draw more frames of a slower game (0/1: 8-11% more
+frames, 14% less speed than -3). Jak gains both: at -5 23% more frames and
+17% more speed. `EECycleSkip = 1` alone is worth 8-11% of both (0/0 against
+0/1). The screen at the end of every run shows nothing broken; in 75 s Jak at
+-3 and -5 got further into the intro than at 0.
+
+Not checked: whether games break with the EE this slow (their logic, cutscene
+and sound timing, games that count on CPU time); only two games, 75 s each,
+sound off. Below -3 also needs the EE Cycle Rate list of FullscreenUI
+(`FullscreenUI_Settings.cpp`, its base is -3) extended. a7ad453's
+`DynamicEECycleRate` (off) lowers the rate by up to two steps on its own.
+
 ## PS2: the GPU gets the heat; what else was tried (2026-10-22)
 
 Measured as in the next section (fps between fixed frames, builds in turn, after a
@@ -1512,6 +1555,11 @@ and rk628 probe order before concluding anything about the hardware.
   malisx2 session. To take either: the commit pushed to the fork,
   `MALISX2_COMMIT` moved, and the variable exported for ARMSX2 only (its
   launcher); Azahar and Dolphin are on libmali.
+* **ARMSX2's EE cycle rate below -3** (2026-10-29, the owner's call). See
+  "PS2: EE cycle rate below -3": -5 runs God of War's time 34-39% faster at
+  the same frames, Jak 17% faster with 23% more frames; untested for breakage.
+  Ways: keep -3; the limit patch and -4 or -5 for all; or -5 only in the
+  per-game settings of games played through.
 
 ## Repairs, each its own small job
 
