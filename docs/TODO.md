@@ -1481,8 +1481,16 @@ and rk628 probe order before concluding anything about the hardware.
   ce57011 (on 1c45a6e, not yet in the fork) computes fragment shader
   arithmetic in FP16 where nothing needs 32 bits, with `MALISX2_V7_FP16=1`
   in the program's environment (off by default; its first run compiles the
-  fragment shaders again). ARMSX2 stays at a7ad453 (2026-10-29), so the
-  numbers below, taken on 2.9, are to be taken again on it. Measured here with ARMSX2 2.9 and its 2026-10-28
+  fragment shaders again). ARMSX2 stays at a7ad453 (2026-10-29), and on it
+  (the image's own, 7732b3a, four rounds, two in each order; off / 1 / 3):
+  God of War from the owner's save 24.87 / 25.57 / 25.96 fps over 100-1500
+  (+2.8%, +4.4%), on the ship 22.62 / 22.71 / 23.13 (+0.4%, +2.3%; over
+  800-1500 -1.0% and +1.5%), Jak's intro 35.62 / 35.44 / 35.83 (-0.5%,
+  +0.6%). `=3` (both builds compiled, the better kept) is nowhere behind `=1`
+  and ahead on God of War; it compiles 78% longer (Castlevania's preload 16.9 s
+  against 9.5 s without FP16, 10.3 s with `=1`), and ARMSX2 compiles while a
+  game plays, the first time each shader is met. The malisx2 session is looking
+  for a count that chooses as `=3` does. The 2.9 numbers that follow came first. Measured here with ARMSX2 2.9 and its 2026-10-28
   profile, as ES starts it, after a warm-up, off against on: God of War on
   the ship 22.48 against 22.80 fps over frames 100-1500 (+1.4%, five rounds,
   on ahead in four), 28.29 against 29.10 over 100-800 (+2.9%, ahead in all
