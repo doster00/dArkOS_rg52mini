@@ -59,7 +59,7 @@ cached rootfs as the image build does, and tried on the console against
 | Component | Taken | On the console (fps, against 1.3.1) |
 |---|---|---|
 | Azahar | 2126.1.2 -> 2126.2, GammaOS's 1feeb9c2d16 as patch 019 | Super Mario 3D Land 58.8 / 59.1 (seven runs each, within the spread), Castlevania 21.5 / 21.5; 1.3 states and pipeline caches load |
-| ARMSX2 | a7ad453 -> 2.9, the profile retrained | Jak's intro 34.1 / 34.2, God of War on the ship 20.7 / 21.1 |
+| ARMSX2 | stays at a7ad453 (2.9 tried, the owner's call of 2026-10-29: speed comes before keeping up with upstream) | 2.9 with its profile retrained: Jak's intro 34.1 / 34.2, God of War on the ship 20.7 / 21.1 |
 | Dolphin | e6583f8 (2023) -> 2609a | ND Demo 45.7 / 45.6, 46.3 with AccurateFmadds and PrecisionFrameTiming off (the image's setting); Metroid Prime starts, Hotkey+Start quits |
 | flycast | v2.6 -> v2.7 and four fixes from master | Crazy Taxi 59.9; kov7sprt keeps its NVRAM |
 | ScummVM | 2026.3.0 -> 2026.4.0 | Day of the Tentacle, now with FluidSynth |
@@ -69,6 +69,11 @@ cached rootfs as the image build does, and tried on the console against
 | retrorun | pinned at 0784f21, what 1.3.1 ships | — |
 | christianhaitian's recipes | merged to ef273c8 | of the image only ScummVM |
 
+* **ARMSX2 2.9, tried and not taken** (dce7905, reverted 2026-10-29). It
+  brings fixes in the GS hardware renderer's texture cache and Vulkan render
+  passes, none of them seen in our games, and was no faster even with its own
+  profile (above), so the owner kept a7ad453 and its 2026-10-21 profile. A
+  newer ARMSX2 is taken only if it is faster here. What was learnt with it:
 * **ARMSX2's profile.** With a7ad453's profile 2.9 was 3% slower on Jak's
   intro and 4% on God of War: the GS code 2.9 changed (GSRendererHW::Draw,
   the texture cache) had no profile data, and the Vulkan changes were not it
@@ -83,8 +88,9 @@ cached rootfs as the image build does, and tried on the console against
   clang of xtool has no aarch64 profile runtime: an instrumented build
   passes `-resource-dir=/usr/lib/llvm-19/lib/clang/19`, the chroot's.
 * **ARMSX2's AutoTune** is off by default in 2.9 and was on in 1.3 (our
-  template had no key): Jak's intro 32.2 without it, 33.2 with it. Kept on;
-  the launcher adds the key once to an ini without it.
+  template had no key): Jak's intro 32.2 without it, 33.2 with it. With 2.9
+  the template said AutoTune = true and the launcher added the key once; a
+  later ARMSX2 needs that again.
 * **Dolphin 2609a** turned AccurateFmadds and PrecisionFrameTiming on; off
   again in our Dolphin.ini and, once, in a user's (dolphin.sh).
 * **Not tried yet:** Dolphin on malisx2 (it starts there since 1.3.1),
@@ -115,7 +121,7 @@ Left, and why:
   rebuilt) and azahar-nano's e62a0042457 (the right-eye disabler by
   framebuffer), which as it is would switch off our stereo_skip (patches
   013/014): it needs adapting and a check on Castlevania.
-* **ARMSX2 after 2.9**: the VU program cache rewritten as one pack per game
+* **ARMSX2 after 2.9** (we stay at a7ad453, above): the VU program cache rewritten as one pack per game
   in RAM (a day old, up to 128 MB here) and a COP2 clamp change in the JIT.
   master e3c7d21 tried once with 2.9's profile (2026-10-28): Jak's intro 30.2
   fps against 33.9, God of War on the ship 21.6 against 20.7; the first run
@@ -1465,7 +1471,8 @@ and rk628 probe order before concluding anything about the hardware.
   ce57011 (on 1c45a6e, not yet in the fork) computes fragment shader
   arithmetic in FP16 where nothing needs 32 bits, with `MALISX2_V7_FP16=1`
   in the program's environment (off by default; its first run compiles the
-  fragment shaders again). Measured here with ARMSX2 2.9 and its 2026-10-28
+  fragment shaders again). ARMSX2 stays at a7ad453 (2026-10-29), so the
+  numbers below, taken on 2.9, are to be taken again on it. Measured here with ARMSX2 2.9 and its 2026-10-28
   profile, as ES starts it, after a warm-up, off against on: God of War on
   the ship 22.48 against 22.80 fps over frames 100-1500 (+1.4%, five rounds,
   on ahead in four), 28.29 against 29.10 over 100-800 (+2.9%, ahead in all
