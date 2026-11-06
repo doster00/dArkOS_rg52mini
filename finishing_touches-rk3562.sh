@@ -605,7 +605,11 @@ sudo install -m 755 scripts/rk3562/runport.sh Arkbuild/usr/local/bin/runport.sh
 # Over-the-air updates (docs/OTA.md): darkos-ota and Options -> Update in place
 # of the generic Update.sh, which fetches upstream updates built for other
 # chipsets
-if [ "$UNIT" == "rg52mini" ]; then
+if [ "$UNIT" == "rg52mini" ] || [ "$UNIT" == "rg43h" ] || [ "$UNIT" == "rg43v" ]; then
+  if [ "$UNIT" != "rg52mini" ]; then
+    # our own channel (doster00 fork), not the RG52 Mini feed of the client's default
+    echo "FEED=https://raw.githubusercontent.com/doster00/dArkOS_rg52mini/master/ota/rg43h.json" | sudo tee Arkbuild/etc/darkos-ota.conf
+  fi
   sudo install -m 755 scripts/rk3562/darkos-ota Arkbuild/usr/local/sbin/darkos-ota
   sudo install -m 644 scripts/rk3562/darkos-ota-boot.service Arkbuild/etc/systemd/system/darkos-ota-boot.service
   sudo chroot Arkbuild/ bash -c "systemctl enable darkos-ota-boot"
@@ -838,12 +842,15 @@ sudo chroot Arkbuild/ bash -c "systemctl disable nmbd" 2>/dev/null || true
 # Set distro identification and version
 sudo mkdir -p Arkbuild/usr/share/plymouth/themes/
 DARKOS_VERSION=${DARKOS_VERSION:-$(cat VERSION 2>/dev/null)}
-if [ "$UNIT" == "rg52mini" ] && [ -n "$DARKOS_VERSION" ]; then
+# one OTA channel for the RG52 Mini, one for the RG43 (H and V share the image)
+DARKOS_OTA_DEVICE=$UNIT
+[ "$UNIT" == "rg43v" ] && DARKOS_OTA_DEVICE=rg43h
+if { [ "$UNIT" == "rg52mini" ] || [ "$UNIT" == "rg43h" ] || [ "$UNIT" == "rg43v" ]; } && [ -n "$DARKOS_VERSION" ]; then
   DARKOS_TITLE="dArkOS ${DARKOS_VERSION} (${BUILD_DATE})"
   echo "${DARKOS_VERSION}" | sudo tee Arkbuild/home/ark/.config/.DARKOS_RELEASE
   # what darkos-ota updates from: a package applies to one BUILD_ID only
   cat <<EOF | sudo tee Arkbuild/etc/darkos-release
-DEVICE=rg52mini
+DEVICE=${DARKOS_OTA_DEVICE}
 VERSION=${DARKOS_VERSION}
 BUILD_ID=${DARKOS_BUILD_ID:-$(date -u +%Y%m%d%H%M%S)}
 BUILD_DATE=${BUILD_DATE}

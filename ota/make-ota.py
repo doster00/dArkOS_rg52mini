@@ -308,7 +308,10 @@ def main():
         print("%s (%s) -> %s (%s)" % (ro.get("VERSION"), ro["BUILD_ID"],
                                       rn.get("VERSION"), rn["BUILD_ID"]))
 
-        do, dn = (os.path.join(X.dirs["boot"], "rk3562-rg52mini.dtb") for X in (O, N))
+        DEV = rn.get("DEVICE", "rg52mini")
+        if ro.get("DEVICE", "rg52mini") != DEV:
+            sys.exit("the images are for different devices: %s and %s" % (ro.get("DEVICE"), DEV))
+        do, dn = (os.path.join(X.dirs["boot"], "rk3562-%s.dtb" % DEV) for X in (O, N))
         if os.path.exists(do) and os.path.exists(dn) and sha256_file(do) != sha256_file(dn):
             no, nn = dtb_nodes(do), dtb_nodes(dn)
             bad = [k for k in DTB_NODES if no.get(k) != nn.get(k)]
@@ -326,8 +329,8 @@ def main():
         bf, bd, bs = diff(O.dirs["boot"], N.dirs["boot"], "boot", BOOT_EXCLUDE)
         uo, un = O.uboot(), N.uboot()
 
-        name = "dArkOS_rg52mini_ota_%s_%s-to-%s_%s" % (
-            ro.get("VERSION"), ro["BUILD_ID"], rn.get("VERSION"), rn["BUILD_ID"])
+        name = "dArkOS_%s_ota_%s_%s-to-%s_%s" % (
+            DEV, ro.get("VERSION"), ro["BUILD_ID"], rn.get("VERSION"), rn["BUILD_ID"])
         work = tempfile.mkdtemp(prefix="ota-pkg-", dir=a.outdir)
         try:
             pay = os.path.join(work, "payload")
@@ -344,7 +347,7 @@ def main():
                                 "--files-from=" + listf, top + "/",
                                 os.path.join(pay, part) + "/"], check=True)
             members = ["manifest.json"]
-            manifest = dict(format=FORMAT, device="rg52mini",
+            manifest = dict(format=FORMAT, device=DEV,
                             version=rn.get("VERSION"), build_id=rn["BUILD_ID"],
                             from_version=ro.get("VERSION"),
                             from_build_id=ro["BUILD_ID"],
@@ -394,7 +397,7 @@ def main():
           % (pkg, size >> 20, nf, (rs + bs) >> 20, len(rd + bd),
              ", boot loader" if uo != un else ""))
     print("sha256 " + sha)
-    entry = dict(device="rg52mini", version=rn.get("VERSION"), build_id=rn["BUILD_ID"],
+    entry = dict(device=DEV, version=rn.get("VERSION"), build_id=rn["BUILD_ID"],
                  from_version=ro.get("VERSION"), from_build_id=ro["BUILD_ID"],
                  datetime=manifest["datetime"], filename=os.path.basename(pkg),
                  size=size, sha256=sha,

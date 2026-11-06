@@ -116,6 +116,13 @@ source ./build_sdljoytest.sh
 source ./build_controllertester.sh
 source ./build_drastic.sh
 source ./build_dsperate.sh
+# Same Mali-G52 as the RG52 Mini: the open Vulkan driver (malisx2) beside libmali, chosen per
+# program (ES: EMULATOR SETTINGS). NOT build_vkrotate.sh: that layer is for the portrait panel.
+# BUILD_MALISX2=n leaves them out (the RG43H has 1 GB of RAM: measure before shipping).
+if [[ "${BUILD_MALISX2:-y}" == "y" ]]; then
+  source ./build_vkselect.sh
+  source ./build_malisx2.sh
+fi
 source ./build_gl4esfix.sh
 source ./build_trigaxesoff.sh
 source ./build_gl4es.sh
