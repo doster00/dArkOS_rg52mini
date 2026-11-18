@@ -11,6 +11,30 @@
    "size": 63109120,
    "sha256": "cc5f032a525e9eebcf0e5bdf3dc2cd4b78cb6ded837490de173b750ac097a1a4",
    "url": "https://github.com/doster00/dArkOS_rg52mini/releases/download/v1.9-rg43h/dArkOS_rg43h_ota_1.8_20261109033012-to-1.9_20261112193856.tar"
+  },
+  {
+   "device": "rg43h",
+   "version": "1.10",
+   "build_id": "20261118143554",
+   "from_version": "1.9",
+   "from_build_id": "20261112193856",
+   "datetime": 1795015622,
+   "filename": "dArkOS_rg43h_ota_1.9_20261112193856-to-1.10_20261118143554.tar",
+   "size": 37724160,
+   "sha256": "d99d7652821ee54411d21537ffcd5fa3d22ee18bb388f3016e7687b6c7b60a0b",
+   "url": "https://github.com/doster00/dArkOS_rg52mini/releases/download/v1.10-rg43h/dArkOS_rg43h_ota_1.9_20261112193856-to-1.10_20261118143554.tar"
+  },
+  {
+   "device": "rg43h",
+   "version": "1.10",
+   "build_id": "20261118143554",
+   "from_version": "1.8",
+   "from_build_id": "20261109033012",
+   "datetime": 1795015796,
+   "filename": "dArkOS_rg43h_ota_1.8_20261109033012-to-1.10_20261118143554.tar",
+   "size": 74649600,
+   "sha256": "12c957da53bb97d4f08cb485cf6377da840cb57618ad3dd8c09e8c851975b31f",
+   "url": "https://github.com/doster00/dArkOS_rg52mini/releases/download/v1.10-rg43h/dArkOS_rg43h_ota_1.8_20261109033012-to-1.10_20261118143554.tar"
   }
  ]
 }
